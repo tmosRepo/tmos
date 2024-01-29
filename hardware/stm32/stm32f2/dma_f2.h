@@ -170,8 +170,13 @@ typedef struct
 
 #define STM32_DMA_ERRORS (DMA_ISR_TEIFx | DMA_ISR_DMEIFx )	//!< errors for F2 (DMA_ISR_FEIFx is fake???)
 
-#define STM32_DMA_COMPLETE (DMA_ISR_TCIFx)	//!< complete for F2
-#define STM32_DMA_HALF (DMA_IFCR_CHTIFx)	//!< half transfer for F2
+#define STM32_DMA_COMPLETE (DMA_ISR_TCIFx)	//!< interrupt flag on complete for F2
+#define STM32_DMA_HALF (DMA_ISR_HTIFx)		//!< interrupt flag on half transfer for F2
+#define STM32_DMA_FIFO_ERR (DMA_ISR_FEIFx)	//!< interrupt flag on FIFO error for F2
+
+#define STM32_DMA_COMPLETE_ENABLE (DMA_SxCR_TCIE)	//!< enabled interrupt on complete for F2
+#define STM32_DMA_HALF_ENABLE (DMA_SxCR_HTIE)		//!< enabled interrupt on half transfer for F2
+#define STM32_DMA_FIFO_ERR_ENABLE (DMA_SxFCR_FEIE)	//!< enabled interrupt on FIFO error for F2
 
 /** DMA Driver mode structure **/
 struct DMA_DRIVER_MODE
@@ -249,6 +254,8 @@ static inline uint32_t stm32_get_ints(DMA_TypeDef* dmac, uint32_t indx)
 
 static inline uint32_t stm32_dma_ndtr(DMA_TypeDef* dmac, uint32_t indx)
 {
+	if(dmac->DMA_Chx[indx].DMA_SxCR & DMA_SxCR_PFCTRL)
+		return 0xFFFF - dmac->DMA_Chx[indx].DMA_SxNDTR;
 	return dmac->DMA_Chx[indx].DMA_SxNDTR;
 }
 
@@ -293,6 +300,13 @@ static inline uint32_t stm32_dma_psize(uint32_t SxCR, uint32_t size)
 		size = 0;
 	}
 	return ((SxCR & ~(DMA_SxCR_PSIZE))|size);
+}
+
+
+static inline uint32_t stm32_get_en_ints(DMA_TypeDef* dmac, uint32_t indx)
+{
+	return (dmac->DMA_Chx[indx].DMA_SxCR & (DMA_SxCR_DMEIE|DMA_SxCR_TEIE|DMA_SxCR_HTIE|DMA_SxCR_TCIE))
+			|(dmac->DMA_Chx[indx].DMA_SxFCR & DMA_SxFCR_FEIE);
 }
 
 void stm32_en_ints(DMA_TypeDef* dmac, uint32_t indx, DMA_DRIVER_MODE* mode);

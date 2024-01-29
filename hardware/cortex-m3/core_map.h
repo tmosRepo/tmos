@@ -78,7 +78,7 @@
 #define BASE_TPIU       (BASE_EXT_PER +0x000000) //!< 0xE0040000 TPIU Base Address
 #define BASE_ETM        (BASE_EXT_PER +0x001000) //!< 0xE0041000 ETM Base Address
 #define BASE_EXT_PPB    (BASE_EXT_PER +0x002000) //!< 0xE0042000 External PPB Base Address
-#define BASE_ROM_TABLE  (BASE_EXT_PER +0x0BF000) //!< 0xE0FF0000 ROM Table
+#define BASE_ROM_TABLE  (BASE_EXT_PER +0x0BF000) //!< 0xE00FF000 ROM Table
 
 
 
@@ -135,6 +135,21 @@
 #define REG_ITM_LAR 	REG_ACCESS(__IO uint32_t, BASE_ITM+0xFB0) //!< ITM Lock Access Register
 #define REG_ITM_LSR 	REG_ACCESS(__IO uint32_t, BASE_ITM+0xFB4) //!< ITM Lock Status Register
 
+/* CoreSight infrastructure IDs for an ARMv7-M implementation */
+#define ROM_CID0 	REG_ACCESS(__I ureg32_t, BASE_ROM_TABLE+0xFF0) //!<
+#define ROM_CID1	REG_ACCESS(__I uint32_t, BASE_ROM_TABLE+0xFF4) //!<
+#define ROM_CID2	REG_ACCESS(__I uint32_t, BASE_ROM_TABLE+0xFF8) //!<
+#define ROM_CID3	REG_ACCESS(__I uint32_t, BASE_ROM_TABLE+0xFFC) //!<
+
+#define ROM_PID0	REG_ACCESS(__I uint32_t, BASE_ROM_TABLE+0xFE0) //!<
+#define ROM_PID1	REG_ACCESS(__I uint32_t, BASE_ROM_TABLE+0xFE4) //!<
+#define ROM_PID2	REG_ACCESS(__I uint32_t, BASE_ROM_TABLE+0xFE8) //!<
+#define ROM_PID3	REG_ACCESS(__I uint32_t, BASE_ROM_TABLE+0xFEC) //!<
+
+#define ROM_PID4	REG_ACCESS(__I uint32_t, BASE_ROM_TABLE+0xFD0) //!<
+#define ROM_PID5	REG_ACCESS(__I uint32_t, BASE_ROM_TABLE+0xFD4) //!<
+#define ROM_PID6	REG_ACCESS(__I uint32_t, BASE_ROM_TABLE+0xFD8) //!<
+#define ROM_PID7	REG_ACCESS(__I uint32_t, BASE_ROM_TABLE+0xFD7) //!<
 
 #endif /* CORE_MAP_H_ */
 

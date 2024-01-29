@@ -36,6 +36,7 @@
 #include <tmos_swi.h>
 #include <services.h>
 #include <tmos_stdio.h>
+#include <mcu_id.h>
 
 #ifdef __cplusplus
 extern "C"

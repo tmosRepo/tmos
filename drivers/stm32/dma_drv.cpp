@@ -8,6 +8,18 @@
 #include <tmos.h>
 #include <dma_drv.h>
 
+#ifndef TRACE_DMA_LEVEL
+#define TRACE_DMA_LEVEL	TRACE_LEVEL_NONE
+#endif
+
+#define TRACE_DMA_CHANNEL		(drv_info->ch_indx == 0 || drv_info->ch_indx == 5)
+
+#define DMA_TRACE_CHAR(ch) 		do{if(TRACE_DMA_CHANNEL)TRACE_CHAR_LEVEL(TRACE_DMA_LEVEL, ch);}while(0)
+#define DMA_TRACE(...) 			do{if(TRACE_DMA_CHANNEL)TRACE_LEVEL(TRACE_DMA_LEVEL, __VA_ARGS__);}while(0)
+#define DMA_TRACE1(str)			do{if(TRACE_DMA_CHANNEL)TRACE1_LEVEL(TRACE_DMA_LEVEL, str);}while(0)
+#define DMA_TRACELN(str, ...)	do{if(TRACE_DMA_CHANNEL)TRACELN_LEVEL(TRACE_DMA_LEVEL, str, ##__VA_ARGS__);}while(0)
+#define DMA_TRACELN1(str)		do{if(TRACE_DMA_CHANNEL)TRACELN1_LEVEL(TRACE_DMA_LEVEL, str);}while(0)
+
 extern 	 char* const DRV_TABLE[INALID_DRV_INDX+1];
 
 uint32_t dma_drv_get_ndtr(DRIVER_INDEX drv_index)
@@ -40,6 +52,44 @@ uint32_t dma_drv_is_en(DRIVER_INDEX drv_index)
 	return is_en;
 }
 
+bool DMA_START_WAITING(DMA_DRIVER_INFO* drv_info)
+{
+	DMA_CHANNEL_DATA* ch_data;
+	HANDLE hnd;
+
+	ch_data = drv_info->ch_data;
+
+	if( ch_data->pending == nullptr && ch_data->terminating == nullptr
+			&& (hnd = ch_data->waiting))
+	{
+		DMA_DRIVER_MODE* mode;
+
+		ch_data->waiting = hnd->next;
+
+		mode = (DMA_DRIVER_MODE *)hnd->mode.as_voidptr;
+		if(mode != ch_data->last_mode)
+		{
+			ch_data->last_mode = mode;
+			// configure the channel
+			stm32_dma_ch_cfg(drv_info->hw_base, drv_info->ch_indx, mode);
+		}
+
+		// start transfer...
+		stm32_dma_start(drv_info->hw_base, drv_info->ch_indx, hnd);
+		//TODO:
+		{
+			/*
+			 * AN4031 - Using the STM32F2, STM32F4 and STM32F7 SeriesDMA controller
+			 * If the user enables the used peripheral before the corresponding DMA stream, a “FEIF”
+			 * (FIFO Error Interrupt Flag) may be set due to the fact the DMA is not ready to provide the
+			 * first required data to the peripheral (in case of memory-to-peripheral transfer).
+			 */
+		}
+		ch_data->pending = hnd;
+		return true;
+	}
+	return false;
+}
 //*----------------------------------------------------------------------------
 //*			DCR function
 //*----------------------------------------------------------------------------
@@ -94,10 +144,21 @@ void DMA_DCR(DMA_DRIVER_INFO* drv_info, unsigned int reason, HANDLE hnd)
 				{
 					ch_data->pending = NULL;
 					ch_data->last_mode = NULL;
-					stm32_dma_stop(drv_info->hw_base, drv_info->ch_indx);
-					svc_HND_SET_STATUS(hnd, RES_SIG_IDLE);
+					DMA_TRACELN("D:%u cancel", drv_info->ch_indx);
+					if(stm32_dma_is_en(drv_info->hw_base, drv_info->ch_indx))
+					{
+						stm32_dma_stop(drv_info->hw_base, drv_info->ch_indx);
+						TRACELN_INFO("D:%u req cancel", drv_info->ch_indx);
+						hnd->error =0;
+						ch_data->terminating = hnd;
+					}else
+					{
+						svc_HND_SET_STATUS(hnd, RES_SIG_IDLE);
+					}
 				} else
+				{
 					hnd->svc_list_cancel(ch_data->waiting);
+				}
 			}
 
 			break;
@@ -123,9 +184,10 @@ void DMA_DSR(DMA_DRIVER_INFO* drv_info, HANDLE hnd)
 	if(hnd->len)
 	{
 		ch_data = drv_info->ch_data;
-		if(ch_data->pending)
+		if(ch_data->pending || ch_data->terminating)
 		{
 	    	//the DMA channel is busy with other client
+			DMA_TRACELN1("D:BUSY");
 	    	hnd->list_add(ch_data->waiting);
 		} else
 		{
@@ -134,6 +196,7 @@ void DMA_DSR(DMA_DRIVER_INFO* drv_info, HANDLE hnd)
 			if(stm32_dma_is_en(drv_info->hw_base, drv_info->ch_indx))
 			{
 				// do nothing if already enabled
+				DMA_TRACELN("D:%u Running!", drv_info->ch_indx);
 			} else
 			{
 				if(mode != ch_data->last_mode)
@@ -144,6 +207,13 @@ void DMA_DSR(DMA_DRIVER_INFO* drv_info, HANDLE hnd)
 				}
 
 				// start transfer...
+				/*
+				 * AN4031 - Using the STM32F2, STM32F4 and STM32F7 SeriesDMA controller
+				 * If the user enables the used peripheral before the corresponding DMA stream, a “FEIF”
+				 * (FIFO Error Interrupt Flag) may be set due to the fact the DMA is not ready to provide the
+				 * first required data to the peripheral (in case of memory-to-peripheral transfer).
+				 */
+				DMA_TRACELN("D:%u Start %u", drv_info->ch_indx, hnd->len);
 				stm32_dma_start(drv_info->hw_base, drv_info->ch_indx, hnd);
 			}
 			hnd->res  = RES_BUSY;
@@ -165,60 +235,88 @@ void DMA_DSR(DMA_DRIVER_INFO* drv_info, HANDLE hnd)
 //*
 //* Note DMA driver must have higher priority than any other driver using DMA
 //*
+
 void DMA_ISR(DMA_DRIVER_INFO* drv_info)
 {
 	DMA_CHANNEL_DATA* ch_data;
-	uint32_t status;
 	HANDLE hnd;
+	uint32_t status;
+	uint32_t enabled;
 
-	status = stm32_get_ints(drv_info->hw_base, drv_info->ch_indx);
-	ch_data = drv_info->ch_data;
-	hnd = ch_data->pending;
+	status =	stm32_get_ints(drv_info->hw_base, drv_info->ch_indx);
+	enabled =	stm32_get_en_ints(drv_info->hw_base, drv_info->ch_indx);
+	ch_data =	drv_info->ch_data;
+	hnd =		ch_data->pending;
 	if(hnd)
 	{
 		ch_data->pending = NULL;
-		if(status & STM32_DMA_ERRORS)
+		if(status & STM32_DMA_ERRORS) // these interrupts are always enabled
 		{
+			// FIFO, direct mode or transfer error(s)
 			hnd->error = status;
+			if(stm32_dma_is_en(drv_info->hw_base, drv_info->ch_indx))
+			{
+				// disable DMA and wait to complete
+				stm32_dma_stop(drv_info->hw_base, drv_info->ch_indx);
+				ch_data->terminating = hnd;
+				return;
+			}
 			usr_HND_SET_STATUS(hnd, RES_SIG_ERROR);
 		} else
 		{
-			if(status & STM32_DMA_COMPLETE)
+			if(status & STM32_DMA_COMPLETE) // always enabled
 			{
+				if(stm32_dma_is_en(drv_info->hw_base, drv_info->ch_indx))
+				{
+					TRACELN_ERROR("D:%u ??? S:%X", drv_info->ch_indx, status);
+				}
+				DMA_TRACELN("D:%u End %u", drv_info->ch_indx, stm32_dma_ndtr(drv_info->hw_base, drv_info->ch_indx));
 				hnd->len = 0;
+				usr_HND_SET_STATUS(hnd, RES_SIG_OK);
 			} else
 			{
-				hnd->len = stm32_dma_ndtr(drv_info->hw_base, drv_info->ch_indx);
-			}
-			usr_HND_SET_STATUS(hnd, RES_SIG_OK);
-			if(status & STM32_DMA_HALF)
-			{
-				return;	// leave it working...
+				if((status & STM32_DMA_HALF) && (STM32_DMA_HALF_ENABLE & enabled))
+				{
+					hnd->len = stm32_dma_ndtr(drv_info->hw_base, drv_info->ch_indx);
+					DMA_TRACELN("D:%u HALF %u", drv_info->ch_indx, hnd->len);
+					usr_HND_SET_STATUS(hnd, RES_SIG_OK);
+					return;	// leave it working...
+				}
+#ifdef	STM32_DMA_FIFO_ERR
+				if(status & STM32_DMA_FIFO_ERR)
+				{
+					DMA_TRACELN("D:%u FIFO Err:%X N:%u",
+							drv_info->ch_indx, status, stm32_dma_ndtr(drv_info->hw_base, drv_info->ch_indx));
+					if(STM32_DMA_FIFO_ERR_ENABLE & enabled)
+					{
+						hnd->error = status;
+						if(stm32_dma_is_en(drv_info->hw_base, drv_info->ch_indx))
+						{
+							// disable DMA and wait to complete
+							stm32_dma_stop(drv_info->hw_base, drv_info->ch_indx);
+							ch_data->terminating = hnd;
+							return;
+						}
+						usr_HND_SET_STATUS(hnd, RES_SIG_ERROR);
+					}
+				}
+#endif
 			}
 		}
 
 		// start waiting...
-		if( ch_data->pending == NULL && (hnd = ch_data->waiting))
-		{
-			DMA_DRIVER_MODE* mode;
-
-			ch_data->waiting = hnd->next;
-
-			mode = (DMA_DRIVER_MODE *)hnd->mode.as_voidptr;
-			if(mode != ch_data->last_mode)
-			{
-				ch_data->last_mode = mode;
-				// configure the channel
-				stm32_dma_ch_cfg(drv_info->hw_base, drv_info->ch_indx, mode);
-			}
-
-			// start transfer...
-			stm32_dma_start(drv_info->hw_base, drv_info->ch_indx, hnd);
-			ch_data->pending = hnd;
-		}
+		DMA_START_WAITING(drv_info);
 	} else
 	{
-		stm32_dis_ints(drv_info->hw_base, drv_info->ch_indx);
+		hnd = ch_data->terminating;
+		if(hnd)
+		{
+			ch_data->terminating = nullptr;
+			if(hnd->error)
+				usr_HND_SET_STATUS(ch_data->terminating, RES_SIG_ERROR);
+		}
+		if(!DMA_START_WAITING(drv_info))
+			stm32_dis_ints(drv_info->hw_base, drv_info->ch_indx);
 	}
 }
 

@@ -11,7 +11,7 @@
 #include <dma_drv.h>
 #endif
 
-bool ConfigureUsart(USART_DRIVER_INFO * drv_info, USART_DRIVER_DATA * drv_data,
+static bool ConfigureUsart(USART_DRIVER_INFO * drv_info, USART_DRIVER_DATA * drv_data,
 		USART_DRIVER_MODE * mode)
 {
 	USART_TypeDef* USARTx = drv_info->hw_base;
@@ -29,7 +29,7 @@ bool ConfigureUsart(USART_DRIVER_INFO * drv_info, USART_DRIVER_DATA * drv_data,
 #if USE_UART_DMA_DRIVER
 	if(drv_info->rx_dma_mode.dma_index < INALID_DRV_INDX)
 	{
-		USARTx->USART_CR3 |= USART_CR3_DMAR;
+//		USARTx->USART_CR3 |= USART_CR3_DMAR;
 		if((drv_data->rx_dma_hnd.res >= RES_CLOSED))
 		{
 			memcpy(&drv_data->rx_dma_mode, &drv_info->rx_dma_mode, sizeof(DMA_DRIVER_MODE));
@@ -46,12 +46,12 @@ bool ConfigureUsart(USART_DRIVER_INFO * drv_info, USART_DRIVER_DATA * drv_data,
 			if(!drv_data->rx_dma_hnd.drv_open(
 				drv_info->rx_dma_mode.dma_index,
 				&drv_data->rx_dma_mode))
-			return false;
+				return false;
 		}
 	}
 	if(drv_info->tx_dma_mode.dma_index < INALID_DRV_INDX)
 	{
-		USARTx->USART_CR3 |= USART_CR3_DMAT;
+//		USARTx->USART_CR3 |= USART_CR3_DMAT;
 		memcpy(&drv_data->tx_dma_mode, &drv_info->tx_dma_mode, sizeof(DMA_DRIVER_MODE));
 		if(mode->mode_cr1 & USART_CR1_M)
 		{
@@ -130,6 +130,7 @@ static inline void START_RX_BUF(USART_TypeDef* uart, USART_DRIVER_DATA* drv_data
 			if(drv_data->mode.mode_cr1 & USART_CR1_M)
 				remaining /= 2;
 			drv_data->rx_dma_hnd.drv_read_write(drv_data->rx_buf, (void*)&get_usart_rdr(uart), remaining);
+			uart->USART_CR3 |= USART_CR3_DMAR;
 		}
 		ints = USART_STATUS_IDLEIE;
 	}
@@ -162,6 +163,7 @@ static inline void START_TX_HND(USART_DRIVER_INFO * drv_info, USART_TypeDef* uar
 	{
 		drv_info->drv_data->tx_dma_hnd.drv_read_write((void*)&get_usart_rdr(uart),
 				hnd->src.as_charptr, hnd->len);
+		uart->USART_CR3 |= USART_CR3_DMAT; // enable a peripheral to send a DMA requests
 		return;
 	}
 #endif
@@ -467,7 +469,7 @@ void USART_DCR(USART_DRIVER_INFO* drv_info, unsigned int reason, HANDLE hnd)
 			//signal tx/dma complete
 			if(hnd == &drv_data->tx_dma_hnd)
 			{
-
+				drv_info->hw_base->USART_CR3 &= ~USART_CR3_DMAT;
 				hnd = drv_data->hnd_snd;
 				if(hnd)
 				{
