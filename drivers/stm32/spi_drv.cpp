@@ -84,7 +84,7 @@ static void START_HND(SPI_DRIVER_INFO* drv_info, SPI_DRIVER_DATA* drv_data, HAND
 			ptr = NULL;
 		}
 		drv_data->rx_dma_hnd.drv_read_write(ptr, (void *)&drv_info->hw_base->SPI_DR, hnd->len);
-		drv_info->hw_base->SPI_CR2 |= SPI_CR2_RXDMAEN;
+		drv_info->hw_base->SPI_CR2 |= SPI_CR2_RXDMAEN | SPI_CR2_ERRIE;
 	}
 	if(drv_info->tx_dma_mode.dma_index < INALID_DRV_INDX )
 	{
@@ -217,19 +217,22 @@ void SPI_DCR(SPI_DRIVER_INFO* drv_info, unsigned int reason, HANDLE hnd)
 			if(hnd == &drv_data->rx_dma_hnd)
 			{
 				//process rx dma signal only (data shifted out),
-				//but the transfer may not be complete if an error occurs.
-				//So make sure tx dma completed
-				if(drv_info->tx_dma_mode.dma_index < INALID_DRV_INDX)
-				{
-					if(drv_data->tx_dma_hnd.res == RES_BUSY)
-						drv_data->tx_dma_hnd.hcontrol(DCR_CANCEL);
-				}
 				//stopping DMA requests from the peripheral
-				drv_info->hw_base->SPI_CR2 &= ~(SPI_CR2_RXDMAEN | SPI_CR2_TXDMAEN);
+				drv_info->hw_base->SPI_CR2 &= ~(SPI_CR2_RXDMAEN | SPI_CR2_TXDMAEN | SPI_CR2_ERRIE);
 
 				hnd = drv_data->pending;
 				if(hnd)
 				{
+					if(drv_data->rx_dma_hnd.res != RES_SIG_OK)
+					{
+						//but the transfer may not be complete if an error occurs.
+						//So make sure tx dma completed
+						if(drv_info->tx_dma_mode.dma_index < INALID_DRV_INDX)
+						{
+							if(drv_data->tx_dma_hnd.res == RES_BUSY)
+								drv_data->tx_dma_hnd.hcontrol(DCR_CANCEL);
+						}
+					}
 					//pending is done
 					if(!drv_data->locker)
 					{
@@ -352,6 +355,20 @@ void SPI_ISR(SPI_DRIVER_INFO* drv_info)
 		//this should never happen but just in case...
 		// Clearing the OVR bit is done by a read operation on the SPI_DR register
 		// followed by a read access to the SPI_SR register
+#if USE_SPI_DMA_DRIVER
+		drv_info->hw_base->SPI_CR2 &= ~ SPI_CR2_ERRIE;
+		if(drv_info->rx_dma_mode.dma_index < INALID_DRV_INDX)
+		{
+			if(drv_data->rx_dma_hnd.res == RES_BUSY)
+			{
+				drv_data->rx_dma_hnd.error = status;
+				drv_data->rx_dma_hnd.hcontrol(DCR_CANCEL);
+			}else
+			{
+				TRACE_ERROR("\r\nSPI:Err not processed");
+			}
+		}
+#endif
 		pSPI->SPI_DR;
 		status |= pSPI->SPI_SR;
 	}

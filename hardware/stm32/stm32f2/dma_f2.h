@@ -252,6 +252,11 @@ static inline uint32_t stm32_get_ints(DMA_TypeDef* dmac, uint32_t indx)
 	return status;
 }
 
+static inline uint32_t stm32_dma_is_peripheral_ctrl(DMA_TypeDef* dmac, uint32_t indx)
+{
+	return (dmac->DMA_Chx[indx].DMA_SxCR & DMA_SxCR_PFCTRL);
+}
+
 static inline uint32_t stm32_dma_ndtr(DMA_TypeDef* dmac, uint32_t indx)
 {
 	if(dmac->DMA_Chx[indx].DMA_SxCR & DMA_SxCR_PFCTRL)

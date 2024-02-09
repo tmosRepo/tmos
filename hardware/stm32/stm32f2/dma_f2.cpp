@@ -119,10 +119,7 @@ void stm32_dma_start(DMA_TypeDef* dmac, uint32_t indx, HANDLE hnd)
 
 void stm32_dma_stop(DMA_TypeDef* dmac, uint32_t indx)
 {
-	DMA_Stream_TypeDef* ch;
-
-	ch = &dmac->DMA_Chx[indx];
-	ch->DMA_SxCR &= ~DMA_SxCR_EN;
+	dmac->DMA_Chx[indx].DMA_SxCR &= ~DMA_SxCR_EN;
 }
 
 void stm32_dma_ch_cfg(DMA_TypeDef* dmac, uint32_t indx, DMA_DRIVER_MODE* mode)
@@ -146,8 +143,7 @@ void stm32_en_ints(DMA_TypeDef* dmac, uint32_t indx, DMA_DRIVER_MODE* mode)
 	{
 		ch->DMA_SxCR |= (reg & DMA_SxCR_HTIE) |  DMA_SxCR_DMEIE |
 			DMA_SxCR_TEIE | DMA_SxCR_TCIE;
-		if(!(ch->DMA_SxCR & DMA_SxCR_PFCTRL))
-			ch->DMA_SxFCR |= DMA_SxFCR_FEIE;
+		ch->DMA_SxFCR |= (mode->dma_ch_fr & ~DMA_SxFCR_FEIE);
 	}
 }
 

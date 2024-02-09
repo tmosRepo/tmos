@@ -50,15 +50,15 @@
 
 # define TRACE_CHAR( ch)						\
 	do {usr_trace_char(ch);}while(0)
-/*
-# define TRACE(...)								\
+
+# define swd_trace(...)								\
 	do											\
 	{											\
 		char tr_buf[80];						\
 		tmos_sprintf(tr_buf, __VA_ARGS__);		\
-		usr_trace_str(tr_buf);					\
+		swd_trace_str(tr_buf);					\
 	}while(0)
-*/
+
 #ifdef __cplusplus
 extern "C"
 {
