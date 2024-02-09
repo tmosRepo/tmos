@@ -13,7 +13,7 @@
 #include <mcu_cpp.h>
 
 #ifndef TRACE_DMA_LEVEL
-#define TRACE_DMA_LEVEL	TRACE_LEVEL_NONE
+#define TRACE_DMA_LEVEL	TRACE_LEVEL_TRACE
 #endif
 
 enum dma_state_t : uint16_t

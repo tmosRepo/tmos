@@ -143,7 +143,7 @@ void stm32_en_ints(DMA_TypeDef* dmac, uint32_t indx, DMA_DRIVER_MODE* mode)
 	{
 		ch->DMA_SxCR |= (reg & DMA_SxCR_HTIE) |  DMA_SxCR_DMEIE |
 			DMA_SxCR_TEIE | DMA_SxCR_TCIE;
-		ch->DMA_SxFCR |= (mode->dma_ch_fr & ~DMA_SxFCR_FEIE);
+		ch->DMA_SxFCR |= (mode->dma_ch_fr & DMA_SxFCR_FEIE);
 	}
 }
 

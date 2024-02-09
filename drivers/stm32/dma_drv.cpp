@@ -277,7 +277,7 @@ void DMA_DSR(DMA_DRIVER_INFO* drv_info, HANDLE hnd)
 		if(ch_data->pending || ch_data->stops_pending)
 		{
 	    	//the DMA channel is busy with other client
-			DMA_TRACELN("D%u:BUSY", drv_info->ch_indx);
+			DMA_TRACELN("BUSY");
 	    	hnd->list_add(ch_data->waiting);
 		} else
 		{
@@ -338,7 +338,6 @@ void DMA_ISR(DMA_DRIVER_INFO* drv_info)
 	hnd =		ch_data->pending;
 	if(hnd)
 	{
-		ch_data->stops_pending = hnd; // mark to be processed
 		ch_data->pending = nullptr;
 		if(status & STM32_DMA_ERRORS) // these interrupts are always enabled
 		{
@@ -348,11 +347,11 @@ void DMA_ISR(DMA_DRIVER_INFO* drv_info)
 			{
 				// disable DMA and wait to complete
 				stm32_dma_stop(drv_info->hw_base, drv_info->ch_indx);
+				ch_data->stops_pending = hnd; // mark to be signaled
 				return; // wait to complete
 			}
 			// just in case, must be not happen, except for misconfiguration
 			usr_HND_SET_STATUS(hnd, RES_SIG_ERROR);
-			ch_data->stops_pending = nullptr;
 		} else
 		{
 			if(status & STM32_DMA_COMPLETE) // always enabled
@@ -364,7 +363,6 @@ void DMA_ISR(DMA_DRIVER_INFO* drv_info)
 				hnd->len = 0;
 				DMA_TRACELN("complete l:%u", stm32_dma_ndtr(drv_info->hw_base, drv_info->ch_indx));
 				usr_HND_SET_STATUS(hnd, RES_SIG_OK);
-				ch_data->stops_pending = nullptr;
 			} else
 			{
 				if((status & STM32_DMA_HALF) && (STM32_DMA_HALF_ENABLE & enabled))
@@ -372,41 +370,46 @@ void DMA_ISR(DMA_DRIVER_INFO* drv_info)
 					hnd->len = stm32_dma_ndtr(drv_info->hw_base, drv_info->ch_indx);
 					DMA_TRACELN("half l:%u", hnd->len);
 					usr_HND_SET_STATUS(hnd, RES_SIG_OK);
-					ch_data->stops_pending = nullptr;
 					return;	// leave it working...
 				}
 #if	STM32_DMA_FIFO_ERR && STM32_DMA_FIFO_ERR_ENABLE
 				else
 				{
-					if (status & STM32_DMA_FIFO_ERR)
+					if((status & STM32_DMA_FIFO_ERR) && (STM32_DMA_FIFO_ERR_ENABLE & enabled))
 					{
 						hnd->error = SET_ERROR(status);
 						stm32_dma_stop(drv_info->hw_base, drv_info->ch_indx);
+						ch_data->stops_pending = hnd; // mark to be signaled
 						return; //wait to complete
 					}
 				}
 #endif
 			}
+			// start waiting...
+			// f both handles (pending and stops_pending) are null,
+			// get the waiting handler and start it if there is one
+			DMA_START_WAITING(drv_info);
 		}
 	} else
 	{
-		hnd = ch_data->stops_pending;
-		if(hnd)
+		if((hnd = ch_data->stops_pending))
 		{
 			DMA_TRACELN("hnd ");
 			DMA_TRACE1(((hnd->error)?"is signaled with an error":"cancel complete"));
-			usr_HND_SET_STATUS(hnd, ((hnd->error)?RES_SIG_ERROR:RES_SIG_IDLE));
-			ON_DMA_END(drv_info);
 			ch_data->stops_pending = nullptr;
+			ON_DMA_END(drv_info);
+			usr_HND_SET_STATUS(hnd, ((hnd->error)?RES_SIG_ERROR:RES_SIG_IDLE));
 		}else
 		{
 			DMA_TRACELN("unexpected ISR(%X)", status);
 		}
-	}
-	// start waiting...
-	if(!DMA_START_WAITING(drv_info))
-	{
-		stm32_dis_ints(drv_info->hw_base, drv_info->ch_indx);
+		// start waiting...
+		// at this point both handlers(pending and stops_pending) are null,
+		// only waiting ones matter.
+		if(!DMA_START_WAITING(drv_info))
+		{
+			stm32_dis_ints(drv_info->hw_base, drv_info->ch_indx);
+		}
 	}
 }
 
