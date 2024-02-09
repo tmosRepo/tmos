@@ -50,15 +50,15 @@
 
 # define TRACE_CHAR( ch)						\
 	do {usr_trace_char(ch);}while(0)
-/*
-# define TRACE(...)								\
+
+# define swd_trace(...)								\
 	do											\
 	{											\
 		char tr_buf[80];						\
 		tmos_sprintf(tr_buf, __VA_ARGS__);		\
-		usr_trace_str(tr_buf);					\
+		swd_trace_str(tr_buf);					\
 	}while(0)
-*/
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -117,6 +117,7 @@ int tmos_dbgprintf( uint32_t zero, const char *format, ... );
 #define TRACE_LEVEL(level, ...) do{ if (level >= TRACE_DEFAULT_LEVEL) TRACE(__VA_ARGS__); }while(0)
 #define TRACE1_LEVEL(level, str) do{ if (level >= TRACE_DEFAULT_LEVEL) TRACE1(str); }while(0)
 #define TRACELN_LEVEL(level, str, ...) do{ if (level >= TRACE_DEFAULT_LEVEL) TRACELN(str, ##__VA_ARGS__); }while(0)
+#define TRACELN1_LEVEL(level, str) do{ if (level >= TRACE_DEFAULT_LEVEL) TRACELN1(str); }while(0)
 
 #if TRACE_DEFAULT_LEVEL >= TRACE_LEVEL_DEBUG
 #	define TRACE_CHAR_DEBUG(ch)	TRACE_CHAR(ch)

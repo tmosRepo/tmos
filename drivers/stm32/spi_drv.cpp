@@ -49,14 +49,10 @@ static void SPI_START_TRANSACTION(SPI_DRIVER_INFO* drv_info, SPI_DRIVER_MODE* mo
 	//	  to a high-level signal).
 
 #if USE_SPI_DMA_DRIVER
-	if(drv_info->rx_dma_mode.dma_index < INALID_DRV_INDX)
-	{
-		pSPI->SPI_CR2 |= SPI_CR2_RXDMAEN | SPI_CR2_TXDMAEN ;
-	}
-	else
+	if(drv_info->rx_dma_mode.dma_index >= INALID_DRV_INDX) // DMA is not used to receive data
 #endif
 	{
-		pSPI->SPI_CR2 = (pSPI->SPI_CR2 & (SPI_CR2_RXDMAEN | SPI_CR2_TXDMAEN)) | mode->spi_cr2 | SPI_CR2_RXNEIE;
+		pSPI->SPI_CR2 |=  mode->spi_cr2 | SPI_CR2_RXNEIE;
 	}
     //enable
 	if(!(mode->spi_cr1 & SPI_CR1_SPE)) // if set SPI_CR1_SPE disable SPI
@@ -77,10 +73,9 @@ static void SPI_END_TRANSACTION(SPI_DRIVER_MODE* mode)
 static void START_HND(SPI_DRIVER_INFO* drv_info, SPI_DRIVER_DATA* drv_data, HANDLE hnd)
 {
 #if USE_SPI_DMA_DRIVER
-	if(drv_info->rx_dma_mode.dma_index < INALID_DRV_INDX)
+	void *ptr;
+	if(drv_info->rx_dma_mode.dma_index < INALID_DRV_INDX )
 	{
-		void *ptr;
-
 		if(hnd->cmd & FLAG_READ)
 		{
 			ptr = hnd->dst.as_voidptr;
@@ -89,7 +84,10 @@ static void START_HND(SPI_DRIVER_INFO* drv_info, SPI_DRIVER_DATA* drv_data, HAND
 			ptr = NULL;
 		}
 		drv_data->rx_dma_hnd.drv_read_write(ptr, (void *)&drv_info->hw_base->SPI_DR, hnd->len);
-
+		drv_info->hw_base->SPI_CR2 |= SPI_CR2_RXDMAEN | SPI_CR2_ERRIE;
+	}
+	if(drv_info->tx_dma_mode.dma_index < INALID_DRV_INDX )
+	{
 		if(hnd->cmd & FLAG_WRITE)
 		{
 			ptr = hnd->src.as_voidptr;
@@ -98,7 +96,7 @@ static void START_HND(SPI_DRIVER_INFO* drv_info, SPI_DRIVER_DATA* drv_data, HAND
 			ptr = (void*) 0xff; //fill with ff...
 		}
 		drv_data->tx_dma_hnd.drv_read_write((void *)&drv_info->hw_base->SPI_DR, ptr, hnd->len);
-
+		drv_info->hw_base->SPI_CR2 |= SPI_CR2_TXDMAEN;
 	} else
 #endif
 	{
@@ -218,18 +216,31 @@ void SPI_DCR(SPI_DRIVER_INFO* drv_info, unsigned int reason, HANDLE hnd)
 			//signal rx/dma complete
 			if(hnd == &drv_data->rx_dma_hnd)
 			{
-				//process rx dma signal only (data shifted out)
+				//process rx dma signal only (data shifted out),
+				//stopping DMA requests from the peripheral
+				drv_info->hw_base->SPI_CR2 &= ~(SPI_CR2_RXDMAEN | SPI_CR2_TXDMAEN | SPI_CR2_ERRIE);
 
 				hnd = drv_data->pending;
 				if(hnd)
 				{
+					if(drv_data->rx_dma_hnd.res != RES_SIG_OK)
+					{
+						//but the transfer may not be complete if an error occurs.
+						//So make sure tx dma completed
+						if(drv_info->tx_dma_mode.dma_index < INALID_DRV_INDX)
+						{
+							if(drv_data->tx_dma_hnd.res == RES_BUSY)
+								drv_data->tx_dma_hnd.hcontrol(DCR_CANCEL);
+						}
+					}
 					//pending is done
 					if(!drv_data->locker)
 					{
 						SPI_END_TRANSACTION((SPI_DRIVER_MODE *)hnd->mode.as_voidptr);
 					}
 					drv_data->pending = hnd->next;
-					svc_HND_SET_STATUS(hnd, RES_SIG_OK);
+
+					svc_HND_SET_STATUS(hnd, drv_data->rx_dma_hnd.res);
 
 					//resume waiting
 					SPI_RESUME(drv_info, drv_data);
@@ -344,6 +355,20 @@ void SPI_ISR(SPI_DRIVER_INFO* drv_info)
 		//this should never happen but just in case...
 		// Clearing the OVR bit is done by a read operation on the SPI_DR register
 		// followed by a read access to the SPI_SR register
+#if USE_SPI_DMA_DRIVER
+		drv_info->hw_base->SPI_CR2 &= ~ SPI_CR2_ERRIE;
+		if(drv_info->rx_dma_mode.dma_index < INALID_DRV_INDX)
+		{
+			if(drv_data->rx_dma_hnd.res == RES_BUSY)
+			{
+				drv_data->rx_dma_hnd.error = status;
+				drv_data->rx_dma_hnd.hcontrol(DCR_CANCEL);
+			}else
+			{
+				TRACE_ERROR("\r\nSPI:Err not processed");
+			}
+		}
+#endif
 		pSPI->SPI_DR;
 		status |= pSPI->SPI_SR;
 	}

@@ -12,6 +12,10 @@
 #include <hardware_cpp.h>
 #include <mcu_cpp.h>
 
+#ifndef TRACE_DMA_LEVEL
+#define TRACE_DMA_LEVEL	TRACE_LEVEL_NONE
+#endif
+
 enum dma_state_t : uint16_t
 {
 	DMA_ST_POWER_UP	= 0,
@@ -21,8 +25,9 @@ enum dma_state_t : uint16_t
 /** DMA Driver data structure - one instance for each DMA controller **/
 struct DMA_DRIVER_DATA
 {
-	uint16_t dma_state;
-	uint16_t cnt;				//!< Number of open handles from this DMA
+	uint16_t dma_state;					//!< Only the first DMA driver resets the peripheral
+	uint16_t cnt;						//!< Number of open handles from this DMA
+	static volatile uint32_t dma_active_streams;	//!< flags of streams that are processed regardless of which DMA is used.
 };
 
 /** DMA Channel data structure **/
@@ -30,8 +35,9 @@ struct DMA_CHANNEL_DATA
 {
     HANDLE waiting;				//!< waiting to be processed
     HANDLE pending;				//!< currently processed
+    HANDLE stops_pending;		//!< waiting for the transfer to complete after disabling the stream
     DMA_DRIVER_MODE* last_mode;	//!< last DMA mode used by this channel/stream
-	uint16_t cnt;				//!< Number of open handles from this channel
+    uint16_t cnt;				//!< Number of open handles from this channel
 };
 
 

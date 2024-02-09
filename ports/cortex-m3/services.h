@@ -72,7 +72,7 @@ void TRACE_COLOR_END();
 
 struct lock_t
 {
-private:
+protected: // are defined as protected so that they can be inherited
 	uint32_t lock_locker;
 	uint32_t lock_cnt;
 
@@ -113,16 +113,15 @@ public:
 		}
 	}
 
-	uint32_t is_locked()
+	inline uint32_t is_locked()
 	{
 		return lock_locker;
 	}
 
-	uint32_t get_lock_cnt()
+	inline uint32_t get_lock_cnt()
 	{
 		return lock_cnt;
 	}
-
 
 };
 
