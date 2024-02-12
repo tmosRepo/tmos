@@ -13,7 +13,7 @@
 #include <mcu_cpp.h>
 
 #ifndef TRACE_DMA_LEVEL
-#define TRACE_DMA_LEVEL	TRACE_LEVEL_TRACE
+#define TRACE_DMA_LEVEL	TRACE_LEVEL_NONE
 #endif
 
 #ifndef STATUS_OF_USED_DMA
