@@ -16,6 +16,10 @@
 #define TRACE_DMA_LEVEL	TRACE_LEVEL_TRACE
 #endif
 
+#ifndef STATUS_OF_USED_DMA
+#define STATUS_OF_USED_DMA	0
+#endif
+
 enum dma_state_t : uint16_t
 {
 	DMA_ST_POWER_UP	= 0,
@@ -27,7 +31,9 @@ struct DMA_DRIVER_DATA
 {
 	uint16_t dma_state;					//!< Only the first DMA driver resets the peripheral
 	uint16_t cnt;						//!< Number of open handles from this DMA
+#if STATUS_OF_USED_DMA
 	static volatile uint32_t dma_active_streams;	//!< flags of streams that are processed regardless of which DMA is used.
+#endif
 };
 
 /** DMA Channel data structure **/

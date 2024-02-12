@@ -29,12 +29,14 @@
 
 extern 	 char* const DRV_TABLE[INALID_DRV_INDX+1];
 
+#if STATUS_OF_USED_DMA
 volatile uint32_t DMA_DRIVER_DATA::dma_active_streams;
-
+#endif
 extern "C" uint32_t ON_DMA_START(DMA_DRIVER_INFO* drv_info)
 						__attribute__ ((weak, alias ("DRV_ON_DMA_START")));
 extern "C" uint32_t DRV_ON_DMA_START(DMA_DRIVER_INFO* drv_info)
 {
+#if STATUS_OF_USED_DMA
 	uint32_t tmp;
 	uint32_t flag;
 
@@ -50,12 +52,16 @@ extern "C" uint32_t DRV_ON_DMA_START(DMA_DRIVER_INFO* drv_info)
 //		TRACE("{%04.4X|", flag);
 	}
 	return flag;
+#else
+	return 0;
+#endif //STATUS_OF_USED_DMA
 }
 
 extern "C" uint32_t ON_DMA_END(DMA_DRIVER_INFO* drv_info)
 						__attribute__ ((weak, alias ("DRV_ON_DMA_END")));
 extern "C" uint32_t DRV_ON_DMA_END(DMA_DRIVER_INFO* drv_info)
 {
+#if STATUS_OF_USED_DMA
 	uint32_t flag;
 	uint32_t tmp;
 
@@ -70,6 +76,9 @@ extern "C" uint32_t DRV_ON_DMA_END(DMA_DRIVER_INFO* drv_info)
 //		TRACE("|%04.4X}", flag);
 	}
 	return flag;
+#else
+	return 0;
+#endif //STATUS_OF_USED_DMA
 }
 
 uint32_t dma_drv_get_ndtr(DRIVER_INDEX drv_index)
