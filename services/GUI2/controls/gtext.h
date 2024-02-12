@@ -37,7 +37,7 @@ struct GText: GObject
 			 vscroll(nullptr), hscroll(nullptr), caption(nullptr)
 	{;}
 
-	~GText()
+	virtual ~GText()
 	{
 		if(vscroll)
 		{

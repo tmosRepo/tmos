@@ -102,7 +102,7 @@ uint32_t dma_drv_is_en(DRIVER_INDEX drv_index)
 	return is_en;
 }
 
-bool DMA_START_WAITING(DMA_DRIVER_INFO* drv_info)
+bool DMA_RESUME(DMA_DRIVER_INFO* drv_info)
 {
 	DMA_CHANNEL_DATA* ch_data;
 	HANDLE hnd;
@@ -139,7 +139,7 @@ bool DMA_START_WAITING(DMA_DRIVER_INFO* drv_info)
 		ch_data->pending = hnd;
 		return true;
 	}
-	return false;
+	return (ch_data->pending != nullptr);
 }
 
 //*----------------------------------------------------------------------------
@@ -242,7 +242,7 @@ void DMA_DCR(DMA_DRIVER_INFO* drv_info, unsigned int reason, HANDLE hnd)
 					DMA_TRACELN("signals the hnd (0x%X)", res);
 					svc_HND_SET_STATUS(hnd, res);
 					// start waiting...
-					if(DMA_START_WAITING(drv_info))
+					if(DMA_RESUME(drv_info))
 						stm32_en_ints(drv_info->hw_base, drv_info->ch_indx, (DMA_DRIVER_MODE *)ch_data->pending->mode.as_cvoidptr);
 				} else
 				{
@@ -388,7 +388,7 @@ void DMA_ISR(DMA_DRIVER_INFO* drv_info)
 			// start waiting...
 			// f both handles (pending and stops_pending) are null,
 			// get the waiting handler and start it if there is one
-			DMA_START_WAITING(drv_info);
+			DMA_RESUME(drv_info);
 		}
 	} else
 	{
@@ -404,10 +404,11 @@ void DMA_ISR(DMA_DRIVER_INFO* drv_info)
 			DMA_TRACELN("unexpected ISR(%X)", status);
 		}
 		// start waiting...
-		// at this point both handlers(pending and stops_pending) are null,
-		// only waiting ones matter.
-		if(!DMA_START_WAITING(drv_info))
+		// f both handles (pending and stops_pending) are null,
+		// get the waiting handler and start it if there is one
+		if(!DMA_RESUME(drv_info))
 		{
+			// at this point missing pending handler
 			stm32_dis_ints(drv_info->hw_base, drv_info->ch_indx);
 		}
 	}
