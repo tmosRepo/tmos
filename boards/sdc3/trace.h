@@ -117,6 +117,7 @@ int tmos_dbgprintf( uint32_t zero, const char *format, ... );
 #define TRACE_LEVEL(level, ...) do{ if (level >= TRACE_DEFAULT_LEVEL) TRACE(__VA_ARGS__); }while(0)
 #define TRACE1_LEVEL(level, str) do{ if (level >= TRACE_DEFAULT_LEVEL) TRACE1(str); }while(0)
 #define TRACELN_LEVEL(level, str, ...) do{ if (level >= TRACE_DEFAULT_LEVEL) TRACELN(str, ##__VA_ARGS__); }while(0)
+#define TRACELN1_LEVEL(level, str) do{ if (level >= TRACE_DEFAULT_LEVEL) TRACELN1(str); }while(0)
 
 #if TRACE_DEFAULT_LEVEL >= TRACE_LEVEL_DEBUG
 #	define TRACE_CHAR_DEBUG(ch)	TRACE_CHAR(ch)
