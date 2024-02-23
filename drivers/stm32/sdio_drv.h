@@ -42,7 +42,10 @@ struct SDIO_DRIVER_DATA
 #if USE_SDIO_MULTIPLE_SLOTS
 	HANDLE last_slot;		//!< Handle used for the last slot
 #endif
-	unsigned int cnt;		//!< number of open handles
+struct{
+	uint16_t cnt;			//!< number of open handles
+	uint16_t is_resetting; 	//!< The SDIO driver is being reset
+}__attribute__((packed));
 	unsigned int sdio_op;	//!< SDIO operations
 #if USE_SDIO_DMA_DRIVER
 	CHandle		rx_dma_hnd;
