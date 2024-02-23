@@ -102,7 +102,11 @@ bool CHandle::tsk_open(DRIVER_INDEX index, const void * m)
 	if(IS_NOT_NULL(this))
 	{
 		unsigned int sig;
-
+		if(index >= INALID_DRV_INDX)
+		{
+			TRACELN_ERROR("Handle has an invalid driver index:%x", this);
+			return false;
+		}
 		error = 0;
 		if( !(res & FLG_CLOSED))
 		{
