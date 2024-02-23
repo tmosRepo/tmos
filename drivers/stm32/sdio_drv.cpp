@@ -46,7 +46,15 @@ WEAK void SDIO_POWEROFF_SLOT(SDIO_INFO drv_info, HANDLE hnd)
 	SDIO_DESELECT_SLOT(drv_info, hnd);
 #endif
 	if(mode && mode->sdio_pwr_en)
+	{
 			PIO_Deassert(mode->sdio_pwr_en);
+			const PIN_DESC* pins = drv_info->sdio_pins;
+			while(*pins)
+			{
+				PIO_CfgOutput0(*pins);
+				pins++;
+			}
+	}
 }
 
 static void ResetSDIO(SDIO_INFO drv_info)
@@ -362,12 +370,41 @@ void SDIO_DCR(SDIO_INFO drv_info, unsigned int reason, HANDLE hnd)
 	switch(reason)
 	{
 		case DCR_RESET:
+			if(hnd)	// software power reset
+			{
+				drv_data->is_resetting = true; //!< The caller must reset it !
+				if(drv_data->cnt)
+				{	drv_data->locker = nullptr;
+					if(drv_data->pending)
+						svc_HND_SET_STATUS(drv_data->pending, RES_FATAL|FLG_SIGNALED);
+					while(drv_data->waiting)
+					{
+						svc_HND_SET_STATUS(drv_data->waiting, RES_FATAL|FLG_SIGNALED);
+						drv_data->waiting = drv_data->waiting->next;
+					}
+					ResetSDIO(drv_info);
+				}else
+				{
+					RCCPeripheralReset(drv_info->info.peripheral_indx);
+					RCCPeripheralDisable(drv_info->info.peripheral_indx); // ??? turn off
+				}
+				const SDIO_DRIVER_MODE* mode = (const SDIO_DRIVER_MODE*)hnd->mode.as_cvoidptr;
+				if(mode && mode->sdio_pwr_en)
+					PIO_Cfg(mode->sdio_pwr_en); // It must be sure that pwr_en is configured (by default the power is turn off)
+				SDIO_POWEROFF_SLOT(drv_info, hnd);
+				break;
+			}
 			RCCPeripheralReset(drv_info->info.peripheral_indx);
 			RCCPeripheralDisable(drv_info->info.peripheral_indx); // ??? turn off
 			break;
 
 		case DCR_OPEN:
 		{
+			if(drv_data->is_resetting)
+			{
+				hnd->res = RES_FATAL;
+				break;
+			}
 #if USE_SDIO_MULTIPLE_SLOTS
 			hnd->mode0 = 48000/400 -2; 	//default clock 400Khz
 			hnd->mode1 = 0;				//default bus mode: SDIO_D0 used
@@ -461,6 +498,11 @@ void SDIO_DSR(SDIO_INFO drv_info, HANDLE hnd)
 {
 	SDIO_DRIVER_DATA *drv_data = drv_info->drv_data;
 
+	if(drv_data->is_resetting)
+	{
+		svc_HND_SET_STATUS(hnd, RES_FATAL|FLG_SIGNALED);
+		return;
+	}
 	if(drv_data->pending || (drv_data->locker && hnd != drv_data->locker))
 	{
     	//the driver is busy || locked from other client
