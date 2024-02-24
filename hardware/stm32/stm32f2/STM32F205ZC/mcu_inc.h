@@ -77,7 +77,7 @@
 #define BASE_TIM9           (BASE_APB2PERIPH + 0x4000)		//!< 0x40014000
 #define BASE_TIM10          (BASE_APB2PERIPH + 0x4400)		//!< 0x40014400
 #define BASE_TIM11          (BASE_APB2PERIPH + 0x4800)		//!< 0x40014800
-
+#define BASE_LCD            (BASE_APB2PERIPH + 0x6800)		//!< 0x40016800 (!)
 /********************** AHB1 peripherals **************************************/
 #define BASE_GPIOA       	(BASE_AHB1PERIPH + 0x0000)		//!< 0x40020000
 #define BASE_GPIOB          (BASE_AHB1PERIPH + 0x0400)		//!< 0x40020400

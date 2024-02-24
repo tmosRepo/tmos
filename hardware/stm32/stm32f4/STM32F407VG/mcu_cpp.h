@@ -195,6 +195,7 @@
 #define ID_PERIPH_TIM9      ((5<<5)|16) //!< TIM 9
 #define ID_PERIPH_TIM10     ((5<<5)|17) //!< TIM 10
 #define ID_PERIPH_TIM11     ((5<<5)|18) //!< TIM 11
+#define ID_PERIPH_LCD       ((5<<5)|26) //!< LCD
 
 #define ID_NO_PERIPH 		(255)		//!< invalid index for peripheral
 /** @}*/
