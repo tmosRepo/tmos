@@ -203,8 +203,9 @@ const char* get_mcu_type(void)
  	case MCU_JEP106_STM:
 		strcpy(ptr,"ST32");
 		break;
- 	default: // TODO:
+ 	default: // TODO: Other manufacturers should be added here
  		strcpy(ptr, "Unknown");
+ 		return device_type;
 	}
 	ptr += strlen(ptr);
 
@@ -244,6 +245,9 @@ const char* get_mcu_type(void)
 		}else
 			strcpy(ptr, "XX");
 		break;
+	default:
+		strcpy(ptr, "????"); // TODO: to add other ID codes
+		return device_type;
 	}
 	ptr += strlen(ptr);
 	if(jep == MCU_JEP106_GD)
