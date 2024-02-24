@@ -7,7 +7,7 @@
 
 #ifndef PORTS_CORTEX_M3_MCU_ID_H_
 #define PORTS_CORTEX_M3_MCU_ID_H_
-#include <tmos.h>
+#include <tmos_types.h>
 
 #ifdef __cplusplus
 
@@ -50,10 +50,13 @@ cpu_t cpu_identify(void);
 #define MCU_JEP106_GD		0x751	// GigaDevice Semiconductor (Beijing)
 #define MCU_JEP106_STM		0x020	// STMicroelectronics
 #define MCU_JEP106_APM		0xB23	// Apex Microelectronics Co Ltd
-uint32_t mcu_jep106(void);
 
+extern __no_init char device_type[];
+
+uint32_t mcu_jep106(void);
 uint32_t mcu_part(void);
 uint32_t mcu_revision(void);
-
+const char* mcu_manufacturer(void);
+const char* get_mcu_type(void);
 
 #endif /* PORTS_CORTEX_M3_MCU_ID_H_ */
