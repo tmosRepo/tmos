@@ -2497,7 +2497,7 @@ void usb_hal_host_nak_tout(USB_DRV_INFO drv_info)
 					OTG_HC_REGS* ch_regs = &drv_info->hw_base->HC_REGS[2*i + j];
 
 					// this channel requires a restart?
-					if(epdir->epd_pending && epdir->epd_pending->cmd & (FLAG_READ | FLAG_WRITE)) // not cancelled
+					if(epdir->epd_pending && (epdir->epd_pending->cmd & (FLAG_READ | FLAG_WRITE))) // not cancelled
 					{
 						// Restart IN & OUT
 						uint32_t reg;
