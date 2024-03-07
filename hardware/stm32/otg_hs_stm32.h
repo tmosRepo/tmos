@@ -245,13 +245,15 @@ typedef struct
 #define OTG_GINTSTS_PTXFE           (1u<<26)    //!< Periodic TxFIFO empty
 #define OTG_GINTSTS_HCINT           (1u<<25)    //!< Host channels interrupt
 #define OTG_GINTSTS_HPRTINT         (1u<<24)    //!< Host port interrupt
-#define OTG_GINTSTS_RESETDET        (1u<<23)    //!< Device Reset detected Interrupt
-#define OTG_GINTSTS_FETSUSP         (1u<<22)    //!< Data Fetch Suspended (FetSusp)
+#define OTG_GINTSTS_RESETDET        (1u<<23)    //!< Reserved (Synopsys) Device Reset detected Interrupt
+#define OTG_GINTSTS_FETSUSP         (1u<<22)    //!< Reserved (Synopsys) Data Fetch Suspended (FetSusp)
 #define OTG_GINTSTS_IPXFR           (1u<<21)    //!< Incomplete periodic transfer
 #define OTG_GINTSTS_IISOOXFR        (1u<<21)    //!< Incomplete isochronous OUT transfer
 #define OTG_GINTSTS_IISOIXFR        (1u<<20)    //!< Incomplete isochronous IN transfer
 #define OTG_GINTSTS_OEPINT          (1u<<19)    //!< OUT endpoints interrupt
 #define OTG_GINTSTS_IEPINT          (1u<<18)    //!< IN endpoints interrupt
+// (1<<17) (Synopsys) Endpoint Mismatch Interrupt (EPMis)
+// (1<<16) (Synopsys) Restore Done Interrupt (RstrDoneInt)
 #define OTG_GINTSTS_EOPF            (1u<<15)    //!< End of periodic frame interrupt
 #define OTG_GINTSTS_ISOODRP         (1u<<14)    //!< Isochronous OUT packet dropped interrupt
 #define OTG_GINTSTS_ENUMDNE         (1u<<13)    //!< Enumeration done
