@@ -12,6 +12,8 @@
 
 //-------------------  local static functions --------------------------------//
 
+bool gd_is_used;
+
 #if USE_CPU_SLEEP_MODE
 static void usr_usb_HND_SET_STATUS(HANDLE hnd, RES_CODE result)
 {
@@ -170,6 +172,9 @@ static void stm_otg_core_init2(USB_DRV_INFO drv_info)
 
 
     hw_base->core_regs.GUSBCFG = new_reg;
+
+    if(gd_is_used)
+	    hw_base->core_regs.GCCFG |= OTG_GCCFG_NOVBUSSENS;
 
 	// Restart the Phy Clock
     hw_base->PCGCCTL = 0;
@@ -1043,7 +1048,7 @@ static void stm_otg_core_init_host(USB_DRV_INFO drv_info)
 
 	// Enable VBUS sensing
 	port_config = drv_info->cfg->stm32_otg;
-	if (port_config & CFG_STM32_OTG_VBUS_SENS)
+	if ((port_config & CFG_STM32_OTG_VBUS_SENS) && !gd_is_used)
 		port_status = OTG_GCCFG_PWRDWN | OTG_GCCFG_VBUSASEN;
 	else
 		port_status = OTG_GCCFG_PWRDWN | OTG_GCCFG_NOVBUSSENS;
@@ -1333,6 +1338,7 @@ void usb_drv_reset(USB_DRV_INFO drv_info)
 {
 	TRACE_USB_NAME(drv_info);
 	TRACE1_USB(" Rst");
+	gd_is_used = (MCU_JEP106_GD == mcu_jep106());
     //set priority
     NVIC->NVIC_IPR[drv_info->info.drv_index] = drv_info->info.isr_priority;
     NVIC->NVIC_ICER[drv_info->info.drv_index >> 5] = 1 << (drv_info->info.drv_index & 0x1F);
@@ -1360,7 +1366,6 @@ void usb_drv_cancel_hnd(USB_DRV_INFO drv_info, HANDLE hnd)
 #if USB_ENABLE_HOST
 		if(drv_info->drv_data->otg_flags & USB_OTG_FLG_HOST_CON)
 		{
-			hnd->cmd &= ~(FLAG_READ | FLAG_WRITE);	//request cancel
 	    	if(hnd->cmd & FLAG_WRITE)
 	    	{
 	    		TRACELN_USB("CAN! %u", hnd->mode.as_bytes[1]);
@@ -1368,6 +1373,7 @@ void usb_drv_cancel_hnd(USB_DRV_INFO drv_info, HANDLE hnd)
 	    	{
 	    		TRACELN_USB("CAN! %u", hnd->mode.as_bytes[0]);
 	    	}
+			hnd->cmd &= ~(FLAG_READ | FLAG_WRITE);	//request cancel
 			return;
 		}
 #endif
@@ -1779,8 +1785,8 @@ RES_CODE usb_hal_host_bus_reset(USB_DRV_INFO drv_info)
 
 	TRACE_USB_NAME(drv_info);
 	TRACE1_USB(" start reset");
-
-	stm_otg_core_init_host(drv_info);
+	if(!gd_is_used)
+		stm_otg_core_init_host(drv_info);
 
 	reg = otg->HPRT & ~OTG_HPRT_rc_w1_bits;
 	otg->HPRT = reg | OTG_HPRT_PRST;	// assert reset
@@ -2506,10 +2512,14 @@ void usb_hal_host_nak_tout(USB_DRV_INFO drv_info)
 
 
 						reg = ch_regs->HCCHAR;
+						if (gd_is_used && !(reg & OTG_HCCHAR_CHDIS))
+							reg = (reg | OTG_HCCHAR_CHENA) & ~OTG_HCCHAR_CHDIS;
 						ch_regs->HCCHAR = reg; // if CHDIS ->halt else re-enable
 						if(!j)
 						{
 							// Write some data OUT
+							if (gd_is_used)
+								stm_host_start_xfer(drv_info, epdir->epd_pending, i * 2, epdir);
 							stm_host_write_payload(drv_info, i);
 						}
 					} else
@@ -2657,6 +2667,11 @@ static void usb_a_ch_int(USB_DRV_INFO drv_info, uint32_t ch_indx)
 		TRACE1_USB(" TRERR");
 
 		epdir->epd_state |= ENDPOINT_STATE_ERR | ENDPOINT_STATE_IDLE;
+		if(gd_is_used)
+		{
+			ch_regs->HCINT = OTG_HCINT_CHH;
+			ch_ints &= ~OTG_HCINT_CHH;
+		}
 		stm_host_ch_halt(drv_info, ch_regs);
 		tsk_send_signal(drv_info->drv_data->helper_task, USB_DRIVER_SIG_TOUT);
 	}
@@ -2856,6 +2871,7 @@ void USB_OTG_ISR(USB_DRV_INFO drv_info)
 	host_mode = status & OTG_GINTSTS_CMOD;
 #endif
 	status &= otg->core_regs.GINTMSK;
+	TRACE_USB("{%08X}", status);
 
 #if USB_ENABLE_HOST
 #if USE_CPU_SLEEP_MODE
@@ -3141,6 +3157,9 @@ void USB_OTG_ISR(USB_DRV_INFO drv_info)
 		    {
 				TRACE1_USB(" OTGINT?");
 				// (OTG_HS_GOTGINT)
+				uint32_t otg_status = otg->core_regs.GOTGINT;
+				TRACE_USB(" otg host int:%X", otg_status);
+				otg->core_regs.GOTGINT = otg_status;
 		    }
 
 		    if(status & OTG_GINTSTS_MMIS)		// Mode mismatch interrupt

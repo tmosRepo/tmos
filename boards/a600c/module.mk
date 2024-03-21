@@ -10,7 +10,7 @@ OUT_NAME	?= a600c
 OUT_DIR		?= out/$(OUT_NAME)/
 
 #  optimisation level  can be [0, 1, 2, 3, s].
-OPT			?= -Os
+OPT			?= -O0
 
 # Build library/binary/hex. can be [y, n]
 BUILD_LIB	?= y
@@ -75,6 +75,32 @@ USE_BASE32		?=y
 USE_GUI2		?=y
 
 # USB
+USE_GD_EXAMPLE 	?=n
+
+USE_ST_USB_TEST	?=n
+
+ifeq ($(USE_GD_EXAMPLE),y)
+USE_USB				?=y
+USB_ENABLE_DEVICE	?=n
+USB_ENABLE_HOST 	?=y
+USB_ENABLE_OTG	 	?=y
+USB_ENABLE_CDC	 	?=n
+USB_ENABLE_PRN	 	?=n
+USB_ENABLE_HID	 	?=n
+USB_ENABLE_MSC		?=n
+USB_ENABLE_VID		?=y
+else
+ifeq ($(USE_ST_USB_TEST),y)
+USE_USB				?=n
+USB_ENABLE_DEVICE	?=n
+USB_ENABLE_HOST 	?=n
+USB_ENABLE_OTG	 	?=n
+USB_ENABLE_CDC	 	?=n
+USB_ENABLE_PRN	 	?=n
+USB_ENABLE_HID	 	?=n
+USB_ENABLE_MSC		?=n
+USB_ENABLE_VID		?=n
+else
 USE_USB				?=y
 USB_ENABLE_DEVICE	?=y
 USB_ENABLE_HOST 	?=y
@@ -84,6 +110,8 @@ USB_ENABLE_PRN	 	?=y
 USB_ENABLE_HID	 	?=y
 USB_ENABLE_MSC		?=y
 USB_ENABLE_VID		?=y
+endif
+endif
 
 # AES TMOS
 USE_AES_TMOS	?=y

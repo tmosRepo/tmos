@@ -110,7 +110,7 @@ struct usb_hub_port_t
 	uint8_t dev_interface; //!< current interface
 	uint8_t hub_num;		//!< hub number to which this device is attached
 	uint8_t hub_port;		//!< hub port to which this device is attached
-};
+}__attribute__((packed));
 #endif
 
 struct USB_DRIVER_DATA
@@ -121,8 +121,10 @@ struct USB_DRIVER_DATA
 	Task* 			helper_task;
 	Endpoint		endpoints[USB_NUMENDPOINTS]; //!< Endpoint structures
 #if USB_ENABLE_OTG
+struct{
 	uint16_t		drv_state_cnt;		//!< session counter
 	uint16_t		otg_flags;
+}__attribute__((packed));
 #endif
 
 #if USB_ENABLE_DEVICE

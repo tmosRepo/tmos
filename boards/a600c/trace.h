@@ -105,7 +105,7 @@ int tmos_dbgprintf( uint32_t zero, const char *format, ... );
 #define TRACE_LEVEL_TRACE               6
 
 #define TRACE_DEFAULT_LEVEL          	TRACE_LEVEL_TRACE
-#define TRACE_USB_LEVEL					TRACE_LEVEL_NONE
+#define TRACE_USB_LEVEL					TRACE_LEVEL_TRACE	//NONE
 #define TRACE_WML_LEVEL					TRACE_LEVEL_DEBUG
 #define TRACE_MEMORY_LEVEL				TRACE_LEVEL_DEBUG
 #define TRACE_FOCUS_LEVEL				TRACE_LEVEL_DEBUG
