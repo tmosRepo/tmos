@@ -279,6 +279,9 @@ static bool stm_read_payload(USB_DRV_INFO drv_info,	uint32_t status)
 								if(!(reg & OTG_HCCHAR_CHDIS))
 								{
 									//re -activate
+									if(gd_is_used){
+										reg = (reg | OTG_HCCHAR_CHENA) & ~OTG_HCCHAR_CHDIS;
+									}
 									ch_regs->HCCHAR = reg;
 								}
 								status = OTG_GRXSTSP_PKTSTS_SETUP_DATA; // leave
@@ -2817,7 +2820,10 @@ static void usb_a_gint_rxflvl(USB_DRV_INFO drv_info)
 	uint32_t status;
 	USB_TypeDef* otg = drv_info->hw_base;
 
-
+	if(gd_is_used){
+    /* disable the RX status queue level interrupt */
+	otg->core_regs.GINTMSK &= ~OTG_GINTMSK_RXFLVLM;
+	}
 	/* Get the Status from the top of the FIFO */
 	status = otg->core_regs.GRXSTSP;
 
@@ -2847,6 +2853,11 @@ static void usb_a_gint_rxflvl(USB_DRV_INFO drv_info)
 		TRACELN_USB("que: unk st=%x", status);
 		break;
 
+	}
+
+	if(gd_is_used){
+    /* enable the RX status queue level interrupt */
+	otg->core_regs.GINTMSK |= OTG_GINTMSK_RXFLVLM;
 	}
 
 }
