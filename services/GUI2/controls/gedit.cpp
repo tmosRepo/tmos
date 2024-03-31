@@ -243,7 +243,7 @@ void GEdit::pos_change(int val, bool modified_text)
 		pos += val;
 		if(!(align & ES_AUTO_SCROLL))
 		{
-			if((int)pos > client_rect.width() / text_font->hspacing)
+			if((int)pos >= client_rect.width() / text_font->hspacing)
 				pos -= val;
 		}
 		if(pos > max_len)
@@ -407,18 +407,22 @@ void GEdit::process_alpha_key(char pressed_key, const char* key_val)
 	}
 	else
 	{
-		SetTimer(EDIT_TIMER_INPUT, EDIT_INPUT_TIME);
-		if (shift != KT_DIGIT && ++times_pressed >= strlen(key_val))									//sets the array index in the beginning if it overflows
-			times_pressed = 0;
 		char prev_char = txt[pos];
-		if(shift == KT_BG_CAPS || shift == KT_EN_CAPS)
-			txt[pos] = toupper(key_val[times_pressed]);
-		else
-			txt[pos] = key_val[times_pressed];
-		if (strchr(" \n-", txt[pos]) || strchr(" \n-", prev_char))				//if this or the previous character is " ", "\n" or "-" redraws the whole text
-			invalidate(this, client_rect);
-		else																	//else only the current character
-			invalidate(this, cursor);
+
+		if(prev_char)
+		{
+			SetTimer(EDIT_TIMER_INPUT, EDIT_INPUT_TIME);
+			if (shift != KT_DIGIT && ++times_pressed >= strlen(key_val))									//sets the array index in the beginning if it overflows
+				times_pressed = 0;
+			if(shift == KT_BG_CAPS || shift == KT_EN_CAPS)
+				txt[pos] = toupper(key_val[times_pressed]);
+			else
+				txt[pos] = key_val[times_pressed];
+			if (strchr(" \n-", txt[pos]) || strchr(" \n-", prev_char))				//if this or the previous character is " ", "\n" or "-" redraws the whole text
+				invalidate(this, client_rect);
+			else																	//else only the current character
+				invalidate(this, cursor);
+		}
 	}
 
 }
@@ -584,7 +588,7 @@ unsigned int GEdit::process_key (GMessage& msg)
 
 	default:
 		{
-			 unsigned char  ch = TranslateKey(msg.param) -'0';
+			 unsigned char  ch = TranslateKey(msg.param & ~KEY_REPEAT_CODE) -'0';
 			 if(ch <= 9 && !(msg.param & KEY_ASCII_CODE))
 			 {
 				 switch(shift)
