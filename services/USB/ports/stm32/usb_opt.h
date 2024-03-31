@@ -58,6 +58,7 @@ struct Endpoint
 	unsigned short rxfifo_cnt;	//!< Bytes available in the rx Fifo
 	unsigned short top_rx_cnt; 	//!< Bytes available in the top_rx_word
 	unsigned int   top_rx_word;	//!< top FIFO word
+	uint8_t*       rxfifo_buff;
 };
 
 #define CLEAR_EPT_IN_FIFOSZ(x)	x.epd_in.epd_fifo_sz = 0
