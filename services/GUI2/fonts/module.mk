@@ -29,7 +29,7 @@ h_sources  	+= $(call changepath,$(local_h_src-y))
 inc_dirs += $(subdirectory)
 
 #submodules
-local_modules-y :=  cp1250 cp1251 cp1252
+local_modules-y :=  cp1250 cp1251 cp1252 ISO8859-7
 
 sub_modules := $(call changepath,$(local_modules-y))
 modules += $(sub_modules)
