@@ -11,6 +11,8 @@
 #ifndef BRD_CFG_H_
 #define BRD_CFG_H_
 
+#define GD32F4XX_COMPATIBLE 1
+
 #define KEY_DOWN_CODE		0x00
 #define KEY_REPEAT_CODE		0x8000
 #define KEY_UP_CODE			0x4000
@@ -61,21 +63,6 @@
 #define USE_ADC_DMA_DRIVER 1		//Enable ADC DMA
 
 /// USB stack options
-#define USE_GD_EXAMPLE		n
-#define ST_USB_TEST			0
-
-
-#if USE_GD_EXAMPLE
-#define USE_USB				1
-#define USB_ENABLE_DEVICE	0
-#define USB_ENABLE_HOST 	1
-#define USB_ENABLE_OTG 		1
-#define USB_ENABLE_CDC		0
-#define USB_ENABLE_PRN		0
-#define USB_ENABLE_HID		0
-#define USB_ENABLE_MSC		0
-#define USB_ENABLE_VID		1
-#else
 #define USE_USB				1
 #define USB_ENABLE_DEVICE	1
 #define USB_ENABLE_HOST 	1
@@ -85,7 +72,9 @@
 #define USB_ENABLE_HID		1
 #define USB_ENABLE_MSC		1
 #define USB_ENABLE_VID		1
-#endif
+
+//#define TRACE_USB_LEVEL		TRACE_LEVEL_TRACE
+//#define TRACE_MSC_LEVEL		TRACE_LEVEL_TRACE
 /// Ethernet
 #define USE_NET				1
 #define USE_LWIP_1_4_1		1
