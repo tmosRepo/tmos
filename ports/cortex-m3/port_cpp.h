@@ -15,6 +15,12 @@
 #ifndef PORT_CPP_H_
 #define PORT_CPP_H_
 
+#if GD32F4XX_COMPATIBLE
+#define FAST_FLASH __attribute__((section(".FastFlash")))
+#else
+#define FAST_FLASH
+#endif
+
 #if USE_TMOS_STDLIB
 #include <tmos_stdlib.h>
 #endif

@@ -46,6 +46,13 @@
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 		 Assembler functions
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#if GD32F4XX_COMPATIBLE
+#define defaul_section FastFlash
+#else
+#define defaul_section text
+#endif
+
+
 #define __ALIGN_SHORT 	.align 2
 #define __ALIGN_LONG 	.align 2
 
@@ -58,7 +65,7 @@
   .size name, .-name
 
 #define FUNC(name) 			\
-.section .text.name, "ax";\
+.section .defaul_section.name, "ax";\
 __ALIGN_SHORT; 				\
 .type   name, %function; 	\
 .global name; 				\
