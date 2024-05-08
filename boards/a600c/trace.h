@@ -105,7 +105,6 @@ int tmos_dbgprintf( uint32_t zero, const char *format, ... );
 #define TRACE_LEVEL_TRACE               6
 
 #define TRACE_DEFAULT_LEVEL          	TRACE_LEVEL_TRACE
-#define TRACE_USB_LEVEL					TRACE_LEVEL_TRACE	//NONE
 #define TRACE_WML_LEVEL					TRACE_LEVEL_DEBUG
 #define TRACE_MEMORY_LEVEL				TRACE_LEVEL_DEBUG
 #define TRACE_FOCUS_LEVEL				TRACE_LEVEL_DEBUG
@@ -188,29 +187,6 @@ int tmos_dbgprintf( uint32_t zero, const char *format, ... );
 #   define TRACELN_INFO(str,...)
 #   define TRACELN1_INFO(str)
 #endif
-
-//*----------------------------------------------------------------------------
-//*			USB
-//*----------------------------------------------------------------------------
-#define TRACE_USB(...) 			TRACE_LEVEL(TRACE_USB_LEVEL, __VA_ARGS__)
-#define TRACE1_USB(str)			TRACE1_LEVEL(TRACE_USB_LEVEL, str)
-
-#if TRACE_USB_LEVEL >= TRACE_LEVEL_DEBUG
-#	define TRACELN_USB(...)			TRACELN(__VA_ARGS__)
-#	define TRACELN1_USB(...)		TRACELN1(__VA_ARGS__)
-#else
-#	define TRACELN_USB(str,...)
-#	define TRACELN1_USB(str)
-#endif
-
-#if TRACE_USB_LEVEL >= TRACE_LEVEL_WARNING
-#	define TRACE_USB_WARNING(...)		TRACE_WARNING(__VA_ARGS__)
-#	define TRACE1_USB_WARNING(str)	TRACE1_WARNING(str)
-#else
-#	define TRACE_USB_WARNING(...)
-#	define TRACE1_USB_WARNING(str)
-#endif
-
 
 //*----------------------------------------------------------------------------
 //*			DINAMIC MEMORY
