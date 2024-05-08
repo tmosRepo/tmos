@@ -23,6 +23,9 @@
 #include <csocket.h>
 #endif
 
+#ifndef USB_HOST_DRIVER_RETRY_DELAY
+#define USB_HOST_DRIVER_RETRY_DELAY		20  // default value 20 ms
+#endif
 
 void usbdrv_thread(USB_DRV_INFO drv_info)
 {
@@ -84,7 +87,9 @@ void usbdrv_thread(USB_DRV_INFO drv_info)
 		if(sig & USB_DRIVER_SIG_TOUT)
 		{
 			sig ^= USB_DRIVER_SIG_TOUT;
-			tsk_sleep(20);
+#if USB_HOST_DRIVER_RETRY_DELAY != 0
+			tsk_sleep(USB_HOST_DRIVER_RETRY_DELAY);
+#endif
 			usr_drv_icontrol(drv_info->info.drv_index, DCR_SIGNAL, nullptr);
 		}
 #endif

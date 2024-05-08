@@ -137,6 +137,7 @@ struct{
 #if USE_CPU_SLEEP_MODE
 	volatile int32_t otg_sleep_flag;		//!< set when IRQ must disable the cpu sleep
 #endif
+	uint32_t		ept_halt_flags;			//!< set  when a HALT request is initiated on the corresponding channel
 	uint32_t		otg_h_sig;
 	usb_hub_port_t 	usb_hub[MAX_HUB_PORTS + 1]; //!< More than 1 device can be supported if hub present
 #endif
