@@ -10,6 +10,40 @@
 
 #include <brd_cfg.h>
 
+//----------------------------------------------------------------------------
+//						USB debug trace
+//----------------------------------------------------------------------------
+#ifndef TRACE_USB_LEVEL
+#define TRACE_USB_LEVEL			TRACE_LEVEL_NONE
+#endif
+
+#define TRACE_USB(...) 			TRACE_LEVEL(TRACE_USB_LEVEL, __VA_ARGS__)
+#define TRACE1_USB(str)			TRACE1_LEVEL(TRACE_USB_LEVEL, str)
+
+#if TRACE_USB_LEVEL >= TRACE_LEVEL_DEBUG
+#	define TRACELN_USB(...)			TRACELN(__VA_ARGS__)
+#	define TRACELN1_USB(...)		TRACELN1(__VA_ARGS__)
+#else
+#	define TRACELN_USB(str,...)
+#	define TRACELN1_USB(str)
+#endif
+
+#if TRACE_USB_LEVEL >= TRACE_LEVEL_WARNING
+#	define TRACE_USB_WARNING(...)		TRACE_WARNING(__VA_ARGS__)
+#	define TRACE1_USB_WARNING(str)	TRACE1_WARNING(str)
+#else
+#	define TRACE_USB_WARNING(...)
+#	define TRACE1_USB_WARNING(str)
+#endif
+
+#if TRACE_USB_LEVEL >= TRACE_LEVEL_ERROR
+#	define TRACE_USB_ERROR(...)		TRACE_WARNING(__VA_ARGS__)
+#	define TRACE1_USB_ERROR(str)	TRACE1_WARNING(str)
+#else
+#	define TRACE_USB_ERROR(...)
+#	define TRACE1_USB_ERROR(str)
+#endif
+
 
 //------------------------------------------------------------------------------
 //         				OTG settings
@@ -32,12 +66,16 @@
 #define MAX_HUB_PORTS	2
 #endif
 
+/// reads and stores the manufacturer, product, and serial number of a remote device as strings
+#ifndef USB_REMOTE_DEV_STRINGS
+#define USB_REMOTE_DEV_STRINGS	0
+#endif
 //------------------------------------------------------------------------------
 //         				Device settings
 //------------------------------------------------------------------------------
 /// USB Device mode enabled by default
 #ifndef USB_ENABLE_DEVICE
-#define USB_ENABLE_DEVICE 0
+#define USB_ENABLE_DEVICE 1
 #endif
 
 /// Number of max interfaces used
@@ -61,6 +99,9 @@
 #define USB_ENABLE_HID 0
 #endif
 
+#ifndef USB_ENABLE_MSC
+#define USB_ENABLE_MSC 0
+#endif
 //------------------------------------------------------------------------------
 //         				Sanity checks
 //------------------------------------------------------------------------------
