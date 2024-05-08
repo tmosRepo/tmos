@@ -12,6 +12,10 @@
 #include <scsi.h>
 #include <usb_msc_reqs.h>
 
+#if TRACE_MSC_LEVEL >= TRACE_LEVEL_DEBUG
+#pragma GCC optimize ("O0")
+#endif
+
 //------------------------------------------------------------------------------
 //	Class Requests
 //------------------------------------------------------------------------------
@@ -36,13 +40,29 @@ RES_CODE usb_remote_msc_t::get_max_lun()
 RES_CODE usb_remote_msc_t::msc_command(usbmsc_cs_t* transaction, void* buf, uint32_t len)
 {
 	RES_CODE res, res1;
+	scsi_cmd_read_10_t* cdb = (scsi_cmd_read_10_t*)transaction->cbw.CBWCB;
 
 	// send command
 	transaction->cbw.dCBWSignature = USBMSC_CBW_SIGNATURE;
 	transaction->cbw.dCBWTag = ++cb_tag;
 	transaction->cbw.bCBWLUN = lun;
 	transaction->cbw.dCBWDataTransferLength = len;
+
+	TRACELN1_MSC("Cmd");
+	if(cdb->opcode == SCSI_CMD_WRITE_10 || cdb->opcode == SCSI_CMD_READ_10)
+	{
+		TRACE_MSC(" Req %s sec:%u", ((cdb->opcode == SCSI_CMD_WRITE_10)?"Wr":"Rd"), __REV(cdb->lba));
+	}else if(cdb->opcode == SCSI_CMD_REQUEST_SENSE)
+	{
+		TRACE_MSC(" Req Sense");
+	}
+	TRACE_MSC(" Tag:%X", cb_tag);
+
 	res = msc_hnd->tsk_write(&transaction->cbw, USBMSC_CBW_SIZEOF, USBMSC_WRITE_TOUT);
+	if(res != RES_OK)
+	{
+		TRACE_MSC(" res=%x(%04X)", res, msc_hnd->error);
+	}
 	if(res == RES_OK)
 	{
 		// data transfer
@@ -53,12 +73,68 @@ RES_CODE usb_remote_msc_t::msc_command(usbmsc_cs_t* transaction, void* buf, uint
 				// IN transaction
 				if(transaction->cbw.dCBWDataTransferLength)
 				{
+					TRACELN_MSC("Data read Tag:%X ", cb_tag);
+#if USBMSC_READING_BY_PACKETS
+					USBEndpointDescriptor* ped = usb_get_enpoint(config_descriptor,  msc_hnd->mode.as_byteptr[0], pid->bInterfaceNumber);
+					uint32_t dwRead;
+					while(len && res == RES_OK)
+					{
+						dwRead = len;
+						if(dwRead > ped->wMaxPacketSize)
+							dwRead = ped->wMaxPacketSize;
+						res = msc_hnd->tsk_read(buf, dwRead, USBMSC_READ_TOUT);
+						if(res == RES_OK)
+						{
+							dwRead -= msc_hnd->len;
+							buf = (char *)buf + dwRead;
+							len -= dwRead;
+						}
+					}
+#else
 					res = msc_hnd->tsk_read(buf, len, USBMSC_READ_TOUT);
+#endif
+					if(res != RES_OK)
+					{
+						TRACE_MSC("res=%x(%04X)", res, msc_hnd->error);
+					}
 				}
 			} else
 			{
 				// OUT transaction
-				res = msc_hnd->tsk_write(buf, len, USBMSC_WRITE_TOUT);
+				TRACELN_MSC("Data write Tag:%X ", cb_tag);
+
+#if USBMSC_WRITING_BY_PACKETS
+					USBEndpointDescriptor* ped = usb_get_enpoint(config_descriptor, msc_hnd->mode.as_byteptr[1], pid->bInterfaceNumber);
+					uint32_t dwRead;
+					while(len && res == RES_OK)
+					{
+						dwRead = len;
+						if(dwRead > ped->wMaxPacketSize)
+							dwRead = ped->wMaxPacketSize;
+						res = msc_hnd->tsk_write(buf, dwRead, USBMSC_WRITE_TOUT);
+						if(res == RES_OK)
+						{
+							dwRead -= msc_hnd->len;
+							buf = (char *)buf + dwRead;
+							len -= dwRead;
+						}
+					}
+#else
+					res = msc_hnd->tsk_write(buf, len, USBMSC_WRITE_TOUT);
+#endif
+				if(res != RES_OK)
+				{
+					TRACE_MSC("res=%x(%04X)", res, msc_hnd->error);
+				}else
+				{
+					TRACE1_MSC("Ok");
+				}
+			}
+			// data transfer is complete
+
+			if(res != RES_OK && (cdb->opcode == SCSI_CMD_WRITE_10 || cdb->opcode == SCSI_CMD_READ_10))
+			{
+				TRACE_MSC(" lba:%u",  __REV(cdb->lba));
 			}
 			if(res != RES_OK && res != RES_FATAL)
 			{
@@ -69,6 +145,19 @@ RES_CODE usb_remote_msc_t::msc_command(usbmsc_cs_t* transaction, void* buf, uint
 						clr_endpoint_stall(msc_hnd->mode.as_bytes[0] | 0x80);
 					else
 						clr_endpoint_stall(msc_hnd->mode.as_bytes[1]);
+				}else if( res == RES_ERROR)
+				{
+					// transfer is complete with error
+					// TODO:
+					TRACE_MSC_ERROR("res=%x\e[1;97m msc reset\e[m", res);
+					res1 =msc_reset();
+					if(res1 == RES_OK)
+					{
+						TRACE1_MSC(" Ok");
+					}
+					else
+						TRACE_MSC(" Fail %x(%X)", res1, ep0_hnd->error);
+					return res;
 				}
 			}
 		}
@@ -79,10 +168,23 @@ RES_CODE usb_remote_msc_t::msc_command(usbmsc_cs_t* transaction, void* buf, uint
 			//
 			// Attemp to the read Command Status Wrapper from bulk in endpoint
 			//
+			TRACELN1_MSC("Read CSW ");
 			memclr(&transaction->csw, USBMSC_CSW_SIZEOF);
 			res1 = msc_hnd->tsk_read(&transaction->csw, USBMSC_CSW_SIZEOF, USBMSC_READ_TOUT);
+			//flush unexpected data
+			if(msc_hnd->mode1 && (res1 == RES_OK) && !msc_hnd->len)	//mode1 = available data length
+			{
+				char buff[8];
+				TRACELN1_MSC("Unexpected data!");
+				while(msc_hnd->tsk_read(buff, sizeof(buff), USB_SETUP_READ_TOUT)== RES_OK)
+				{
+					if(!msc_hnd->mode1)
+						break;
+				}
+			}
 			if (res1 != RES_OK)
 			{
+				TRACE_MSC(" res=%x(%04X)", res1, msc_hnd->error);
 				// Stall
 				if (res1 == FLG_DATA)
 				{
@@ -91,6 +193,9 @@ RES_CODE usb_remote_msc_t::msc_command(usbmsc_cs_t* transaction, void* buf, uint
 				if(res1 == RES_IDLE && res == RES_IDLE)
 					break;
 				continue;
+			}else
+			{
+				TRACE1_MSC("Ok");
 			}
 
 			res1 = RES_ERROR;
@@ -98,8 +203,33 @@ RES_CODE usb_remote_msc_t::msc_command(usbmsc_cs_t* transaction, void* buf, uint
 					transaction->csw.dCSWTag == cb_tag)
 			{
 				if (transaction->csw.bCSWStatus != USBMSC_CSW_STATUS_PHASEERROR)
+				{
+					if(transaction->csw.bCSWStatus )
+					{
+						TRACELN1_MSC("Status: Command Failed");
+					}
 					res1 = RES_OK;
+				}
 				break;
+			}else
+			{
+				if(transaction->csw.dCSWSignature != USBMSC_CSW_SIGNATURE)
+				{
+					TRACELN1_MSC("Invalis signature!");
+				}else if(transaction->csw.dCSWTag != cb_tag)
+				{
+					TRACELN_MSC("Tags mismatch ret:%X expect:%X!", transaction->csw.dCSWTag, cb_tag);
+				}else if(transaction->csw.bCSWStatus == USBMSC_CSW_STATUS_PHASEERROR)
+				{
+					TRACELN1_MSC("Status: Phase Error!");
+				}else if(transaction->csw.bCSWStatus == USBMSC_CSW_STATUS_FAIL)
+				{
+					TRACELN1_MSC("Status: Command Failed!");
+				}else if(transaction->csw.bCSWStatus == USBMSC_CSW_STATUS_PASS)
+				{
+					TRACELN1_MSC("Status: Command Passed");
+				}
+
 			}
 		}
 		if(res == RES_OK && res1 != RES_OK)
@@ -108,8 +238,12 @@ RES_CODE usb_remote_msc_t::msc_command(usbmsc_cs_t* transaction, void* buf, uint
 	}
 	if(res != RES_OK)
 	{
-		TRACELN("MSC: res=%x", res);
-		msc_reset();
+		TRACE_MSC_ERROR("res=%x\e[1;97m msc reset\e[m", res);
+		res1 =msc_reset();
+		if(res1 == RES_OK)
+			TRACE1_MSC(" Ok");
+		else
+			TRACE_MSC(" Fail %x(%X)", res1, ep0_hnd->error);
 	}
 	return res;
 }
@@ -128,7 +262,7 @@ RES_CODE usb_remote_msc_t::msc_command_with_retry(usbmsc_cs_t* transaction, void
 			break;
 		if(res == RES_OK && transaction->csw.bCSWStatus == USBMSC_CSW_STATUS_PASS)
 			break;
-		TRACELN("MSC: cmd res=%x", res);
+		TRACELN_MSC("Retry remaining %u s", 60 - seconds_since(time));
 		res = msc_request_sense();
 		if( res == RES_FATAL)
 			break;
@@ -259,6 +393,7 @@ RES_CODE usb_remote_msc_t::init_msd()
 RES_CODE usb_remote_msc_t::msc_reset()
 {
 	RES_CODE res;
+	TRACELN1_MSC("\e[1;97mRESET");
 
 	req.bmRequestType = USB_REQ_OUT_CLASS_INTERFACE;
 	req.bRequest = MSCRequest_BOMSR;
@@ -270,14 +405,28 @@ RES_CODE usb_remote_msc_t::msc_reset()
 
 	if (res == RES_OK)
 	{
+		TRACE1_MSC(":Ok IN");
 		// The device shall NAK the host's request until the reset is
 		// complete. We can use this to sync the device and host. For
 		// now just stall 100ms to wait for the device.
 
 		// Clear the Bulk-In and Bulk-Out stall condition.
-		clr_endpoint_stall(msc_hnd->mode.as_bytes[0] | 0x80);
-		clr_endpoint_stall(msc_hnd->mode.as_bytes[1]);
+		res = clr_endpoint_stall(msc_hnd->mode.as_bytes[0] | 0x80);
+		if(res == RES_OK)
+		{
+			TRACE_MSC(":Ok OUT");
+			res = clr_endpoint_stall(msc_hnd->mode.as_bytes[1]);
+			if(res == RES_OK)
+			{
+				TRACE1_MSC(":Ok");
+			}
+		}
 	}
+	if(RES_OK != res)
+	{
+		TRACE_MSC(":Fail res=%X(%X)", res, ep0_hnd->error);
+	}
+	TRACE1_MSC("\e[m");
 	return res;
 }
 
@@ -305,6 +454,7 @@ RES_CODE usb_remote_msc_t::msc_request_sense()
 			res = RES_INVALID_DATA;
 		else
 		{
+			TRACELN_MSC("sense key %X", data.sense_key & 0xf);
 			switch (data.sense_key & 0xf)
 			{
 			case USB_BOOT_SENSE_NO_SENSE:
@@ -383,6 +533,7 @@ RES_CODE usb_remote_msc_t::msc_write(const void* buf, uint32_t sector, uint32_t 
 		res = RES_ERROR;
 	else
 	{
+
 		transaction.cbw.bmCBWFlags = USBMSC_CBW_FLAGS_OUT;
 
 		transaction.cbw.bCBWCBLength = sizeof(*cdb);
@@ -479,7 +630,6 @@ RES_CODE usb_remote_msc_t::scan_msc(uint32_t port_indx, USBSubClassCode subcls, 
 	return res;
 }
 
-
-
-
-
+#if TRACE_MSC_LEVEL >= TRACE_LEVEL_DEBUG
+#pragma GCC reset_options
+#endif
