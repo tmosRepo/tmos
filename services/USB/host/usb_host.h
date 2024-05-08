@@ -22,7 +22,11 @@ struct usb_remote_dev_t
 	usb_hub_port_t				usb_hub_port;
 	USBDeviceDescriptor 		dev_descriptor;
 	USBGenericRequest 			req;
-
+#if USB_REMOTE_DEV_STRINGS
+	CSTRING strManufacturer;	//!< manufacturer string
+	CSTRING strProduct;			//!< product string
+	CSTRING strSerialNumber;	//!< serial number
+#endif
 	usb_remote_dev_t(HANDLE h1):
 		ep0_hnd(h1), usb_drv_info(NULL), config_descriptor(NULL)
 	{
@@ -51,6 +55,7 @@ struct usb_remote_dev_t
 	RES_CODE set_address(uint32_t adr);
 	RES_CODE set_interface(uint32_t iface_indx, uint32_t alt_set);
 	RES_CODE clr_endpoint_stall(uint32_t indx);
+	RES_CODE get_string_descriptor(CSTRING& str, uint8_t indx);
 
 	RES_CODE hdc_init(uint32_t port_indx);
 };

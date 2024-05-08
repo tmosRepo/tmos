@@ -176,6 +176,59 @@ RES_CODE usb_remote_dev_t::get_device_descriptor()
 	return res;
 }
 
+RES_CODE usb_remote_dev_t::get_string_descriptor(CSTRING& str, uint8_t indx)
+{
+	RES_CODE res = RES_EOF;
+	uint8_t* dp_str;
+	USBGenericDescriptor dp;
+	uint8_t str_len=0;
+
+	if(indx)
+	{
+		req.bmRequestType = USB_REQ_IN_STANDARD_DEVICE;
+		req.bRequest =USBDeviceRequest_GET_DESCRIPTOR;
+		req.wValue = STRING_DESCRIPTOR << 8 | indx;						// Descriptor type and index
+		req.wIndex = 0x409;												// Language ID = US English
+		req.wLength = sizeof(USBGenericDescriptor);
+
+		res = std_request(&dp);
+		if(res == RES_OK)
+		{
+			if(dp.bLength > sizeof(USBGenericDescriptor))
+				str_len = (dp.bLength - sizeof(USBGenericDescriptor))/2;
+			if(str_len)
+				req.wLength = dp.bLength;
+			else
+				res = RES_EOF;
+		}
+		if(res == RES_OK)
+		{
+			res = RES_EOF;
+			dp_str = new uint8_t[dp.bLength];
+			if(dp_str)
+			{
+				res = std_request(dp_str);
+				if(res == RES_OK)
+				{
+					str.clear();
+					uint8_t* data = dp_str + sizeof(USBGenericDescriptor);
+					while(str_len)
+					{
+						str.append(*data);
+						data += 2;
+						str_len--;
+					}
+					res = RES_OK;
+				}
+				delete dp_str;
+			}
+		}
+	}
+	if(res == RES_EOF)
+		str = "not presented";
+	return res;
+}
+
 RES_CODE usb_remote_dev_t::get_config_descriptor_part(uint32_t size)
 {
 	RES_CODE res;
@@ -401,6 +454,15 @@ RES_CODE usb_remote_dev_t::hdc_init(uint32_t port_indx)
 		//read device descriptor (complete)
 		if(res == RES_OK)
 			res = get_device_descriptor();
+		// read string descriptors
+#if USB_REMOTE_DEV_STRINGS
+		if(res == RES_OK)
+		{
+			get_string_descriptor(strManufacturer, dev_descriptor.iManufacturer);
+			get_string_descriptor(strProduct, dev_descriptor.iProduct);
+			get_string_descriptor(strSerialNumber, dev_descriptor.iSerialNumber);
+		}
+#endif
 	}
 
 	return res;
@@ -476,3 +538,6 @@ RES_CODE usb_host_reset_bus(USB_DRV_INFO drv_info, HANDLE hnd)
 }
 
 
+#if TRACE_USB_LEVEL >= TRACE_LEVEL_DEBUG
+#pragma GCC reset_options
+#endif
