@@ -37,6 +37,16 @@ RES_CODE usb_remote_msc_t::get_max_lun()
 //------------------------------------------------------------------------------
 //	Commands
 //------------------------------------------------------------------------------
+
+#if USBMSC_WRITING_BY_PACKETS || USBMSC_READING_BY_PACKETS
+#ifndef USBMSC_DATA_SLEEP
+#define USBMSC_DATA_SLEEP	(100)
+#endif
+#ifndef USBMSC_DATA_RETRY
+#define USBMSC_DATA_RETRY	500
+#endif
+#endif
+
 RES_CODE usb_remote_msc_t::msc_command(usbmsc_cs_t* transaction, void* buf, uint32_t len)
 {
 	RES_CODE res, res1;
@@ -76,7 +86,9 @@ RES_CODE usb_remote_msc_t::msc_command(usbmsc_cs_t* transaction, void* buf, uint
 					TRACELN_MSC("Data read Tag:%X ", cb_tag);
 #if USBMSC_READING_BY_PACKETS
 					USBEndpointDescriptor* ped = usb_get_enpoint(config_descriptor,  msc_hnd->mode.as_byteptr[0], pid->bInterfaceNumber);
-					uint32_t dwRead;
+					uint32_t dwRead, retry, req_len = len;
+					retry = USBMSC_DATA_RETRY;
+
 					while(len && res == RES_OK)
 					{
 						dwRead = len;
@@ -88,7 +100,26 @@ RES_CODE usb_remote_msc_t::msc_command(usbmsc_cs_t* transaction, void* buf, uint
 							dwRead -= msc_hnd->len;
 							buf = (char *)buf + dwRead;
 							len -= dwRead;
+							retry = USBMSC_DATA_RETRY;
+						}else
+						{
+							TRACELN_MSC("Filed to read packet #%u !", (req_len -len)/ped->wMaxPacketSize);
+							TRACE_MSC(" res=%x(%04X)", res, msc_hnd->error);
+							TRACE_MSC("remaining %ub of %u ", len, req_len);
+							if((--retry))
+							{
+								tsk_sleep(USBMSC_DATA_SLEEP);
+								if(res == RES_FATAL)
+									break;
+								if(res == FLG_DATA)
+									res = clr_endpoint_stall(msc_hnd->mode.as_bytes[0]);
+								else
+									res = RES_OK;
+							}else{
+								break;
+							}
 						}
+
 					}
 #else
 					res = msc_hnd->tsk_read(buf, len, USBMSC_READ_TOUT);
@@ -105,7 +136,8 @@ RES_CODE usb_remote_msc_t::msc_command(usbmsc_cs_t* transaction, void* buf, uint
 
 #if USBMSC_WRITING_BY_PACKETS
 					USBEndpointDescriptor* ped = usb_get_enpoint(config_descriptor, msc_hnd->mode.as_byteptr[1], pid->bInterfaceNumber);
-					uint32_t dwRead;
+					uint32_t dwRead, retry, req_len = len;
+					retry = USBMSC_DATA_RETRY;
 					while(len && res == RES_OK)
 					{
 						dwRead = len;
@@ -117,6 +149,24 @@ RES_CODE usb_remote_msc_t::msc_command(usbmsc_cs_t* transaction, void* buf, uint
 							dwRead -= msc_hnd->len;
 							buf = (char *)buf + dwRead;
 							len -= dwRead;
+							retry = USBMSC_DATA_RETRY;
+						}else
+						{
+							TRACELN_MSC("Filed to write packet #%u !", (req_len -len)/ped->wMaxPacketSize);
+							TRACE_MSC(" res=%x(%04X)", res, msc_hnd->error);
+							TRACE_MSC("remaining %ub of %u ", len, req_len);
+							if((--retry))
+							{
+								tsk_sleep(USBMSC_DATA_SLEEP);
+								if(res == RES_FATAL)
+									break;
+								if(res == FLG_DATA)
+									res = clr_endpoint_stall(msc_hnd->mode.as_bytes[1]);
+								else
+									res = RES_OK;
+							}else{
+								break;
+							}
 						}
 					}
 #else
@@ -393,34 +443,42 @@ RES_CODE usb_remote_msc_t::init_msd()
 RES_CODE usb_remote_msc_t::msc_reset()
 {
 	RES_CODE res;
+
 	TRACELN1_MSC("\e[1;97mRESET");
 
-	req.bmRequestType = USB_REQ_OUT_CLASS_INTERFACE;
-	req.bRequest = MSCRequest_BOMSR;
-	req.wValue = 0;
-	req.wIndex = pid->bInterfaceNumber;						// interface
-	req.wLength = 0;
-
-	res = std_request(NULL);
-
-	if (res == RES_OK)
+	for(int i=0; i < 3; i++)
 	{
-		TRACE1_MSC(":Ok IN");
-		// The device shall NAK the host's request until the reset is
-		// complete. We can use this to sync the device and host. For
-		// now just stall 100ms to wait for the device.
+		tsk_sleep(50);
+		req.bmRequestType = USB_REQ_OUT_CLASS_INTERFACE;
+		req.bRequest = MSCRequest_BOMSR;
+		req.wValue = 0;
+		req.wIndex = pid->bInterfaceNumber;						// interface
+		req.wLength = 0;
 
-		// Clear the Bulk-In and Bulk-Out stall condition.
-		res = clr_endpoint_stall(msc_hnd->mode.as_bytes[0] | 0x80);
-		if(res == RES_OK)
+		res = std_request(NULL);
+
+		if (res == RES_OK)
 		{
-			TRACE_MSC(":Ok OUT");
-			res = clr_endpoint_stall(msc_hnd->mode.as_bytes[1]);
+			TRACE1_MSC(":Ok IN");
+			// The device shall NAK the host's request until the reset is
+			// complete. We can use this to sync the device and host. For
+			// now just stall 100ms to wait for the device.
+
+			// Clear the Bulk-In and Bulk-Out stall condition.
+			res = clr_endpoint_stall(msc_hnd->mode.as_bytes[0] | 0x80);
 			if(res == RES_OK)
 			{
-				TRACE1_MSC(":Ok");
+				TRACE_MSC(":Ok OUT");
+				res = clr_endpoint_stall(msc_hnd->mode.as_bytes[1]);
+				if(res == RES_OK)
+				{
+					TRACE1_MSC(":Ok");
+					break;
+				}
 			}
+			TRACELN_MSC("FAIL(%u)\r\nRESET", i+1);
 		}
+
 	}
 	if(RES_OK != res)
 	{
