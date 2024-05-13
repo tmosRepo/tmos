@@ -68,10 +68,10 @@ struct CHandle {
 	 * @param reason
 	 */
 	void hcontrol(unsigned int reason) {
-		if (__get_CONTROL() & 2)
-			usr_drv_icontrol(drv_index, reason, this);
-		else
+		if (__get_IPSR() == 11) // SVCall
 			svc_drv_icontrol(drv_index, reason, this);
+		else
+			usr_drv_icontrol(drv_index, reason, this);
 	}
 
 	/**
