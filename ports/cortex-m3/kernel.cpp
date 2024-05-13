@@ -37,7 +37,7 @@ extern TASK_DESCRIPTION main_task_desc;
 volatile __no_init unsigned int system_clock_frequency;
 
 #if USE_EXCEPTION_RECORD
-volatile __no_init EXCEPTION_RECORD_STRU exception_record;
+volatile __exception_data EXCEPTION_RECORD_STRU exception_record;
 
 extern "C" unsigned int exception_crc(const unsigned int* record)
 {
@@ -267,12 +267,12 @@ void usr_task_init_static(TASK_DESCRIPTION const * desc, int bStart)
 
 	if (bStart)
 	{
-		if (__get_CONTROL() & 2)
-
-			usr_task_schedule(task);
-
-		else
+		if (__get_IPSR() == 11){
+			// SVCall
 			svc_task_schedule(task);
+		}else{
+			usr_task_schedule(task);
+		}
 	}
 }
 
@@ -284,12 +284,11 @@ Task* usr_task_create_dynamic(const char* name, TASK_FUNCTION func,
 
 	//Allocate task control block and stack
 	stack_words = (stack_words * 4) + sizeof(TASK_STRU);
-	if (__get_CONTROL() & 2)
-	{
-		task = (Task*)((unsigned int)usr_malloc(stack_words+4) +4);
-	} else
-	{
+	if (__get_IPSR() == 11){
+		// SVCall
 		task = (Task*)((unsigned int)svc_malloc(stack_words+4)+4);
+	}else{
+		task = (Task*)((unsigned int)usr_malloc(stack_words+4) +4);
 	}
 
 	if(task != (void *)4)
