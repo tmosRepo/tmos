@@ -54,7 +54,12 @@ typedef struct
   __IO uint32_t RESERVED6[2];		//!< (rcc Offset: 0x78) reserved
   __IO uint32_t RCC_SSCGR;       	//!< (rcc Offset: 0x80) RCC spread spectrum clock generation register
   __IO uint32_t RCC_PLLI2SCFGR;  	//!< (rcc Offset: 0x84) RCC PLLI2S configuration register
-
+/// for compatibility with the F4 series when it is detected at runtime
+  __IO uint32_t RCC_PLLSAICFGR;  	//!< (rcc Offset: 0x88) RCC PLLSAI configuration register
+  __IO uint32_t RCC_DCKCFGR;    	//!< (rcc Offset: 0x8C) RCC Dedicated Clock Configuration Register
+/// for compatibility with the GD32F4 series when it is detected at runtime
+  __IO uint32_t RESERVED7[12];    	//!< (rcc Offset: 0x90) RCC Dedicated Clock Configuration Register
+  __IO uint32_t RCU_ADDCTL;     	//!< (rcc Offset: 0xC0) Additional clock control register (RCU_ADDCTL)
 } RCC_TypeDef;
 
 /***************************************************************************//**
@@ -76,6 +81,9 @@ typedef struct
 #define RCC_CR_PLLRDY           	0x02000000 //!< PLL clock ready flag
 #define RCC_CR_PLLI2SON          	0x04000000 //!< PLLI2S enable
 #define RCC_CR_PLLI2SRDY         	0x08000000 //!< PLLI2S clock ready flag
+/// for compatibility with the F4 series when it is detected at runtime
+#define RCC_CR_PLLSAION          	0x10000000 //!< PLLSAI enable
+#define RCC_CR_PLLSAIRDY         	0x20000000 //!< PLLSAI clock ready flag
 /** @} */
 
 
@@ -498,6 +506,32 @@ typedef struct
 /** @name RCC_PLLI2SCFGR:(rcc Offset: 0x84) RCC PLLI2S configuration register */
 #define RCC_PLLI2SCFGR_PLLI2SN      0x00007FC0 //!< PLLI2S multiplication factor for VCO
 #define RCC_PLLI2SCFGR_PLLI2SR      0x70000000 //!< PLLI2S division factor for I2S clocks
+/** @} */
+
+/** @name RCC_PLLSAICFGR:(rcc Offset: 0x88) RCC PLLSAI configuration register */
+#define RCC_PLLSAICFGR_PLLSAIN      0x00007FC0 //!< PLLSAI multiplication factor for VCO
+#define RCC_PLLSAICFGR_PLLSAIR      0x70000000 //!< PLLSAI division factor for LCD clock
+#define RCC_PLLSAICFGR_PLLSAIQ      0x0F000000 //!< PLLSAI division factor for SAI1 clock
+/// for compatibility with the GD32F4 series when it is detected at runtime
+#define RCC_PLLSAICFGR_PLLSAIP      0x00030000 //!< PLLSAIP is used to UBSFS/USBHS (48MHz), TRNG (48MHz), or SDIO(48MHz).
+/** @} */
+
+/** @name RCC_DCKCFGR:(rcc Offset: 0x8C) RCC Dedicated Clock Configuration Register */
+#define RCC_DCKCFGR_TIMPRE          0x01000000 //!< Timers clocks prescalers selection
+#define RCC_DCKCFGR_SAI1BSRC        0x00C00000 //!< SAI1-B clock source selection
+#define RCC_DCKCFGR_SAI1ASRC        0x00300000 //!< SAI1-A clock source selection
+#define RCC_DCKCFGR_PLLSAIDIVR      0x00030000 //!< division factor for LCD_CLK
+#define RCC_DCKCFGR_PLLSAIDIVQ      0x00001F00 //!< PLLSAI division factor for SAI1 clock
+#define RCC_DCKCFGR_PLLI2SDIVQ      0x0000001F //!< PLLI2S division factor for SAI1 clock
+/** @} */
+
+/** @name RCU_ADDCTL:(rcc Offset: 0xC0) Additional clock control register RCU_ADDCTL*/
+/// for compatibility with the GD32F4 series when it is detected at runtime
+#define RCU_IRC48MCALIB             0xFF000000 //!< Internal 48MHz RC oscillator calibration value
+#define RCU_PIRC48MSTB              0x00020000 //!< Internal 48MHz RC oscillator clock stabilization Flag
+#define RCU_IRC48MEN                0x00010000 //!< Internal 48MHz RC oscillator enable
+#define RCU_PLL48MSEL               0x00000002 //!< PLL48M clock selection
+#define RCU_CK48MSEL                0x00000001 //!< 48MHz clock selection
 /** @} */
 
 
