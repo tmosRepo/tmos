@@ -2069,13 +2069,11 @@ void usb_drv_end_transfers(ep_dir_state_t* epdir, unsigned int status)
 	{
 		TRACE1_USB(" EoT ");
 		epdir->epd_pending = hnd->next;
-		if (__get_CONTROL() & 2)
-		{
-			usr_usb_HND_SET_STATUS(hnd, status);
-		}
-		else
-		{
+		if (__get_IPSR() == 11){
+			// SVCall
 			svc_usb_HND_SET_STATUS(hnd, status);
+		}else{
+			usr_usb_HND_SET_STATUS(hnd, status);
 		}
 	}
 }
