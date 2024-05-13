@@ -46,7 +46,7 @@ struct TIMER_CONTROL_MODE 	//: public TIMER_DRIVER_MODE
 	uint16_t cr1;				//!< control register 1 (TIM_CR1)
 	uint16_t cr2;				//!< control register 2 (TIM_CR2)
 	uint16_t smcr;				//!< slave mode register (TIM_SMCR)
-	uint16_t psc;				//!< prescaler (TIM_PSC)
+	uint16_t psc;				//!< prescaler (TIM_PSC) value at 120 MHz
 	uint8_t  rcr;				//!< repetition counter	(TIM_RCR)
 };
 

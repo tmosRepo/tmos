@@ -15,7 +15,9 @@ static void ConfigureTimer(TIM_DRV_INF drv_info, const TIMER_CONTROL_MODE *mode)
 	hw_base->TIM_CR1 = mode->cr1;
 	hw_base->TIM_CR2 = mode->cr2;
 	hw_base->TIM_ARR = mode->arr_or_ccr;
-	hw_base->TIM_PSC = mode->psc;
+	// The prescaler values refer to a frequency of 120 MHz,
+	// if the current one is different, the prescaler must be recalculated
+	hw_base->TIM_PSC = ((uint32_t)(mode->psc)*(system_clock_frequency/1000000))/120;
 	hw_base->TIM_RCR = mode->rcr;
 	hw_base->TIM_SMCR = mode->smcr;
 	hw_base->TIM_EGR = TIM_EGR_UG;
