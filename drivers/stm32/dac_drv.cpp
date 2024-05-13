@@ -148,10 +148,12 @@ void DAC_DCR(DAC_DRIVER_INFO* drv_info, unsigned int reason, HANDLE hnd)
 						hnd->len = drv_data->dac_dma_hnd[0].len;
 					}
 					drv_data->pending[0] = NULL;
-					if (__get_CONTROL() & 2)
-						usr_HND_SET_STATUS(hnd, RES_SIG_OK);
-					else
+					if (__get_IPSR() == 11){
+						// SVCall
 						svc_HND_SET_STATUS(hnd, RES_SIG_OK);
+					}else{
+						usr_HND_SET_STATUS(hnd, RES_SIG_OK);
+					}
 				}
 			} else
 			{
