@@ -76,7 +76,7 @@
  *
  * ****************************************************************************/
 
-void stm32_dma_start(DMA_TypeDef* dmac, uint32_t indx, HANDLE hnd)
+void FAST_FLASH stm32_dma_start(DMA_TypeDef* dmac, uint32_t indx, HANDLE hnd)
 {
 	DMA_Stream_TypeDef* ch;
 
@@ -117,12 +117,12 @@ void stm32_dma_start(DMA_TypeDef* dmac, uint32_t indx, HANDLE hnd)
 	ch->DMA_SxCR |= DMA_SxCR_EN ;
 }
 
-void stm32_dma_stop(DMA_TypeDef* dmac, uint32_t indx)
+void FAST_FLASH stm32_dma_stop(DMA_TypeDef* dmac, uint32_t indx)
 {
 	dmac->DMA_Chx[indx].DMA_SxCR &= ~DMA_SxCR_EN;
 }
 
-void stm32_dma_ch_cfg(DMA_TypeDef* dmac, uint32_t indx, DMA_DRIVER_MODE* mode)
+void FAST_FLASH stm32_dma_ch_cfg(DMA_TypeDef* dmac, uint32_t indx, DMA_DRIVER_MODE* mode)
 {
 	DMA_Stream_TypeDef* ch;
 
@@ -132,7 +132,7 @@ void stm32_dma_ch_cfg(DMA_TypeDef* dmac, uint32_t indx, DMA_DRIVER_MODE* mode)
 	ch->DMA_SxFCR = (mode->dma_ch_fr & ~DMA_SxFCR_FEIE);
 }
 
-void stm32_en_ints(DMA_TypeDef* dmac, uint32_t indx, DMA_DRIVER_MODE* mode)
+void FAST_FLASH stm32_en_ints(DMA_TypeDef* dmac, uint32_t indx, DMA_DRIVER_MODE* mode)
 {
 	DMA_Stream_TypeDef* ch;
 	uint32_t reg;
@@ -147,7 +147,7 @@ void stm32_en_ints(DMA_TypeDef* dmac, uint32_t indx, DMA_DRIVER_MODE* mode)
 	}
 }
 
-void stm32_dis_ints(DMA_TypeDef* dmac, uint32_t indx)
+void FAST_FLASH stm32_dis_ints(DMA_TypeDef* dmac, uint32_t indx)
 {
 	dmac->DMA_Chx[indx].DMA_SxCR &= ~(DMA_SxCR_TCIE | DMA_SxCR_DMEIE | DMA_SxCR_TEIE | DMA_SxCR_EN);
 	dmac->DMA_Chx[indx].DMA_SxFCR &= ~(DMA_SxFCR_FEIE);
