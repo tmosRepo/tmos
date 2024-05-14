@@ -11,13 +11,33 @@
 static void ConfigureTimer(TIM_DRV_INF drv_info, const TIMER_CONTROL_MODE *mode)
 {
 	TIM_TypeDef* hw_base = drv_info->hw_tmr_base;
+	RCC_ClocksTypeDef  clocks;
+
 
 	hw_base->TIM_CR1 = mode->cr1;
 	hw_base->TIM_CR2 = mode->cr2;
 	hw_base->TIM_ARR = mode->arr_or_ccr;
-	// The prescaler values refer to a frequency of 120 MHz,
-	// if the current one is different, the prescaler must be recalculated
-	hw_base->TIM_PSC = ((uint32_t)(mode->psc)*(system_clock_frequency/1000000))/120;
+	// The rescaler values refer to a frequency of 120 or 60 MHz
+	// depending on which peripheral the timer is connected to,
+	// If the current frequency is different, the prescaler must be recalculated.
+	RCC_GetClocksFreq (&clocks);
+	switch(drv_info->info.peripheral_indx)
+	{
+	case ID_PERIPH_TIM1:
+	case ID_PERIPH_TIM8:
+	case ID_PERIPH_TIM9:
+	case ID_PERIPH_TIM10:
+	case ID_PERIPH_TIM11:
+		// APB2 120(2x60)
+		clocks.PCLK2_Frequency /=500000;
+		hw_base->TIM_PSC = ((uint32_t)(mode->psc)*clocks.PCLK2_Frequency)/120;
+		break;
+	default:
+		// APB1 60(2x30)
+		clocks.PCLK1_Frequency /=500000;
+		hw_base->TIM_PSC = ((uint32_t)(mode->psc)*clocks.PCLK1_Frequency)/60;
+		break;
+	}
 	hw_base->TIM_RCR = mode->rcr;
 	hw_base->TIM_SMCR = mode->smcr;
 	hw_base->TIM_EGR = TIM_EGR_UG;
