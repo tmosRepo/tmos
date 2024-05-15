@@ -224,12 +224,12 @@ typedef struct
 
 /** @} */ // @relates RTC_TypeDef
 
-bool rtc_wait_sync(RTC_TypeDef* rtc);
-bool rtc_enter_init_mode(RTC_TypeDef* rtc);
-void rtc_exit_init_mode(RTC_TypeDef* rtc);
+bool rtc_wait_sync(RTC_TypeDef* rtc) FAST_FLASH;
+bool rtc_enter_init_mode(RTC_TypeDef* rtc) FAST_FLASH;
+void rtc_exit_init_mode(RTC_TypeDef* rtc) FAST_FLASH;
 #if USE_TIME
-void rtc_get_time(RTC_TypeDef* rtc, time_t* time);
-bool rtc_set_time(RTC_TypeDef* rtc, const time_t* time);
+void rtc_get_time(RTC_TypeDef* rtc, time_t* time) FAST_FLASH;
+bool rtc_set_time(RTC_TypeDef* rtc, const time_t* time) FAST_FLASH;
 #endif
 bool rtc_set_wut(RTC_TypeDef* rtc, uint32_t period);
 

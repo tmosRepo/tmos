@@ -37,24 +37,24 @@ struct ST7565S: public LCD_MODULE
 	}
 	;
 
-	virtual void lcd_command(unsigned int cmd);
+	virtual void lcd_command(unsigned int cmd) FAST_FLASH;
 
 	//virtual functions
-	void lcd_reset() override;
-	void do_reset() override;
-	void draw_bitmap(int x0, int y0, const char* src,  int width,  int rows) override;
-	void draw_char(int x0, unsigned int ch) override;
-	void draw_point( int x,  int y) override;
-	void draw_hline( int x0,  int x1,  int y) override;
-	void draw_bline( int x0,  int x1,  int y) override;
-	void draw_vline( int y0,  int y1,  int x) override;
-	void invert_vline( int y0,  int y1,  int x) override;
-	void invert_hline( int x0,  int x1,  int y) override;
-	virtual void update_screen() override;
+	void lcd_reset() override FAST_FLASH;
+	void do_reset() override FAST_FLASH;
+	void draw_bitmap(int x0, int y0, const char* src,  int width,  int rows) override FAST_FLASH;
+	void draw_char(int x0, unsigned int ch) override FAST_FLASH;
+	void draw_point( int x,  int y) override FAST_FLASH;
+	void draw_hline( int x0,  int x1,  int y) override FAST_FLASH;
+	void draw_bline( int x0,  int x1,  int y) override FAST_FLASH;
+	void draw_vline( int y0,  int y1,  int x) override FAST_FLASH;
+	void invert_vline( int y0,  int y1,  int x) override FAST_FLASH;
+	void invert_hline( int x0,  int x1,  int y) override FAST_FLASH;
+	virtual void update_screen() override FAST_FLASH;
 	virtual void redraw_screen (GObject* object, RECT_T area) override;
-	void clear_screen() override;
-	void direct_write (GSplash draw_cb) override;
-	void adjust_for_screen (GObject** object, RECT_T &area) override;
+	void clear_screen() override FAST_FLASH;
+	void direct_write (GSplash draw_cb) override FAST_FLASH;
+	void adjust_for_screen (GObject** object, RECT_T &area) override FAST_FLASH;
 };
 
 #endif /* LCD_ST7565S_H_ */
