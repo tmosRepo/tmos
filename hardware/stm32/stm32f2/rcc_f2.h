@@ -509,11 +509,30 @@ typedef struct
 /** @} */
 
 /** @name RCC_PLLSAICFGR:(rcc Offset: 0x88) RCC PLLSAI configuration register */
-#define RCC_PLLSAICFGR_PLLSAIN      0x00007FC0 //!< PLLSAI multiplication factor for VCO
-#define RCC_PLLSAICFGR_PLLSAIR      0x70000000 //!< PLLSAI division factor for LCD clock
+#define RCC_PLLSAICFGR_PLLSAIN         0x00007FC0 //!< PLLSAI multiplication factor for VCO
+#define RCC_PLLSAICFGR_PLLSAIN_Get(x)	(((x) >> 6) & 0x1FF)
+#define RCC_PLLSAICFGR_PLLSAIN_Set(x)	(((x) & 0x1FF) << 6)
+
+#define RCC_PLLSAICFGR_PLLSAIR         0x70000000 //!< PLLSAI division factor for LCD clock
+#define RCC_PLLSAICFGR_PLLSAIR_DIV2    0x20000000
+#define RCC_PLLSAICFGR_PLLSAIR_DIV3    0x30000000
+#define RCC_PLLSAICFGR_PLLSAIR_DIV4    0x40000000
+#define RCC_PLLSAICFGR_PLLSAIR_DIV5    0x50000000
+#define RCC_PLLSAICFGR_PLLSAIR_DIV6    0x60000000
+#define RCC_PLLSAICFGR_PLLSAIR_DIV7    0x70000000
+#define RCC_PLLSAICFGR_PLLSAIR_Get(x)	(((x) >> 28) & 7)	//!< PLL division factor get
+#define RCC_PLLSAICFGR_PLLSAIR_Set(x)	(((x) & 7) << 28)	//!< PLL division factor set
+
 #define RCC_PLLSAICFGR_PLLSAIQ      0x0F000000 //!< PLLSAI division factor for SAI1 clock
 /// for compatibility with the GD32F4 series when it is detected at runtime
-#define RCC_PLLSAICFGR_PLLSAIP      0x00030000 //!< PLLSAIP is used to UBSFS/USBHS (48MHz), TRNG (48MHz), or SDIO(48MHz).
+#define RCC_PLLSAICFGR_PLLSAIP         0x00030000 //!< PLLSAIP is used to UBSFS/USBHS (48MHz), TRNG (48MHz), or SDIO(48MHz).
+#define RCC_PLLSAICFGR_PLLSAIP_DIV2    0x00000000
+#define RCC_PLLSAICFGR_PLLSAIP_DIV4    0x00010000
+#define RCC_PLLSAICFGR_PLLSAIP_DIV6    0x00020000
+#define RCC_PLLSAICFGR_PLLSAIP_DIV8    0x00030000
+#define RCC_PLLSAICFGR_PLLSAIP_Get(x)	(((x) >> 16) & 3)	//!< PLL division factor get
+#define RCC_PLLSAICFGR_PLLSAIP_Set(x)	(((x) & 3) << 16)	//!< PLL division factor set
+
 /** @} */
 
 /** @name RCC_DCKCFGR:(rcc Offset: 0x8C) RCC Dedicated Clock Configuration Register */
@@ -528,7 +547,7 @@ typedef struct
 /** @name RCU_ADDCTL:(rcc Offset: 0xC0) Additional clock control register RCU_ADDCTL*/
 /// for compatibility with the GD32F4 series when it is detected at runtime
 #define RCU_IRC48MCALIB             0xFF000000 //!< Internal 48MHz RC oscillator calibration value
-#define RCU_PIRC48MSTB              0x00020000 //!< Internal 48MHz RC oscillator clock stabilization Flag
+#define RCU_IRC48MSTB               0x00020000 //!< Internal 48MHz RC oscillator clock stabilization Flag
 #define RCU_IRC48MEN                0x00010000 //!< Internal 48MHz RC oscillator enable
 #define RCU_PLL48MSEL               0x00000002 //!< PLL48M clock selection
 #define RCU_CK48MSEL                0x00000001 //!< 48MHz clock selection
