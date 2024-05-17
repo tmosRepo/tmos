@@ -400,6 +400,7 @@ void TLS_DSR(TLS_DRIVER_INFO * drv_info, HANDLE hnd)
 
 		if(task)
 		{
+			hnd->res = RES_BUSY;
 			svc_send_signal(task, TLS_CLIENT_SIGNAL);
 			return;
 		}
