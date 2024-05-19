@@ -201,7 +201,7 @@ const char* get_mcu_type(void)
 		strcpy(ptr,"GD32");
 		break;
  	case MCU_JEP106_STM:
-		strcpy(ptr,"ST32");
+		strcpy(ptr,"STM32");
 		break;
  	default: // TODO: Other manufacturers should be added here
  		strcpy(ptr, "Unknown");
@@ -240,6 +240,20 @@ const char* get_mcu_type(void)
 			*ptr = (is_crypto()?'3':'2');
 			ptr++;
 			*ptr = (is_lcd()?'9':'7');
+			ptr++;
+			*ptr =0;
+		}else
+			strcpy(ptr, "XX");
+		break;
+	case 0x434:
+		if(jep == MCU_JEP106_STM)
+		{
+			//(STM32F469xx and STM32F479xx)
+			//469 Arm®Cortex®-M4 32b MCU+FPU, 225DMIPS, up to 2MB Flash/384+4KB RAM, USB OTG HS/FS, Ethernet, FMC, dual Quad-SPI, Graphical accelerator, Camera IF, LCD-TFT & MIPI DSI
+			//479 Arm®Cortex®-M4 32b MCU+FPU, 225DMIPS, up to 2MB Flash/384+4KB RAM, USB OTG HS/FS, Ethernet, FMC, dual Quad-SPI, Crypto, Graphical accelerator, Camera IF, LCD-TFT & MIPI DS
+			*ptr = (is_crypto()?'7':'6');
+			ptr++;
+			*ptr = '9';
 			ptr++;
 			*ptr =0;
 		}else
