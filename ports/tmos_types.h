@@ -28,7 +28,7 @@ inline int IS_NOT_NULL(const void* x)	//!< Suppress GCC 7.X warnings
 
 #define __no_init				__attribute__ ((section (".ramnoinitsec")))
 /// stored in backup ram if available
-#define __exception_data		__attribute__ ((section (".ExceptionData")))
+#define __bkp_no_init			__attribute__ ((section (".backupnoinit")))
 
 #ifdef __cplusplus
 #	define EXTERN_C		extern "C"
