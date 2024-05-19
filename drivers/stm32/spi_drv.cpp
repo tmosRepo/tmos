@@ -42,7 +42,31 @@ static void SPI_START_TRANSACTION(SPI_DRIVER_INFO* drv_info, SPI_DRIVER_MODE* mo
 	//		SPI_CR1 register. If the NSS pin is required in output	mode, the
 	//		SSOE bit only should be set. This step is not required when the TI
 	//		mode is	selected.
-	pSPI->SPI_CR1 = mode->spi_cr1 & (~SPI_CR1_SPE);
+
+	/* SPI2 and SPI3 are connected to APB1, all others are connected to APB2 */
+	/* BR[2:0] are set for APB1/2 at frequency 30/60 MHz */
+	uint32_t src_clk;
+	uint32_t desired_clock;
+	uint32_t spi_cr1;
+	if (drv_info->info.peripheral_indx == ID_PERIPH_SPI2
+			|| drv_info->info.peripheral_indx == ID_PERIPH_SPI3)
+	{
+		src_clk = APB1_clock_frequency;
+		desired_clock = (30000000 >> (((mode->spi_cr1 & SPI_CR1_BR) >> 3)+1));
+	}else
+	{
+		src_clk = APB2_clock_frequency;
+		desired_clock = (60000000 >> (((mode->spi_cr1 & SPI_CR1_BR) >> 3)+1));
+	}
+	for(spi_cr1=0; spi_cr1 < 7; spi_cr1++)
+	{
+		src_clk >>=1;
+		if(desired_clock >= src_clk)
+			break;
+	}
+	spi_cr1 = (mode->spi_cr1 & ~(SPI_CR1_BR | SPI_CR1_SPE)) | (spi_cr1 << 3);
+	pSPI->SPI_CR1 = spi_cr1;
+//	pSPI->SPI_CR1 = mode->spi_cr1 & (~SPI_CR1_SPE);
 
 	//	6. Set the FRF bit in SPI_CR2 to select the TI protocol for serial communications.
 	//	7. The MSTR and SPE bits must be set (they remain set only if the NSS pin is connected
@@ -58,7 +82,7 @@ static void SPI_START_TRANSACTION(SPI_DRIVER_INFO* drv_info, SPI_DRIVER_MODE* mo
 	if(!(mode->spi_cr1 & SPI_CR1_SPE)) // if set SPI_CR1_SPE disable SPI
 	{
 
-		pSPI->SPI_CR1 = mode->spi_cr1 | SPI_CR1_SPE;
+		pSPI->SPI_CR1 = spi_cr1 | SPI_CR1_SPE;
 	}
 
     // Assert CS
