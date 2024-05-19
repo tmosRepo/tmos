@@ -523,7 +523,7 @@ typedef struct
 #define RCC_PLLSAICFGR_PLLSAIR_Get(x)	(((x) >> 28) & 7)	//!< PLL division factor get
 #define RCC_PLLSAICFGR_PLLSAIR_Set(x)	(((x) & 7) << 28)	//!< PLL division factor set
 
-#define RCC_PLLSAICFGR_PLLSAIQ      0x0F000000 //!< PLLSAI division factor for SAI1 clock
+#define RCC_PLLSAICFGR_PLLSAIQ         0x0F000000 //!< PLLSAI division factor for SAI1 clock
 /// for compatibility with the GD32F4 series when it is detected at runtime
 #define RCC_PLLSAICFGR_PLLSAIP         0x00030000 //!< PLLSAIP is used to UBSFS/USBHS (48MHz), TRNG (48MHz), or SDIO(48MHz).
 #define RCC_PLLSAICFGR_PLLSAIP_DIV2    0x00000000
@@ -595,7 +595,7 @@ void RCCPeripheralDisable(unsigned int periph_id);
 void RCCPeripheralLPEnable(unsigned int periph_id);
 void RCCPeripheralLPDisable(unsigned int periph_id);
 
-void RCC_GetClocksFreq(RCC_ClocksTypeDef* RCC_Clocks);
+void RCC_GetClocksFreq(RCC_ClocksTypeDef* RCC_Clocks) FAST_FLASH;
 
 #endif /* RCC_F2_H_ */
 
