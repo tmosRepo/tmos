@@ -51,6 +51,8 @@ extern "C"
 	extern volatile int cpu_sleep_counter;
 #endif
 	extern volatile __no_init unsigned int system_clock_frequency;
+	extern volatile __no_init unsigned int APB1_clock_frequency;
+	extern volatile __no_init unsigned int APB2_clock_frequency;
 
 	extern const char restart_on_exception;
 
