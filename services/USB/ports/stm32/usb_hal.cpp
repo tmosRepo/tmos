@@ -3936,8 +3936,10 @@ void USB_OTG_ISR(USB_DRV_INFO drv_info)
     if(status & OTG_GINTSTS_SOF)
     {
 		TRACE1_USB(" SOF");
+#if USB_ENABLE_HOST
 		if(usb_host_process_halt_tout(drv_info))
 			otg->core_regs.GINTMSK &= ~OTG_GINTMSK_SOFM;
+#endif
 		otg->core_regs.GINTSTS = OTG_GINTSTS_SOF;
 		status ^= OTG_GINTSTS_SOF;
     }
