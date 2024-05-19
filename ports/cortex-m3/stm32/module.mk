@@ -12,7 +12,7 @@ local_c_src-y 	:=
 local_cpp_src-y	:=   
 local_h_src-y 	:=
 
-local_cpp_src-y	+= lowlevel.cpp
+local_cpp_src-y	+= lowlevel.cpp 
    
 #updating global variables
 as_sources 	+= $(call changepath,$(local_as_src-y))
