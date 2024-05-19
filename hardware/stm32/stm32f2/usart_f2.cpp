@@ -19,18 +19,14 @@
  * @param periph_id
  * @return
  */
-unsigned int get_usart_source_clk(unsigned int periph_id)
+static inline unsigned int get_usart_source_clk(unsigned int periph_id)
 {
-	RCC_ClocksTypeDef  clocks;
-
-	RCC_GetClocksFreq (&clocks);
-
 	if (periph_id == ID_PERIPH_USART1 || periph_id == ID_PERIPH_USART6)
 	{
-		return clocks.PCLK2_Frequency;
+		return APB2_clock_frequency;
 	}
 
-	return clocks.PCLK1_Frequency;
+	return APB1_clock_frequency;
 }
 
 
