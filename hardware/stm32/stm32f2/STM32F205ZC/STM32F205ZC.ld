@@ -13,9 +13,9 @@ SVC_STACK_SIZE = 0x0340;
 MEMORY
 {
 /* GD debug  */
-  rom (rx)   	: ORIGIN = 0x08004000, LENGTH = 1007k 
-/* GD/ST release 
-  rom (rx)   	: ORIGIN = 0x00004000, LENGTH = 1007k */ 
+/*  rom (rx)   	: ORIGIN = 0x08004000, LENGTH = 1007k */ 
+/* GD/ST release */
+  rom (rx)   	: ORIGIN = 0x00004000, LENGTH = 1007k  
   ram (rwx)  	: ORIGIN = 0x20000000, LENGTH = 112k
   bkpram (w)	: ORIGIN = 0x40024000, LENGTH = 4k
 }
