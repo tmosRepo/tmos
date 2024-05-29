@@ -45,7 +45,7 @@
 
 #define HSI_PLL_M   RCC_PLLCFGR_PLLM_Set(HSI_VALUE/1000000)
 
-static void Reset_clocks_configuration()
+static void SLOW_FLASH Reset_clocks_configuration()
 {
 	/* Reset the RCC clock configuration to the default reset state ------------*/
 
@@ -83,7 +83,7 @@ static void Reset_clocks_configuration()
 	RCC->RCC_CIR = 0x00000000;
 }
 
-static void Init_main_PLL(const uint32_t PLL_M, bool over_drive)
+static void SLOW_FLASH Init_main_PLL(const uint32_t PLL_M, bool over_drive)
 {
 	if(over_drive){
 		//These bits can be modified only when the PLL is OFF.
@@ -199,9 +199,9 @@ static void Init_main_PLL(const uint32_t PLL_M, bool over_drive)
   * @param  None
   * @retval None
   */
-extern "C" void SystemInit( void )
+extern "C" void SLOW_FLASH SystemInit( void )
 						__attribute__ ((weak, alias ("DefaultSystemInit")));
-extern "C" void DefaultSystemInit( void )
+extern "C" void SLOW_FLASH DefaultSystemInit( void )
 {
 	__IO uint32_t StartUpCounter = 0, HSEStatus;
 	bool over_drive = false;
@@ -372,9 +372,9 @@ extern "C" void DefaultSystemInit( void )
  */
 extern char _sbackup, _ebackup;
 
-extern "C" void LowLevelInit( void )
+extern "C" void SLOW_FLASH LowLevelInit( void )
 						__attribute__ ((weak, alias ("DefaultLowLevelInit")));
-extern "C" void DefaultLowLevelInit( void )
+extern "C" void SLOW_FLASH DefaultLowLevelInit( void )
 {
 	SystemInit();
 
