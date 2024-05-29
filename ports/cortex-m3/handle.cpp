@@ -626,6 +626,26 @@ bool CHandle::tsk_start_command(void * c, void *ptr)
 }
 
 /**
+ *
+ * @param cmd
+ * @param par
+ * @param ptr
+ * @return
+ */
+bool CHandle::tsk_start_command(unsigned int c, void * par, void *ptr)
+{
+	if(!complete())
+		return (res);
+
+	//handle is idle and open
+	set_res_cmd(c);
+	dst.as_voidptr = ptr;
+	src.as_voidptr = par;
+	tsk_start_handle();
+	return (true);
+}
+
+/**
  * Blocking command
  * @param c
  * @param ptr
