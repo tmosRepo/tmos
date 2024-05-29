@@ -17,6 +17,7 @@
 
 #if GD32F4XX_COMPATIBLE
 #define FAST_FLASH __attribute__((section(".FastFlash")))
+#define SLOW_FLASH __attribute__((section(".SlowFlash")))
 #else
 #define FAST_FLASH
 #endif
@@ -149,18 +150,18 @@ struct DRIVER_INFO_Type {
  */
 #define DRIVER_INFO_STUB  0x0004f2af, 0xf008f8d0
 
-void drv_enable_isr(DRIVER_INFO drv_info);
+void FAST_FLASH drv_enable_isr(DRIVER_INFO drv_info);
 
 /**
  *  Pure virtual function ...?
  */
-extern "C" void __cxa_pure_virtual(void);
+extern "C" void SLOW_FLASH __cxa_pure_virtual(void);
 
 #endif	/* end C++ */
 
 
 
-void usr_task_init_static(TASK_DESCRIPTION const * desc, int bStart);
+void SLOW_FLASH usr_task_init_static(TASK_DESCRIPTION const * desc, int bStart);
 
 /**
  * Creates a task using the dynamic memory
