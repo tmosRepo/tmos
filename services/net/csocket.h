@@ -89,4 +89,13 @@ struct CSocket: public CHandle
 
 CSocket* socket(int domain, int type, int protocol);
 
+static inline bool is_socket_cmd(const uint8_t cmd)
+{
+	if((cmd & 0xF) == FLAG_COMMAND)
+	{
+		if((cmd & 0xF0) && ((cmd & 0xF0) <= (SOCK_CMD_DISCONNECT & 0xF0)))
+			return true;
+	}
+	return false;
+}
 #endif /* CSOCKET_H_ */
