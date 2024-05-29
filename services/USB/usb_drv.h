@@ -167,9 +167,9 @@ typedef const USB_DRIVER_INFO* USB_DRV_INFO;
 
 void usbdrv_thread(USB_DRV_INFO drv_info);
 
-void USB_DCR(USB_DRV_INFO drv_info, unsigned int reason, HANDLE param);
-void USB_DSR(USB_DRV_INFO drv_info, HANDLE hnd);
-void USB_ISR(USB_DRV_INFO drv_info);
+void USB_DCR(USB_DRV_INFO drv_info, unsigned int reason, HANDLE param) FAST_FLASH;
+void USB_DSR(USB_DRV_INFO drv_info, HANDLE hnd) FAST_FLASH;
+void USB_ISR(USB_DRV_INFO drv_info) FAST_FLASH;
 
 
 #endif /* USB_DRV_H_ */

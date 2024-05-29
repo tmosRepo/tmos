@@ -26,8 +26,8 @@ struct GUI_DRIVER_INFO
 	LCD_MODULE*			lcd[GUI_DISPLAYS];
 };
 
-void GUI_DCR(GUI_DRIVER_INFO* drv_info, unsigned int reason, HANDLE param);
-void GUI_DSR(GUI_DRIVER_INFO* drv_info, HANDLE hnd);
+void GUI_DCR(GUI_DRIVER_INFO* drv_info, unsigned int reason, HANDLE param) FAST_FLASH;
+void GUI_DSR(GUI_DRIVER_INFO* drv_info, HANDLE hnd) FAST_FLASH;
 
 EXTERN_C int detect_displays(GUI_DRIVER_INFO* drv_info);
 

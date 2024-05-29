@@ -62,9 +62,9 @@ struct USART_DRIVER_INFO
 #endif
 };
 
-void USART_DCR(USART_DRIVER_INFO* drv_info, unsigned int reason, HANDLE hnd);
-void USART_DSR(USART_DRIVER_INFO* drv_info, HANDLE hnd);
-void USART_ISR(USART_DRIVER_INFO* drv_info);
+void USART_DCR(USART_DRIVER_INFO* drv_info, unsigned int reason, HANDLE hnd) FAST_FLASH;
+void USART_DSR(USART_DRIVER_INFO* drv_info, HANDLE hnd) FAST_FLASH;
+void USART_ISR(USART_DRIVER_INFO* drv_info) FAST_FLASH;
 
 
 #endif /* USART_DRV_H_ */

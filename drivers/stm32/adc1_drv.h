@@ -52,9 +52,9 @@ struct ADC_DRIVER_INFO
 #endif
 };
 
-void ADC_DCR(const ADC_DRIVER_INFO* drv_info, unsigned int reason, HANDLE hnd);
-void ADC_DSR(const ADC_DRIVER_INFO* drv_info, HANDLE hnd);
-void ADC_ISR(const ADC_DRIVER_INFO* drv_info);
+void ADC_DCR(const ADC_DRIVER_INFO* drv_info, unsigned int reason, HANDLE hnd) FAST_FLASH;
+void ADC_DSR(const ADC_DRIVER_INFO* drv_info, HANDLE hnd) FAST_FLASH;
+void ADC_ISR(const ADC_DRIVER_INFO* drv_info) FAST_FLASH;
 
 
 #endif /* DRIVERS_STM32_ADC1_DRV_H_ */

@@ -27,7 +27,7 @@
 #define USB_HOST_DRIVER_RETRY_DELAY		20  // default value 20 ms
 #endif
 
-void usbdrv_thread(USB_DRV_INFO drv_info)
+void FAST_FLASH usbdrv_thread(USB_DRV_INFO drv_info)
 {
     CHandle helper;
     CHandle req_hnd;

@@ -589,13 +589,13 @@ typedef struct
 } RCC_ClocksTypeDef;
 
 
-void RCCPeripheralReset(unsigned int periph_id);
-void RCCPeripheralEnable(unsigned int periph_id);
-void RCCPeripheralDisable(unsigned int periph_id);
-void RCCPeripheralLPEnable(unsigned int periph_id);
-void RCCPeripheralLPDisable(unsigned int periph_id);
+void RCCPeripheralReset(unsigned int periph_id) SLOW_FLASH;
+void RCCPeripheralEnable(unsigned int periph_id) SLOW_FLASH;
+void RCCPeripheralDisable(unsigned int periph_id) SLOW_FLASH;
+void RCCPeripheralLPEnable(unsigned int periph_id) SLOW_FLASH;
+void RCCPeripheralLPDisable(unsigned int periph_id)SLOW_FLASH;
 
-void RCC_GetClocksFreq(RCC_ClocksTypeDef* RCC_Clocks) FAST_FLASH;
+void RCC_GetClocksFreq(RCC_ClocksTypeDef* RCC_Clocks) SLOW_FLASH;
 
 #endif /* RCC_F2_H_ */
 

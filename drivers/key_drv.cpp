@@ -71,7 +71,7 @@ struct key_rd_data
 	{
 		memclr(button_ticks,size);
 	}
-	bool key_rd_scan(unsigned int drv_ndx, pio_set new_keys[], const unsigned int key_desc[] );
+	bool key_rd_scan(unsigned int drv_ndx, pio_set new_keys[], const unsigned int key_desc[] ) FAST_FLASH;
 };
 
 template <const unsigned int size>
@@ -127,7 +127,7 @@ static void us_delay (uint32_t usec)
 }
 #endif
 
-void key_drv_thread()
+void FAST_FLASH key_drv_thread()
 {
 #if KEY_DRV_COUNT
 	unsigned int drv_ndx, drv_cnt=0;

@@ -21,8 +21,8 @@ struct KEY_DRIVER_INFO
 };
 
 
-void KEY_DCR(KEY_DRIVER_INFO* drv_info, unsigned int reason, HANDLE param);
-void KEY_DSR(KEY_DRIVER_INFO* drv_info, HANDLE hnd);
+void KEY_DCR(KEY_DRIVER_INFO* drv_info, unsigned int reason, HANDLE param) FAST_FLASH;
+void KEY_DSR(KEY_DRIVER_INFO* drv_info, HANDLE hnd) FAST_FLASH;
 
 extern const unsigned char key_codes[];
 extern const unsigned int KEY_RD_PINS[];

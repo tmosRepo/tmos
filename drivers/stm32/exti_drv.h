@@ -37,9 +37,9 @@ struct EXTI_DRIVER_INFO
 
 #define GPIO_IRQn EXTI0_IRQn		//!< Use this to open handles
 
-void EXTI_DCR(EXTI_DRIVER_INFO* drv_info, unsigned int reason, HANDLE hnd);
-void EXTI_DSR(EXTI_DRIVER_INFO* drv_info, HANDLE hnd);
-void EXTI_ISR(EXTI_DRIVER_INFO* drv_info );
+void EXTI_DCR(EXTI_DRIVER_INFO* drv_info, unsigned int reason, HANDLE hnd) FAST_FLASH;
+void EXTI_DSR(EXTI_DRIVER_INFO* drv_info, HANDLE hnd) FAST_FLASH;
+void EXTI_ISR(EXTI_DRIVER_INFO* drv_info ) FAST_FLASH;
 
 
 #endif /* EXTI_DRV_H_ */

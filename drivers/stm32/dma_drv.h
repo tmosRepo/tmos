@@ -60,9 +60,9 @@ struct DMA_DRIVER_INFO
 uint32_t dma_drv_get_ndtr(DRIVER_INDEX drv_index);
 uint32_t dma_drv_is_en(DRIVER_INDEX drv_index);
 
-void DMA_DCR(DMA_DRIVER_INFO* drv_info, unsigned int reason, HANDLE hnd);
-void DMA_DSR(DMA_DRIVER_INFO* drv_info, HANDLE hnd);
-void DMA_ISR(DMA_DRIVER_INFO* drv_info);
+void DMA_DCR(DMA_DRIVER_INFO* drv_info, unsigned int reason, HANDLE hnd) FAST_FLASH;
+void DMA_DSR(DMA_DRIVER_INFO* drv_info, HANDLE hnd) FAST_FLASH;
+void DMA_ISR(DMA_DRIVER_INFO* drv_info) FAST_FLASH;
 
 
 

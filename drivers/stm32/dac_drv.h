@@ -51,10 +51,10 @@ struct DAC_DRIVER_INFO
 #endif
 };
 
-void DAC_DCR(DAC_DRIVER_INFO* drv_info, unsigned int reason, HANDLE hnd);
-void DAC_DSR(DAC_DRIVER_INFO* drv_info, HANDLE hnd);
+void DAC_DCR(DAC_DRIVER_INFO* drv_info, unsigned int reason, HANDLE hnd) FAST_FLASH;
+void DAC_DSR(DAC_DRIVER_INFO* drv_info, HANDLE hnd) FAST_FLASH;
 #if USE_DAC_INTERRUPRT
-void DAC_ISR(DAC_DRIVER_INFO* drv_info);
+void DAC_ISR(DAC_DRIVER_INFO* drv_info) FAST_FLASH;
 #endif
 
 

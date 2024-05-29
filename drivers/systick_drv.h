@@ -41,7 +41,7 @@ struct SYSTICK_DRIVER_INFO
 /** SYSTICK Driver Info */
 typedef const SYSTICK_DRIVER_INFO* SYSTICK_INFO;
 
-void SYSTICK_DCR(SYSTICK_INFO drv_info, unsigned int reason, void* param);
+void SYSTICK_DCR(SYSTICK_INFO drv_info, unsigned int reason, void* param) SLOW_FLASH;
 
 /**
  * Systick ISR - written in assembler (services.S)

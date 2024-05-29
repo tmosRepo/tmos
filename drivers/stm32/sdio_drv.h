@@ -68,8 +68,8 @@ struct SDIO_DRIVER_INFO
 
 typedef const struct SDIO_DRIVER_INFO* SDIO_INFO;
 
-void SDIO_DCR(SDIO_INFO drv_info, unsigned int reason, HANDLE hnd);
-void SDIO_DSR(SDIO_INFO drv_info, HANDLE hnd);
-void SDIO_ISR(SDIO_INFO drv_info);
+void SDIO_DCR(SDIO_INFO drv_info, unsigned int reason, HANDLE hnd) FAST_FLASH;
+void SDIO_DSR(SDIO_INFO drv_info, HANDLE hnd) FAST_FLASH;
+void SDIO_ISR(SDIO_INFO drv_info) FAST_FLASH;
 
 #endif /* SDIO_DRV_H_ */

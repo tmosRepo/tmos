@@ -51,9 +51,9 @@ struct SPI_DRIVER_INFO
 #endif
 };
 
-void SPI_DCR(SPI_DRIVER_INFO* drv_info, unsigned int reason, HANDLE hnd);
-void SPI_DSR(SPI_DRIVER_INFO* drv_info, HANDLE hnd);
-void SPI_ISR(SPI_DRIVER_INFO* drv_info);
+void SPI_DCR(SPI_DRIVER_INFO* drv_info, unsigned int reason, HANDLE hnd) FAST_FLASH;
+void SPI_DSR(SPI_DRIVER_INFO* drv_info, HANDLE hnd) FAST_FLASH;
+void SPI_ISR(SPI_DRIVER_INFO* drv_info) FAST_FLASH;
 
 
 #endif /* SPI_DRV_H_ */

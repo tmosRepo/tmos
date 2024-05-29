@@ -72,9 +72,9 @@ struct TIMER_DRIVER_INFO
 
 typedef const struct TIMER_DRIVER_INFO * TIM_DRV_INF;
 
-void TIM_DCR(TIM_DRV_INF drv_info, unsigned int reason, HANDLE hnd);
-void TIM_DSR(TIM_DRV_INF drv_info, HANDLE hnd);
-void TIM_ISR(TIM_DRV_INF drv_info);
+void TIM_DCR(TIM_DRV_INF drv_info, unsigned int reason, HANDLE hnd) FAST_FLASH;
+void TIM_DSR(TIM_DRV_INF drv_info, HANDLE hnd) FAST_FLASH;
+void TIM_ISR(TIM_DRV_INF drv_info) FAST_FLASH;
 
 
 typedef RES_CODE(*TIMER_DRV_CBF)(HANDLE hnd, RES_CODE reason);
