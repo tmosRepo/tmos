@@ -1449,7 +1449,7 @@ static void stm_otg_core_init_host(USB_DRV_INFO drv_info)
 
 #if USB_HOST_KEEPS_CHANNELS_DOWN
 	Endpoint* eptr = drv_info->drv_data->endpoints;
-	for(int i=0; i<= USB_NUMENDPOINTS; i++)
+	for(int i=0; i< USB_NUMENDPOINTS; i++)
 	{
 		if(eptr[i].rxfifo_buff)
 			delete eptr[i].rxfifo_buff;
