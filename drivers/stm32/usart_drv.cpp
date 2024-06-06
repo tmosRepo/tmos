@@ -3,6 +3,12 @@
  *
  *  Created on: Nov 6, 2012
  *      Author: miro
+ *
+ *  Edited on: June 5, 2024
+ *      Editor: bratkov
+ *  1. All bits related to interrupt enable or DMA are cleared from the mode
+ *  2. checks for a fake pending ISR on the USART and clears it if there is one
+ *  3. UART_TRACEXXX macros
  */
 
 #include <tmos.h>
@@ -11,21 +17,112 @@
 #include <dma_drv.h>
 #endif
 
-static bool ConfigureUsart(USART_DRIVER_INFO * drv_info, USART_DRIVER_DATA * drv_data,
-		USART_DRIVER_MODE * mode)
+static const DRIVER_INDEX usart_index[] =
+{
+		USART1_IRQn,
+		USART2_IRQn,
+		USART3_IRQn,
+		UART4_IRQn,
+		UART5_IRQn,
+		USART6_IRQn,
+		INALID_DRV_INDX
+};
+
+#pragma GCC optimize ("Os")
+
+static char get_uart_index(USART_DRIVER_INFO * drv_info)
+{
+	uint32_t  res = 0;
+	while(usart_index[res++] != drv_info->info.drv_index)
+	{
+		if(usart_index[res] ==  INALID_DRV_INDX)
+		{
+			res =0;
+			break;
+		}
+	}
+	return '0' + res;
+}
+
+#pragma GCC reset_options
+
+#define TRACE_UART(x)		(drv_info->info.drv_index == x)
+
+#if (TRACE_UART_LEVEL >= TRACE_DEFAULT_LEVEL)
+#define IS_TRACE_UART  TRACE_UART(USART6_IRQn) //|| TRACE_DMA_CH(USART1_IRQn)
+#else
+#define IS_TRACE_UART	0
+#endif
+
+#define UART_TRACE_CHAR(ch) 		do{if(IS_TRACE_UART)TRACE_CHAR_LEVEL(TRACE_DMA_LEVEL, ch);}while(0)
+#define UART_TRACE(...) 			do{if(IS_TRACE_UART)TRACE_LEVEL(TRACE_DMA_LEVEL, __VA_ARGS__);}while(0)
+#define UART_TRACE1(str)			do{if(IS_TRACE_UART)TRACE1_LEVEL(TRACE_DMA_LEVEL, str);}while(0)
+#define UART_TRACELN(str, ...)		do{if(IS_TRACE_UART){	\
+									TRACE_LEVEL(TRACE_UART_LEVEL, "\r\nUSART%c ",get_uart_index(drv_info));\
+									TRACE_LEVEL(TRACE_UART_LEVEL, str, ##__VA_ARGS__);}\
+									}while(0)
+#define UART_TRACELN1(str)			do{if(IS_TRACE_UART){	\
+									TRACELN_LEVEL(TRACE_UART_LEVEL, "\r\nUSART%c ",get_uart_index(drv_info));\
+									TRACE1_LEVEL(TRACE_UART_LEVEL, str);}\
+									}while(0)
+#define UART_TRACE_ERROR(str, ...)	do{	\
+									TRACELN("\r\n\e[91mUSART%c :",get_uart_index(drv_info));\
+									TRACE(str "\e[m", ##__VA_ARGS__);\
+									}while(0)
+/**
+ *
+ * @param drv_data	contains the current USART mode
+ * @param mode		the handler mode to open
+ * @return			true of modes match, otherwise false
+ */
+static bool SLOW_FLASH is_same_mode(USART_DRIVER_DATA * drv_data, USART_DRIVER_MODE * mode)
+{
+	USART_DRIVER_MODE& drv_mode = drv_data->mode;
+	if(drv_mode.mode_cr1 != ((mode->mode_cr1 & ~USART_ISR_ENABLE_MASK) | USART_ENABLE))
+		return false;
+	if(drv_mode.mode_cr2 != mode->mode_cr2)
+		return false;
+	if(drv_mode.mode_cr3 != (mode->mode_cr3 & ~(USART_CR3_DMAR|USART_CR3_DMAT|USART_CR3_CTSIE)))
+		return false;
+	if(drv_mode.baudrate != mode->baudrate)
+		return false;
+	return true;
+}
+/**
+ * configures the USART mode when opening a handler
+ *
+ * @param drv_info	pointer to	USART_DRIVER_INFO
+ * @param mode		pointer to	USART_DRIVER_MODE (initial values of USART_CR1,2 and 3)
+ * @return			true if configured successfully
+ */
+static bool SLOW_FLASH ConfigureUsart(USART_DRIVER_INFO * drv_info, USART_DRIVER_MODE * mode)
 {
 	USART_TypeDef* USARTx = drv_info->hw_base;
+	USART_DRIVER_DATA * drv_data = drv_info->drv_data;
+	USART_DRIVER_MODE& drv_mode = drv_data->mode;
 
-	USARTx->USART_CR2 = mode->mode_cr2;
-	USARTx->USART_CR1 = mode->mode_cr1;
-	USARTx->USART_CR3 = mode->mode_cr3;
+	drv_mode.mode_cr1 = (mode->mode_cr1 & ~USART_ISR_ENABLE_MASK) | USART_ENABLE;
+	drv_mode.mode_cr2 = mode->mode_cr2;
+	drv_mode.mode_cr3 = mode->mode_cr3 & ~(USART_CR3_DMAR|USART_CR3_DMAT|USART_CR3_CTSIE);
+	drv_mode.baudrate = mode->baudrate;
+
+	USARTx->USART_CR2 = drv_mode.mode_cr2;
+	USARTx->USART_CR1 = drv_mode.mode_cr1;
+	USARTx->USART_CR3 = drv_mode.mode_cr3;
 
 	/* Configure the USART Baud Rate -------------------------------------------*/
 	set_usart_baudrate(USARTx, drv_info->info.peripheral_indx, mode->baudrate);
 
-	drv_enable_isr(&drv_info->info);
+	drv_enable_isr(&drv_info->info); // NVIC enable
+	if(NVIC_GetPendingIRQ(drv_info->info.drv_index))
+	{
+		if(!(get_usart_sr(USARTx) & get_usart_imr(USARTx)))
+		{
+			UART_TRACE_ERROR("Fake pending ISR, removing !");
+			NVIC_ClearPendingIRQ(drv_info->info.drv_index);
+		}
+	}
 
-	memcpy(&drv_data->mode, mode, sizeof(USART_DRIVER_MODE));
 #if USE_UART_DMA_DRIVER
 	if(drv_info->rx_dma_mode.dma_index < INALID_DRV_INDX)
 	{
@@ -382,19 +479,15 @@ void USART_DCR(USART_DRIVER_INFO* drv_info, unsigned int reason, HANDLE hnd)
 
 		case DCR_OPEN:
 		{
+			hnd->res = RES_ERROR;
 			USART_DRIVER_MODE *usart_mode = (USART_DRIVER_MODE *)(hnd->mode.as_voidptr);
 			if(usart_mode)
 			{
 				//unsigned long mode, baudrate;
 				if(drv_data->cnt)
 				{
-					if( usart_mode->mode_cr1 != drv_data->mode.mode_cr1 ||
-						usart_mode->mode_cr2 != drv_data->mode.mode_cr2 ||
-						usart_mode->mode_cr3 != drv_data->mode.mode_cr3 ||
-						usart_mode->baudrate != drv_data->mode.baudrate)
-					{
-						break;
-					}
+					if(!is_same_mode(drv_data, usart_mode))
+						break; // return ERR (exit form case)
 				}
 				else
 				{
@@ -402,8 +495,8 @@ void USART_DCR(USART_DRIVER_INFO* drv_info, unsigned int reason, HANDLE hnd)
 					RCCPeripheralEnable(drv_info->info.peripheral_indx);
 					RCCPeripheralReset(drv_info->info.peripheral_indx);
 					PIO_Cfg_List(drv_info->uart_pins);
-					if(!ConfigureUsart(drv_info, drv_data, usart_mode))
-						break;
+					if(!ConfigureUsart(drv_info, usart_mode))
+						break; // return ERR (exit form case)
 /*
 #if USE_UART_DMA_DRIVER
 					if(drv_info->rx_dma_mode.dma_index < INALID_DRV_INDX)
@@ -454,6 +547,7 @@ void USART_DCR(USART_DRIVER_INFO* drv_info, unsigned int reason, HANDLE hnd)
 				RCCPeripheralDisable(drv_info->info.peripheral_indx);
 
 				PIO_Free_List(drv_info->uart_pins);
+				memclr(&drv_data->mode, sizeof(USART_DRIVER_MODE));
 			}
 			break;
 
