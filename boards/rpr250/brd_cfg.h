@@ -11,6 +11,8 @@
 #ifndef BRD_CFG_H_
 #define BRD_CFG_H_
 
+#define GD32F4XX_COMPATIBLE 1
+
 #define USE_TMOS_TL_V2		1
 #define USE_CSTRING			1
 

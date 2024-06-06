@@ -20,6 +20,7 @@
 #define SLOW_FLASH __attribute__((section(".SlowFlash")))
 #else
 #define FAST_FLASH
+#define SLOW_FLASH
 #endif
 
 #if USE_TMOS_STDLIB
