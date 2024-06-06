@@ -141,6 +141,7 @@ typedef struct
 
 
 /** @} */ // @relates USART_TypeDef
+#define USART_ENABLE		USART_CR1_UE
 
 #define USART_STATUS_TC 	USART_SR_TC		//!< TC flag for F2 family
 #define USART_STATUS_TXE 	USART_SR_TXE	//!< TXE flag for F2 family
@@ -151,7 +152,10 @@ typedef struct
 #define USART_STATUS_RXNEIE USART_CR1_RXNEIE	//!< RXNE enable flag for F2 family
 #define USART_STATUS_IDLEIE USART_CR1_IDLEIE	//!< IDLE enableflag for F2 family
 
-unsigned int set_usart_baudrate(USART_TypeDef* usart, uint32_t periph_id, uint32_t rate);
+unsigned int set_usart_baudrate(USART_TypeDef* usart, uint32_t periph_id, uint32_t rate) SLOW_FLASH;
+
+/// mask of the interrupt enable bits
+#define USART_ISR_ENABLE_MASK (USART_CR1_IDLEIE | USART_CR1_RXNEIE | USART_CR1_TCIE | USART_CR1_TXEIE | USART_CR1_PEIE)
 
 /// Maskable status bits
 #define USART_SR_MASKABLE (USART_CR1_IDLEIE | USART_CR1_RXNEIE | USART_CR1_TCIE | USART_CR1_TXEIE)
@@ -166,7 +170,7 @@ unsigned int set_usart_baudrate(USART_TypeDef* usart, uint32_t periph_id, uint32
 
 #define get_usart_imr(uart) \
 	((uart->USART_CR1 & USART_SR_MASKABLE) | \
-	 ((uart->USART_CR1 >> 8) & 1) | \
+	 ((uart->USART_CR1 >> 8) & 1) |  /* USART_SR_PE(Bit 0) <-> USART_CR1_PEIE(Bit 8)*/ \
      USART_SR_NOMASKABLE )	//!< interrupt mask for F2 family
 
 #define get_usart_tdr(uart) (uart->USART_DR)	//!< transmit data register for F2

@@ -3,27 +3,38 @@
  *
  *  Created on: Nov 21, 2012
  *      Author: miro
+ *
+  *  Edited on: June 5, 2024
+ *      Editor: bratkov
+ *   1.checks for a fake pending ISR on the DMA and clears it if there is one
+ *   2.DMA_TRACE_ERROR macro
  */
 
 #include <tmos.h>
 #include <dma_drv.h>
 
-#define TRACE_DMA_CH(x)		(drv_info->ch_indx == x)
+#define TRACE_DMA_CH(x)		(drv_info->info.drv_index == x)
 
 #if (TRACE_DMA_LEVEL >= TRACE_DEFAULT_LEVEL)
-#define TRACE_DMA_CHANNEL  (TRACE_DMA_CH(1)) // || TRACE_DMA_CH(7))
+#define TRACE_DMA_CHANNEL  TRACE_DMA_CH(DMA2_Stream1_IRQn) //|| TRACE_DMA_CH(DMA2_Stream7_IRQn)
 #else
 #define TRACE_DMA_CHANNEL	0
 #endif
 
-#define DMA_TRACE_CHAR(ch) 		do{if(TRACE_DMA_CHANNEL)TRACE_CHAR_LEVEL(TRACE_DMA_LEVEL, ch);}while(0)
-#define DMA_TRACE(...) 			do{if(TRACE_DMA_CHANNEL)TRACE_LEVEL(TRACE_DMA_LEVEL, __VA_ARGS__);}while(0)
-#define DMA_TRACE1(str)			do{if(TRACE_DMA_CHANNEL)TRACE1_LEVEL(TRACE_DMA_LEVEL, str);}while(0)
-#define DMA_TRACELN(str, ...)	do{if(TRACE_DMA_CHANNEL){	\
-								TRACE_LEVEL(TRACE_DMA_LEVEL, "\r\nDMA%c/%u ",((drv_info->hw_base == DMA2)?'2':'1'), drv_info->ch_indx);\
-								TRACE_LEVEL(TRACE_DMA_LEVEL, str, ##__VA_ARGS__);}\
-								}while(0)
-#define DMA_TRACELN1(str)		do{if(TRACE_DMA_CHANNEL)TRACELN1_LEVEL(TRACE_DMA_LEVEL, str);}while(0)
+#define DMA_TRACE_CHAR(ch) 			do{if(TRACE_DMA_CHANNEL)TRACE_CHAR_LEVEL(TRACE_DMA_LEVEL, ch);}while(0)
+#define DMA_TRACE(...) 				do{if(TRACE_DMA_CHANNEL)TRACE_LEVEL(TRACE_DMA_LEVEL, __VA_ARGS__);}while(0)
+#define DMA_TRACE1(str)				do{if(TRACE_DMA_CHANNEL)TRACE1_LEVEL(TRACE_DMA_LEVEL, str);}while(0)
+#define DMA_TRACELN(str, ...)		do{if(TRACE_DMA_CHANNEL){	\
+									TRACE_LEVEL(TRACE_DMA_LEVEL, "\r\nDMA%c/%u ",((drv_info->hw_base == DMA2)?'2':'1'), drv_info->ch_indx);\
+									TRACE_LEVEL(TRACE_DMA_LEVEL, str, ##__VA_ARGS__);}\
+									}while(0)
+#define DMA_TRACELN1(str)			do{if(TRACE_DMA_CHANNEL)TRACELN1_LEVEL(TRACE_DMA_LEVEL, str);}while(0)
+
+#define DMA_TRACE_ERROR(str, ...)	do{	\
+									TRACELN("\r\n\e[91mDMA%c/%u ",((drv_info->hw_base == DMA2)?'2':'1'), drv_info->ch_indx);\
+									TRACE(str "\e[m", ##__VA_ARGS__);\
+									}while(0)
+
 
 #define SET_ERROR(err)	(err | (1<<(8 + drv_info->ch_indx +((drv_info->hw_base == DMA2)?8:0))))
 
@@ -111,6 +122,20 @@ uint32_t dma_drv_is_en(DRIVER_INDEX drv_index)
 	return is_en;
 }
 
+/*
+static inline void isr_trace(DRIVER_INDEX drv_index, const char* msg)
+{
+	if(drv_index < INALID_DRV_INDX)
+	{
+		DMA_DRIVER_INFO* drv_info;
+
+		drv_info = (DMA_DRIVER_INFO*)(void*)(DRV_TABLE[drv_index]-1);
+		DMA_TRACELN(msg);
+		if(NVIC_GetPendingIRQ(drv_info->info.drv_index))
+			DMA_TRACE(" [%02X]ISR pending!", stm32_read_ints(drv_info->hw_base, drv_info->ch_indx));
+	}
+}
+*/
 bool DMA_RESUME(DMA_DRIVER_INFO* drv_info)
 {
 	DMA_CHANNEL_DATA* ch_data;
@@ -172,7 +197,7 @@ void DMA_DCR(DMA_DRIVER_INFO* drv_info, unsigned int reason, HANDLE hnd)
         	break;
 
         case DCR_OPEN:
-
+			DMA_TRACELN("DCR open");
         	DMA_DRIVER_MODE * mode;
         	mode = (DMA_DRIVER_MODE *)hnd->mode.as_voidptr;
         	if(mode)
@@ -187,6 +212,15 @@ void DMA_DCR(DMA_DRIVER_INFO* drv_info, unsigned int reason, HANDLE hnd)
         		// first for this channel?
         		if(!drv_info->ch_data->cnt++)
         		{
+					if(NVIC_GetPendingIRQ(drv_info->info.drv_index))
+					{
+						if( ! stm32_read_ints(drv_info->hw_base, drv_info->ch_indx) )
+						{
+							DMA_TRACE_ERROR("Fake pending ISR, removing !");
+							// clear pending interrupt
+							NVIC_ClearPendingIRQ(drv_info->info.drv_index);
+						}
+					}
         			// enable channel IRQ
     				drv_enable_isr(&drv_info->info);
         		}
@@ -317,8 +351,8 @@ void DMA_DSR(DMA_DRIVER_INFO* drv_info, HANDLE hnd)
 				stm32_dma_start(drv_info->hw_base, drv_info->ch_indx, hnd);
 			}
 			ch_data->pending = hnd;
+			DMA_TRACELN("Enable ISR");
 			stm32_en_ints(drv_info->hw_base, drv_info->ch_indx, mode);
-
 		}
 	} else
 	{
@@ -336,14 +370,22 @@ void DMA_DSR(DMA_DRIVER_INFO* drv_info, HANDLE hnd)
 //*
 void DMA_ISR(DMA_DRIVER_INFO* drv_info)
 {
+	DMA_TRACELN("ISR");
 	DMA_CHANNEL_DATA* ch_data;
 	HANDLE hnd;
 	uint32_t status;
 	uint32_t enabled;
 
-	status =	stm32_get_ints(drv_info->hw_base, drv_info->ch_indx);
-	enabled =	stm32_get_en_ints(drv_info->hw_base, drv_info->ch_indx);
 	ch_data =	drv_info->ch_data;
+
+	//1. gets and clears interrupt flags
+	status =	stm32_get_ints(drv_info->hw_base, drv_info->ch_indx);
+	if(status == 0){
+		// This is impossible to happen, but once it is here something has gone wrong
+		return;
+	}
+	//2, reads flags for enabled interrupts
+	enabled =	stm32_get_en_ints(drv_info->hw_base, drv_info->ch_indx);
 	hnd =		ch_data->pending;
 	if(hnd)
 	{

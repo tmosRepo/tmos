@@ -191,6 +191,52 @@ void stm32_dma_start(DMA_TypeDef* dmac, uint32_t indx, HANDLE hnd);
 void stm32_dma_stop(DMA_TypeDef* dmac, uint32_t indx);
 void stm32_dma_ch_cfg(DMA_TypeDef* dmac, uint32_t indx, DMA_DRIVER_MODE* mode);
 
+static inline uint32_t stm32_read_ints(DMA_TypeDef* dmac, uint32_t indx)
+{
+	uint32_t status;
+
+	switch(indx)
+	{
+	case 0:
+		status = dmac->DMA_ISR[0] & 0x3f;
+		break;
+
+	case 1:
+		status = (dmac->DMA_ISR[0] & (0x3f << 6)) >> 6;
+		break;
+
+	case 2:
+		status = (dmac->DMA_ISR[0] & (0x3f << 16)) >> 16;
+		break;
+
+	case 3:
+		status = (dmac->DMA_ISR[0] & (0x3f << 22)) >> 22;
+		break;
+
+	case 4:
+		status = dmac->DMA_ISR[1] & 0x3f;
+		break;
+
+	case 5:
+		status = (dmac->DMA_ISR[1] & (0x3f << 6)) >> 6;
+		break;
+
+	case 6:
+		status = (dmac->DMA_ISR[1] & (0x3f << 16)) >> 16;
+		break;
+
+	case 7:
+		status = (dmac->DMA_ISR[1] & (0x3f << 22)) >> 22;
+		break;
+
+	default:
+		status = DMA_ISR_TEIFx;
+		break;
+
+	}
+	return status;
+}
+
 static inline uint32_t stm32_get_ints(DMA_TypeDef* dmac, uint32_t indx)
 {
 	uint32_t status;
