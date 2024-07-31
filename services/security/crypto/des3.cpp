@@ -69,7 +69,7 @@ void des3_cipher_algo_t::encrypt(const void* input, void* output, size_t blocks)
 		//The first pass is a DES encryption
 		des_crypt_block(ks1, 2, (const uint32_t*)input, (uint32_t*)output);
 		//The second pass is a DES decryption of the first ciphertext result
-		des_crypt_block(ks2, -2, (uint32_t*)output, (uint32_t*)output);
+		des_crypt_block(ks2+30, -2, (uint32_t*)output, (uint32_t*)output);
 		//The third pass is a DES encryption of the second pass result
 		des_crypt_block(ks3, 2, (uint32_t*)output, (uint32_t*)output);
 
@@ -82,11 +82,11 @@ void des3_cipher_algo_t::decrypt(const void* input, void* output, size_t blocks)
 	while(blocks--)
 	{
 		//The first pass is a DES decryption
-		des_crypt_block(ks3, -2, (const uint32_t*)input, (uint32_t*)output);
+		des_crypt_block(ks3+30, -2, (const uint32_t*)input, (uint32_t*)output);
 		//The second pass is a DES encryption of the first pass result
 		des_crypt_block(ks2, 2, (uint32_t*)output, (uint32_t*)output);
 		//The third pass is a DES decryption of the second ciphertext result
-		des_crypt_block(ks1, -2, (uint32_t*)output, (uint32_t*)output);
+		des_crypt_block(ks1+30, -2, (uint32_t*)output, (uint32_t*)output);
 
 		input = (const uint8_t*)input + DES3_BLOCK_SIZE;
 		output = (uint8_t*)output + DES3_BLOCK_SIZE;

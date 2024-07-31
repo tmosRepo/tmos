@@ -337,7 +337,7 @@ void des_cipher_algo_t::decrypt(const void* input, void* output, size_t blocks)
 {
 	while(blocks--)
 	{
-		des_crypt_block(ks, -2, (const uint32_t*)input, (uint32_t*) output);
+		des_crypt_block(ks+30, -2, (const uint32_t*)input, (uint32_t*) output);
 		input = (const uint8_t*)input + DES_BLOCK_SIZE;
 		output = (uint8_t*)output + DES_BLOCK_SIZE;
 	}
