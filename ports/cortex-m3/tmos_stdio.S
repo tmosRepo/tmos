@@ -1234,6 +1234,8 @@ _skip_white:
         beq         _sscanf_i
         cmp         r3, #'x'
         beq         _sscanf_x
+        cmp         r3, #'X'
+        beq         _sscanf_x
         cmp         r3, #'s'
         bne         _failed_sscanf
 
