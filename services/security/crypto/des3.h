@@ -27,6 +27,7 @@ struct des3_cipher_algo_t: cipher_algo_t
 	};
 
 	RES_CODE init_key(const uint8_t* key, size_t key_size) override;
+	RES_CODE get_kcv(const uint8_t* key, size_t key_size, uint8_t* output);
 	void encrypt(const void* input, void* output, size_t blocks) override;
 	void decrypt(const void* input, void* output, size_t blocks) override;
 };

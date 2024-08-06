@@ -62,6 +62,72 @@ RES_CODE des3_cipher_algo_t::init_key(const uint8_t* key, size_t key_size)
 	return RES_OK;
 }
 
+/**
+ * KCV: Key Checksum Value. it is a simple checksum calculated on a plaintext
+ * key to check its validity after it's encrypted. to calculate it, use the key
+ * to encrypt an empty message (all bytes set to 0) and get the first 3 bytes of
+ * the result - that's the KCV
+ * @param key: array containing the plaintext key whose KCV we want
+ * @param key_size: length of the key in bytes
+ * @param output: where to store the result. must be at least 3 free bytes
+ * @return RES_OK if successful
+ */
+RES_CODE des3_cipher_algo_t::get_kcv(const uint8_t* key, size_t key_size, uint8_t* output)
+{
+	RES_CODE res;
+	const uint8_t zeros[] = {0, 0, 0, 0, 0, 0, 0, 0};
+	uint32_t* ks1_bkp;
+	uint32_t* ks2_bkp;
+	uint32_t* ks3_bkp;
+	uint8_t* result;
+
+	ks1_bkp = new uint32_t[32];
+	if(!ks1_bkp)
+		return RES_OUT_OF_MEMORY;
+
+	ks2_bkp = new uint32_t[32];
+	if(!ks2_bkp)
+		return RES_OUT_OF_MEMORY;
+
+	ks3_bkp = new uint32_t[32];
+	if(!ks3_bkp)
+		return RES_OUT_OF_MEMORY;
+
+	result = new uint8_t[8];
+	if(!result)
+		return RES_OUT_OF_MEMORY;
+
+	//backup the keys
+	memcpy(ks1_bkp, ks1, sizeof(ks1));
+	memcpy(ks2_bkp, ks2, sizeof(ks2));
+	memcpy(ks3_bkp, ks3, sizeof(ks3));
+
+	//temporarily assign a new key
+	res = init_key(key, key_size);
+
+	if(res == RES_OK)
+	{
+		//encrypt 8 bytes of zeroes using the new key
+		encrypt(zeros, result, 1);
+
+		//and get the first 3 bytes of the result. that's the KCV
+		memcpy(output, result, 3);
+	}
+
+	//restore the keys
+	memcpy(ks1, ks1_bkp, sizeof(ks1));
+	memcpy(ks2, ks2_bkp, sizeof(ks2));
+	memcpy(ks3, ks3_bkp, sizeof(ks3));
+
+	//delete the backups
+	delete[] ks1_bkp;
+	delete[] ks2_bkp;
+	delete[] ks3_bkp;
+	delete[] result;
+
+	return res;
+}
+
 void des3_cipher_algo_t::encrypt(const void* input, void* output, size_t blocks)
 {
 	while(blocks--)
