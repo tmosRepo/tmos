@@ -22,7 +22,7 @@ cipher_algo_t* new_cipher_des3()
 {
 	cipher_algo_t* algo;
 
-	algo = new des_cipher_algo_t(&des3_cipher_info);
+	algo = new des3_cipher_algo_t(&des3_cipher_info);
 	return algo;
 }
 
