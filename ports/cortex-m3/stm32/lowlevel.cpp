@@ -10,7 +10,7 @@
 #include <fam_cpp.h>
 
 #ifndef GD_USB_SDIO_USE_PLLSAI
-#define GD_USB_SDIO_USE_PLLSAI		0
+#define GD_USB_SDIO_USE_PLLSAI		1
 #endif
 
 #ifndef GD_USB_SDIO_USE_IRC48M
@@ -21,8 +21,12 @@
 #error "cannot use PLLSAI and IRC48M at the same time"
 #endif
 
-#ifndef FOCED_GDF42_F45_AT_200MHz
-#define FOCED_GDF42_F45_AT_200MHz 1
+#ifndef GDF42_F45_AT_200MHz
+#define GDF42_F45_AT_200MHz 1
+#endif
+
+#if GDF42_F45_AT_200MHz && !(GD_USB_SDIO_USE_PLLSAI || GD_USB_SDIO_USE_IRC48M)
+#warning "USB may work unstable !!!"
 #endif
 
 #ifndef HSE_STARTUP_TIMEOUT
@@ -229,7 +233,7 @@ extern "C" void SLOW_FLASH DefaultSystemInit( void )
 			break;
 		case '2': // GD32F42X
 		case '5': // GD32F45X
-#if FOCED_GDF42_F45_AT_200MHz || GD_USB_SDIO_USE_PLLSAI || GD_USB_SDIO_USE_IRC48M
+#if GDF42_F45_AT_200MHz
 			// 200 MHz
 			system_clock_frequency =200;
 #else
@@ -296,9 +300,9 @@ extern "C" void SLOW_FLASH DefaultSystemInit( void )
 			// CK_PLLSAIR = CK_ PLLSAIVCO / PLLSAIR = 192 000 000 / 4 = 48 000 000 not used
 
 			RCC->RCC_PLLSAICFGR =
-					 RCC_PLLSAICFGR_PLLSAIN_Set(384)
-					|RCC_PLLSAICFGR_PLLSAIP_DIV8
-					|RCC_PLLSAICFGR_PLLSAIR_DIV7;
+					 RCC_PLLSAICFGR_PLLSAIN_Set(192)
+					|RCC_PLLSAICFGR_PLLSAIP_DIV4
+					|RCC_PLLSAICFGR_PLLSAIR_DIV4;
 
 			/* enable PLLSAI */
 			RCC->RCC_CR |= RCC_CR_PLLSAION;
