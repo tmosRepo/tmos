@@ -282,13 +282,8 @@ static bool FAST_FLASH stm_read_payload(USB_DRV_INFO drv_info,	uint32_t status)
 								OTG_HC_REGS* ch_regs = &drv_info->hw_base->HC_REGS[ept_indx];
 
 								reg = ch_regs->HCCHAR;
-								if (!(reg & OTG_HCCHAR_CHDIS))
-								{
-									//re -activate
-									if(gd_is_used)
-										reg = (reg | OTG_HCCHAR_CHENA) & ~OTG_HCCHAR_CHDIS;
-									ch_regs->HCCHAR = reg;
-								}
+								reg = (reg | OTG_HCCHAR_CHENA) & ~OTG_HCCHAR_CHDIS;
+								ch_regs->HCCHAR = reg;
 								status = OTG_GRXSTSP_PKTSTS_SETUP_DATA; // leave
 							} else
 							{
@@ -1449,7 +1444,7 @@ static void stm_otg_core_init_host(USB_DRV_INFO drv_info)
 
 #if USB_HOST_KEEPS_CHANNELS_DOWN
 	Endpoint* eptr = drv_info->drv_data->endpoints;
-	for(int i=0; i<= USB_NUMENDPOINTS; i++)
+	for(int i=0; i< USB_NUMENDPOINTS; i++)
 	{
 		if(eptr[i].rxfifo_buff)
 			delete eptr[i].rxfifo_buff;
@@ -1619,8 +1614,6 @@ static void FAST_FLASH stm_host_start_xfer(USB_DRV_INFO drv_info, HANDLE hnd, ui
 		{
 			reg = 1; //PKTCNT = 1
 		}
-		if(gd_is_used)
-			len = reg * epdir->epd_fifo_sz;
 	} else
 	{
 		// For OUT transfers we will use single packets only on order to handle the NAKs properly
@@ -2999,13 +2992,14 @@ void usb_hal_host_nak_tout(USB_DRV_INFO drv_info)
 						}else
 						{
 							reg = ch_regs->HCCHAR;
+#if USB_HOST_KEEPS_CHANNELS_DOWN
+							reg |= OTG_HCCHAR_CHENA;
+#endif
 							ch_regs->HCCHAR = reg; // if CHDIS ->halt else re-enable
 						}
 						if(!j)
 						{
 							// Write some data OUT
-//							if (gd_is_used)
-//								stm_host_start_xfer(drv_info, epdir->epd_pending, i * 2, epdir);
 							stm_host_write_payload(drv_info, i);
 						}
 					}
@@ -3390,6 +3384,7 @@ static void usb_a_halt_IN(USB_DRV_INFO drv_info, uint32_t ch_indx)
 
 		case ENDPOINT_TYPE_INTERRUPT:
 			ch_regs->HCINTMSK |= OTG_HCINTMSK_CHHM;
+			epdir->epd_halt_reason = EPT_HALT_HALTED;
 			stm_host_ch_halt(drv_info, ch_regs);
 			break;
 
@@ -3426,16 +3421,16 @@ static void usb_a_halt_IN(USB_DRV_INFO drv_info, uint32_t ch_indx)
 #else
 			if( (hnd = epdir->epd_pending))
 			{
-				if(epdir->epd_type == ENDPOINT_TYPE_BULK || epdir->epd_type == ENDPOINT_TYPE_CONTROL)
+				if(hnd->cmd & FLAG_READ)
 				{
-					if(hnd->cmd & FLAG_READ)
-					{
-						epdir->epd_halt_reason = EPT_HALT_NAK;
-						stm_host_start_xfer(drv_info, hnd, ch_indx, epdir);
-						return;
-					}
-					epdir->epd_halt_reason = EPT_HALT_HALTED;
+					epdir->epd_halt_reason = EPT_HALT_NAK;
+					uint32_t reg;
+					reg = ch_regs->HCCHAR;
+					reg |= OTG_HCCHAR_CHENA;
+					ch_regs->HCCHAR = reg;
+					return;
 				}
+				epdir->epd_halt_reason = EPT_HALT_HALTED;
 			}
 #endif
 			break;
@@ -3841,6 +3836,7 @@ static void FAST_FLASH usb_a_gint_rxflvl(USB_DRV_INFO drv_info)
 		{
 			/* Disable the Rx Status Queue Level interrupt */
 			otg->core_regs.GINTMSK &= ~OTG_GINTMSK_RXFLVLM;
+			return;
 		}
 #endif
 		break;
