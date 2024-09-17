@@ -38,23 +38,26 @@
 
 ///  rx/tx data trace
 #ifndef USB_DATA_TRACE
-#define USB_DATA_TRACE		0
+#define USB_DATA_TRACE		0 // default
 #endif
 
 /// after each transaction the channel is halted
 #ifndef USB_HOST_KEEPS_CHANNELS_DOWN
-#define USB_HOST_KEEPS_CHANNELS_DOWN	1
+#define USB_HOST_KEEPS_CHANNELS_DOWN	1 // default
+//#define USB_HOST_KEEPS_CHANNELS_DOWN	0 // backward compatibility
 #endif
 
 #ifndef USB_HOST_DRIVER_RETRY
-#define USB_HOST_DRIVER_RETRY			0
+#define USB_HOST_DRIVER_RETRY			0 // default
+//#define USB_HOST_DRIVER_RETRY			1 // backward compatibility
 #endif
 
 /// delay (in ms) before processing tout (nak).
 /// it doesn't matter if USB_HOST_DRIVER_RETRY is not set
 /// 0 means immediate (no delay) tout (nak) processing.
 #ifndef USB_HOST_DRIVER_RETRY_DELAY
-#define USB_HOST_DRIVER_RETRY_DELAY		0
+#define USB_HOST_DRIVER_RETRY_DELAY     0  // default
+//#define USB_HOST_DRIVER_RETRY_DELAY    20 // backward compatibility
 #endif
 
 /// err_cnt is incremented every TRERR and if there are 3 errors in a row, stop sending data
