@@ -15,7 +15,6 @@
 //----------------------------------------------------------------------------
 #ifndef TRACE_USB_LEVEL
 #define TRACE_USB_LEVEL			TRACE_LEVEL_NONE // default
-#define TRACE_USB_LEVEL			TRACE_LEVEL_TRACE
 #endif
 
 #define TRACE_USB(...) 			TRACE_LEVEL(TRACE_USB_LEVEL, __VA_ARGS__)
