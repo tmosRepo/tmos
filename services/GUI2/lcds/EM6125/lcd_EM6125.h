@@ -32,6 +32,10 @@ struct EM6125: public LCD_MODULE
 	void do_reset() override;
 	void draw_bitmap(unsigned int x0, unsigned int y0,
 			const unsigned char* src, unsigned int width, unsigned int rows);
+	void draw_bitmap(int x0, int y0, const char* src, int width, int rows)
+	{
+		draw_bitmap((unsigned int)x0, (unsigned int)y0, (const unsigned char*)src, (unsigned int)width, (unsigned int)rows);
+	}
 	void draw_hline(unsigned int x0, unsigned int x1, unsigned int y);
 	void draw_bline(unsigned int x0, unsigned int x1, unsigned int y);
 	void draw_vline(unsigned int y0, unsigned int y1, unsigned int x);

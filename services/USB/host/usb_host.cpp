@@ -220,7 +220,7 @@ RES_CODE usb_remote_dev_t::get_string_descriptor(CSTRING& str, uint8_t indx)
 					}
 					res = RES_OK;
 				}
-				delete dp_str;
+				delete[] dp_str;
 			}
 		}
 	}
