@@ -45,17 +45,18 @@ typedef struct
 } CoreSight_ID;
 
 // CoreSight infrastructure IDs
-#define Cortex_M134_ID  CAST(CoreSight_ID	, 0xE00FFFD0) //!< BASE_ROM_TABLE
-#define Cortex_M7_ID  CAST(CoreSight_ID	, 0xE0041FD0) //!< ETM Base Address
+#define Cortex_M0134_ID  CAST(CoreSight_ID	, 0xE00FFFD0) //!< BASE_ROM_TABLE
+#define Cortex_M7_ID     CAST(CoreSight_ID	, 0xE0041FD0) //!< ETM Base Address
 
 static CoreSight_ID* Get_ID(void)
 {
 	switch((REG_SCB_CPUID>>4)&0xfff) // PARTNO
     {
+	case 0xc20: // M0
     case 0xc21: // M1
     case 0xc23: // M3
     case 0xc24: // M4
-    	return Cortex_M134_ID;
+    	return Cortex_M0134_ID;
     	break;
      case 0xc27:
      	return Cortex_M7_ID;
@@ -71,6 +72,7 @@ uint32_t mcu_jep106(void)
 
 	CoreSight_ID* ID = Get_ID();
 	unsigned int jep=0;
+
 	if(ID)
 	{
 		if(ID->PID2 & 8)
@@ -110,7 +112,7 @@ uint32_t mcu_revision(void)
 
 const char* mcu_manufacturer(void)
 {
-	const char* ptr = "Unknown";
+	const char* ptr = "XXX";
 	switch(mcu_jep106())
 	{
 	case MCU_JEP106_APM:
@@ -183,6 +185,32 @@ static char* check_priphral_411_413(char* ptr)
 	return ptr;
 }
 
+static char* stm_f0(char* ptr, uint32_t ID_CODE)
+{
+	*ptr++ = 'F'; *ptr++ = '0';
+	switch(ID_CODE & 0xF){
+	case 0x0: //STM32F05x
+		*ptr++ = '5';
+		break;
+	case 0x2: //STM32F09X
+		*ptr++ = '9';
+		break;
+	case 0x4: //STM32F03X
+		*ptr++ = '3';
+		break;
+	case 0x5: //STM32F04X
+		*ptr++ = '4';
+		break;
+	case 0x8: //STM32F07X
+		*ptr++ = '7';
+		break;
+	default:
+		*ptr++ = '?';
+		break;
+	}
+	*ptr = 0;
+	return ptr;
+}
 /*
  * To be called only before the initialization of the drivers !
  */
@@ -204,8 +232,8 @@ const char* get_mcu_type(void)
 		strcpy(ptr,"STM32");
 		break;
  	default: // TODO: Other manufacturers should be added here
- 		strcpy(ptr, "Unknown");
- 		return device_type;
+ 		strcpy(ptr, "XXX");
+// 		return device_type;
 	}
 	ptr += strlen(ptr);
 
@@ -213,6 +241,7 @@ const char* get_mcu_type(void)
 	{
 	case 0x411:
 		strcpy(ptr, "F2");
+		ptr +=2;
 		ptr = check_priphral_411_413(ptr);
 		break;
 	case 0x413:
@@ -258,6 +287,13 @@ const char* get_mcu_type(void)
 			*ptr =0;
 		}else
 			strcpy(ptr, "XX");
+		break;
+	case 0x440: //STM32F05x
+	case 0x442: //STM32F09X
+	case 0x444: //STM32F03X
+	case 0x445: //STM32F04X
+	case 0x448: //STM32F07X
+		ptr = stm_f0(ptr, DBGMCU->DBGMCU_IDCODE);
 		break;
 	default:
 		strcpy(ptr, "????"); // TODO: to add other ID codes

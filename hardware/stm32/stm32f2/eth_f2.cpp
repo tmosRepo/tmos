@@ -194,6 +194,7 @@ static void ETH_MACDMAConfig(ETH_TypeDef* mac, const eth_mac_cfg_t* cfg)
 
 void TRACEPHY(ETH_TypeDef* mac, const eth_mac_cfg_t* cfg, const char* err)
 {
+#if TRACE_IS != TRACE_DISABLED
 	RES_CODE res;
 	uint32_t phyreg;
 
@@ -204,6 +205,7 @@ void TRACEPHY(ETH_TypeDef* mac, const eth_mac_cfg_t* cfg, const char* err)
 		res = HAL_ETH_ReadPHYRegister(mac, cfg, i, &phyreg);
 		TRACELN("PHY %02u %u %04X", i, res, phyreg);
 	}
+#endif
 }
 
 

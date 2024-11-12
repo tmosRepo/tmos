@@ -8,6 +8,112 @@
 #include <tmos.h>
 #include <spi_drv.h>
 
+static inline __attribute__((always_inline, optimize("Os")))
+void SPI_TX(SPI_TypeDef* pSPI, HANDLE hnd)
+{
+#if STM32_SPI_TYPE == 124 // xx32F1, xx32F2 and xx32F4
+	if(hnd->cmd & FLAG_WRITE)
+	{
+		pSPI->SPI_DR = *hnd->src.as_byteptr++;
+	} else
+	{
+		pSPI->SPI_DR = 0xFF;
+	}
+#endif	// xx32F1, xx32F2 and xx32F4
+
+#if STM32_SPI_TYPE == 03 // xx32F0... and xx32F3....
+	bool packet;
+
+	packet = ((hnd->len > 1 ) || (GET_SPI_CR2_DS(pSPI->SPI_CR2) > SPI_CR2_DS_8bit));
+
+	if(packet){
+		// 0: RXNE event is generated if the FIFO level is greater than or equal to 1/2 (16-bit)
+		pSPI->SPI_CR2 &= ~SPI_CR2_FRXTH;
+	}else{
+		// 1: RXNE event is generated if the FIFO level is greater than or equal to 1/4 (8-bit)
+		pSPI->SPI_CR2 |= SPI_CR2_FRXTH;
+	}
+	if(hnd->cmd & FLAG_WRITE)
+	{
+		if(packet)
+		{
+#if USE_UNALIGNED_ACCESS
+			pSPI->SPI_DR_16bit = *hnd->src.as_shortptr++;
+#else
+			pSPI->SPI_DR_16bit = hnd->src.as_byteptr[0] + (hnd->src.as_byteptr[1] << 8);
+			hnd->src.as_shortptr++;
+#endif
+		}else{
+			pSPI->SPI_DR_8bit = *hnd->src.as_byteptr++;
+		}
+	} else
+	{
+		if(packet){
+			pSPI->SPI_DR_16bit = 0xFFFF;
+		}else{
+			pSPI->SPI_DR_8bit = 0xFF;
+		}
+	}
+#endif // xx32F0... and xx32F3...
+}
+
+static inline __attribute__((always_inline, optimize("Os")))
+bool SPI_RX(SPI_TypeDef* pSPI, HANDLE hnd)
+{
+	uint32_t rx_data;
+#if STM32_SPI_TYPE == 124 // xx32F1, xx32F2 and xx32F4
+	rx_data = pSPI->SPI_DR;
+	if(hnd)
+	{
+		if(hnd->cmd & FLAG_READ)
+		{
+			*hnd->dst.as_charptr++ = rx_data;
+		}
+
+		if(--hnd->len){
+			// send next byte..
+			SPI_TX(pSPI, hnd);
+		}else{
+			return true;
+		}
+	}
+	return false;
+#endif	// xx32F1, xx32F2 and xx32F4
+
+#if STM32_SPI_TYPE == 03 // xx32F0... and xx32F3....
+	bool DR_16bit = !(pSPI->SPI_CR2 & SPI_CR2_FRXTH);
+	bool mode_16bit = ((GET_SPI_CR2_DS(pSPI->SPI_CR2) > SPI_CR2_DS_8bit));
+
+	if (DR_16bit)
+		rx_data = pSPI->SPI_DR_16bit;
+	else
+		rx_data = pSPI->SPI_DR_8bit;
+
+	if (hnd)
+	{
+		if (hnd->cmd & FLAG_READ)
+		{
+			if (DR_16bit)
+			{
+#if USE_UNALIGNED_ACCESS
+				*hnd->dst.as_shortptr++ = rx_data;
+#else
+				*hnd->dst.as_byteptr++ = rx_data;
+				*hnd->dst.as_byteptr++ = rx_data >> 8;
+#endif
+			} else
+				*hnd->dst.as_byteptr++ = rx_data;
+		}
+
+		if(!--hnd->len)
+			return true;
+		if (!mode_16bit && DR_16bit && !--hnd->len)
+			return true;
+		SPI_TX(pSPI, hnd);
+	}
+	return false;
+#endif // xx32F0... and xx32F3...
+}
 
 // Enable SPI
 static void SPI_ENABLE(SPI_DRIVER_INFO* drv_info)
@@ -43,11 +149,13 @@ static void SPI_START_TRANSACTION(SPI_DRIVER_INFO* drv_info, SPI_DRIVER_MODE* mo
 	//		SSOE bit only should be set. This step is not required when the TI
 	//		mode is	selected.
 
+	uint32_t spi_cr1;
+
+#if STM32_SPI_TYPE == 124 // xx32F1, xx32F2 and xx32F4
 	/* SPI2 and SPI3 are connected to APB1, all others are connected to APB2 */
 	/* BR[2:0] are set for APB1/2 at frequency 30/60 MHz */
 	uint32_t src_clk;
 	uint32_t desired_clock;
-	uint32_t spi_cr1;
 	if (drv_info->info.peripheral_indx == ID_PERIPH_SPI2
 			|| drv_info->info.peripheral_indx == ID_PERIPH_SPI3)
 	{
@@ -65,8 +173,12 @@ static void SPI_START_TRANSACTION(SPI_DRIVER_INFO* drv_info, SPI_DRIVER_MODE* mo
 			break;
 	}
 	spi_cr1 = (mode->spi_cr1 & ~(SPI_CR1_BR | SPI_CR1_SPE)) | (spi_cr1 << 3);
+#endif // xx32F1, xx32F2 and xx32F4
+
+#if STM32_SPI_TYPE == 03 // xx32F0... and xx32F3....
+	spi_cr1 = mode->spi_cr1 & (~SPI_CR1_SPE);
+#endif // xx32F0... and xx32F3...
 	pSPI->SPI_CR1 = spi_cr1;
-//	pSPI->SPI_CR1 = mode->spi_cr1 & (~SPI_CR1_SPE);
 
 	//	6. Set the FRF bit in SPI_CR2 to select the TI protocol for serial communications.
 	//	7. The MSTR and SPE bits must be set (they remain set only if the NSS pin is connected
@@ -81,7 +193,6 @@ static void SPI_START_TRANSACTION(SPI_DRIVER_INFO* drv_info, SPI_DRIVER_MODE* mo
     //enable
 	if(!(mode->spi_cr1 & SPI_CR1_SPE)) // if set SPI_CR1_SPE disable SPI
 	{
-
 		pSPI->SPI_CR1 = spi_cr1 | SPI_CR1_SPE;
 	}
 
@@ -125,13 +236,7 @@ static void START_HND(SPI_DRIVER_INFO* drv_info, SPI_DRIVER_DATA* drv_data, HAND
 #endif
 	{
 		//no DMA
-		if(hnd->cmd & FLAG_WRITE)
-		{
-			drv_info->hw_base->SPI_DR = *hnd->src.as_byteptr++;
-		} else
-		{
-			drv_info->hw_base->SPI_DR = 0xFF;
-		}
+		SPI_TX(drv_info->hw_base, hnd);
 	}
 }
 
@@ -408,8 +513,21 @@ void SPI_ISR(SPI_DRIVER_INFO* drv_info)
 
 	if(status & SPI_SR_RXNE)
 	{
-		HANDLE hnd;
+		HANDLE hnd = drv_data->pending;
+		if(SPI_RX(pSPI, hnd))
+		{
+			//done
+			if(!drv_data->locker)
+			{
+				SPI_END_TRANSACTION((SPI_DRIVER_MODE *)hnd->mode.as_voidptr);
+			}
 
+			drv_data->pending = hnd->next;
+			usr_HND_SET_STATUS(hnd, RES_SIG_OK);
+
+			SPI_RESUME(drv_info, drv_data);
+		}
+/*
 		status = pSPI->SPI_DR;
 		hnd = drv_data->pending;
 		if(hnd)
@@ -422,13 +540,7 @@ void SPI_ISR(SPI_DRIVER_INFO* drv_info)
 			if(--hnd->len)
 			{
 				// send next byte..
-				if(hnd->cmd & FLAG_WRITE)
-				{
-					pSPI->SPI_DR = *hnd->src.as_byteptr++;
-				} else
-				{
-					pSPI->SPI_DR = 0xFF;
-				}
+				SPI_TX(pSPI, hnd);
 			} else
 			{
 				//done
@@ -443,5 +555,6 @@ void SPI_ISR(SPI_DRIVER_INFO* drv_info)
 				SPI_RESUME(drv_info, drv_data);
 			}
 		}
+*/
 	}
 }

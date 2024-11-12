@@ -21,10 +21,13 @@ local_as_src-$(USE_TMOS_STDIO)	+= tmos_stdio.S
 local_as_src-$(USE_TMOS_LLONG)	+= tmos_llong.S 
 local_as_src-$(USE_AES_TMOS)    += aes_tmos.S
 
-local_cpp_src-y	+= kernel.cpp handle.cpp services.cpp  
+local_c_src-$(USE_AES_TMOS)   	+= aes_tmos.c
 
-local_h_src-y 	+= port_cpp.h port_inc.h tmos_string.h tasks.h services.h
+local_cpp_src-y	+= kernel.cpp handle.cpp services.cpp 
+
+local_h_src-y 	+= port_cpp.h port_inc.h tasks.h services.h 
 local_h_src-y 	+= tmos_swi.h handle.h tmos_stdio.h port_asm.h tmos_atomic.h
+local_h_src-$(USE_TMOS_STRING)	+= tmos_string.h
 local_h_src-$(USE_TMOS_LLONG)	+= tmos_llong.h
 local_h_src-$(USE_CRC16)		+= crc16.h
 local_h_src-$(USE_AES_TMOS)	    += aes_tmos.h

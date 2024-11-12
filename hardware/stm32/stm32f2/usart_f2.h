@@ -181,6 +181,8 @@ unsigned int set_usart_baudrate(USART_TypeDef* usart, uint32_t periph_id, uint32
 #define enable_usart_drv_ints(uart, f) (uart->USART_CR1 |= (f))		//!< enable usart interrupts
 #define disable_usart_drv_ints(uart, f) (uart->USART_CR1 &= ~(f)) 	//!< disable usart interrupts
 
+/// Debug
+extern const DRIVER_INDEX usart_index[];
 #endif /* USART_F2_H_ */
 
 /** @} */

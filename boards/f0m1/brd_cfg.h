@@ -1,8 +1,10 @@
 /*
- * tmos_cfg.h
+ * brd_cfg.h for fiscal memory version 1
  *
  *  Created on: 13.12.2011
  *      Author: Miroslav Kostadinov
+ *
+ *
  */
 
 

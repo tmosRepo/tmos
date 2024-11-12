@@ -24,7 +24,7 @@
 
 #define usr_task_suspend_swi		1
 #define usr_send_signal_swi			2
-#define  usr_task_schedule_swi		3
+#define usr_task_schedule_swi		3
 #define tsk_sleep_swi				4
 #define tsk_sleep_rel_swi			5
 #define tsk_sleep_until_swi			6

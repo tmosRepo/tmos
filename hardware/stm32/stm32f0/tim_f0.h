@@ -318,8 +318,7 @@ typedef struct
 /** @} */ // @relates TIM_TypeDef
 
 
-
-
+void config_timer_clock(TIM_TypeDef* hw_base, const uint16_t peripheral_indx, const uint16_t fclk);
 
 
 #endif /* TIM_F0_H_ */

@@ -532,6 +532,7 @@ FUNC(	svc_realloc		)					// r0    r1    r2    r3	   r4	 r5
 smr_check_split:	//	r0, , r1=newsize_w r2=oldsize_w
 				subs			r3, r2, r1			//r3=cs-ns
 				beq				smr_exit_pop		//size match
+                blo             smr_realloc
 				//the current block is bigger
 				cmp				r3, #1
 				beq				smr_exit_pop		//can't free

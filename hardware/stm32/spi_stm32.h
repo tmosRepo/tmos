@@ -39,7 +39,11 @@ typedef struct
   __IO uint32_t SPI_CR1;        //!< (spi Offset: 0x00) SPI control register 1 (not used in I2S mode)
   __IO uint32_t SPI_CR2;        //!< (spi Offset: 0x04) SPI control register 2
   __IO uint32_t SPI_SR;         //!< (spi Offset: 0x08) SPI status register
+union{
   __IO uint32_t SPI_DR;         //!< (spi Offset: 0x0C) SPI data register
+  __IO uint8_t  SPI_DR_8bit;    //!< (spi Offset: 0x0C) SPI data register
+  __IO uint16_t SPI_DR_16bit;   //!< (spi Offset: 0x0C) SPI data register
+};
   __IO uint32_t SPI_CRCPR;      //!< (spi Offset: 0x10) SPI CRC polynomial register (not used in I2S mode)
   __IO uint32_t SPI_RXCRCR;     //!< (spi Offset: 0x14) SPI RX CRC register (not used in I2S mode)
   __IO uint32_t SPI_TXCRCR;     //!< (spi Offset: 0x18) SPI TX CRC register (not used in I2S mode)
@@ -124,6 +128,8 @@ typedef struct
 #define  SPI_CR2_FRXTH          0x1000 //!< FIFO reception Threshold
 #define  SPI_CR2_LDMARX         0x2000 //!< Last DMA transfer for reception
 #define  SPI_CR2_LDMATX         0x4000 //!< Last DMA transfer for transmission
+
+#define GET_SPI_CR2_DS( spi_cr2 )		((spi_cr2)&SPI_CR2_DS)
 #endif
 
 /** @} */

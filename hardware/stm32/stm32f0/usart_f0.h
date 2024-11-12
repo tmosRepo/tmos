@@ -198,6 +198,7 @@ typedef struct
 /** @} */
 
 /** @} */ // @relates USART_TypeDef
+#define USART_ENABLE		USART_CR1_UE
 
 #define USART_STATUS_TC 	USART_ISR_TC	//!< TC flag for F0 family
 #define USART_STATUS_TXE 	USART_ISR_TXE	//!< TXE flag for F0 family
@@ -230,6 +231,10 @@ unsigned int set_usart_baudrate(USART_TypeDef* usart, uint32_t periph_id, uint32
 #define USART_CR1_RE                0x00000004 //!< Receiver Enable
 #define USART_CR1_UESM              0x00000002 //!< USART enable in Stop mode
 #define USART_CR1_UE                0x00000001 //!< USART Enable
+
+/// mask of the interrupt enable bits
+#define USART_ISR_ENABLE_MASK (USART_CR1_IDLEIE | USART_CR1_RXNEIE | USART_CR1_TCIE | USART_CR1_TXEIE | USART_CR1_PEIE)
+
 /// Maskable status bits
 #define USART_SR_MASKABLE ( USART_CR1_EOBIE | USART_CR1_RTOIE | USART_CR1_TXEIE \
 		| USART_CR1_TCIE | USART_CR1_RXNEIE | USART_CR1_IDLEIE)
@@ -255,6 +260,7 @@ unsigned int set_usart_baudrate(USART_TypeDef* usart, uint32_t periph_id, uint32
 #define enable_usart_drv_ints(uart, f) (uart->USART_CR1 |= (f))		//!< enable usart interrupts
 #define disable_usart_drv_ints(uart, f) (uart->USART_CR1 &= ~(f)) 	//!< disable usart interrupts
 
+extern const DRIVER_INDEX usart_index[];
 #endif /* USART_F0_H_ */
 
 /** @} */

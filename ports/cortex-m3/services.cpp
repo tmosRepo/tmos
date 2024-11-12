@@ -13,7 +13,7 @@ void TRACE_BUF(const void* buf, unsigned int len)
 
 	while(len--)
 	{
-		if(*str < ' ')
+		if(*str < ' ' || *str == 0xFF) //0xFF is interpreted as the start of a Telnet command/option
 		{
 			TRACE("{%02X}", *str);
 		} else

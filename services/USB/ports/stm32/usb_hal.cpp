@@ -3817,15 +3817,13 @@ static void FAST_FLASH usb_a_gint_rxflvl(USB_DRV_INFO drv_info)
 {
 	uint32_t status;
 	USB_TypeDef* otg = drv_info->hw_base;
-	uint32_t ep_num;
 
 	/* disable the RX status queue level interrupt */
 	otg->core_regs.GINTMSK &= ~OTG_GINTMSK_RXFLVLM;
 
 	/* Get the Status from the top of the FIFO */
 	status = otg->core_regs.GRXSTSP;
-	ep_num = (status & OTG_GRXSTSP_EPNUM_Msk);
-	TRACE_USB(" Q%u:", ep_num);
+	TRACE_USB(" Q%u:", (status & OTG_GRXSTSP_EPNUM_Msk));
 	switch(status & OTG_GRXSTSP_PKTSTS_Msk)
 	{
 	case OTG_GRXSTSP_PKTSTS_IN_DATA:	//  IN data packet received

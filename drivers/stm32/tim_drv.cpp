@@ -8,53 +8,22 @@
 #include <tmos.h>
 #include <tim_drv.h>
 
+
 static void ConfigureTimer(TIM_DRV_INF drv_info, const TIMER_CONTROL_MODE *mode)
 {
 	TIM_TypeDef* hw_base = drv_info->hw_tmr_base;
-	uint32_t frequency;
 
 	hw_base->TIM_CR1 = mode->cr1;
 	hw_base->TIM_CR2 = mode->cr2;
 	hw_base->TIM_ARR = mode->arr_or_ccr;
 
-	// If the APB prescaler is 1, the timer clock frequencies are set to the same frequency as
-	// that of the APB domain to which the timers are connected. Otherwise, they are set to twice (x2)
-	// the frequency of the APB domain to which the timers are connected.
+	config_timer_clock(hw_base, drv_info->info.peripheral_indx, mode->fclk);
 
-	// NOTE: some F4 series have a register RCC_DCKCFGR which has TIMPRE bit.
-	// If it set and the APB prescaler (PPRE1, PPRE2 in the RCC_CFGR register) is configured to a
-	// division factor of 1, 2 or 4, TIMxCLK = HCLK. Otherwise, the timer clock frequencies are set
-	// to four times to the frequency of the APB domain to which the timers are connected:TIMxCLK = 4xPCLKx.
-
-	switch(drv_info->info.peripheral_indx)
-	{
-	case ID_PERIPH_TIM1:
-	case ID_PERIPH_TIM8:
-	case ID_PERIPH_TIM9:
-	case ID_PERIPH_TIM10:
-	case ID_PERIPH_TIM11:
-		// APB2 120(2x60)
-		if((RCC_CFGR_PPRE2 & RCC->RCC_CFGR) == RCC_CFGR_PPRE2_DIV1){
-			frequency = APB2_clock_frequency /1000;
-		}else{
-			frequency = APB2_clock_frequency /500;
-		}
-		hw_base->TIM_PSC = frequency/mode->fclk;
-		break;
-	default:
-		// APB1 60(2x30)
-		if((RCC_CFGR_PPRE1 & RCC->RCC_CFGR) == RCC_CFGR_PPRE1_DIV1){
-			frequency = APB1_clock_frequency /1000;
-		}else{
-			frequency = APB1_clock_frequency /500;
-		}
-		hw_base->TIM_PSC = frequency/mode->fclk;
-		break;
-	}
 	hw_base->TIM_RCR = mode->rcr;
 	hw_base->TIM_SMCR = mode->smcr;
 	hw_base->TIM_EGR = TIM_EGR_UG;
 }
+
 
 static void ConfigureChannel(TIM_DRV_INF drv_info, const TIMER_CHANNEL_MODE *mode)
 {

@@ -9,6 +9,12 @@
  *  1. All bits related to interrupt enable or DMA are cleared from the mode
  *  2. checks for a fake pending ISR on the USART and clears it if there is one
  *  3. UART_TRACEXXX macros
+
+ *  Edited on: Occtober 5, 2024
+ *      Editor: bratkov
+ *  1. ability to redefine UART pins, e.g. when using full/half duplex
+ *  2. Reworked Configure Usart(...) to be compatible with STM32F0X...X series
+ *  3. Rework of the UART_TRACEXXX macros
  */
 
 #include <tmos.h>
@@ -17,19 +23,19 @@
 #include <dma_drv.h>
 #endif
 
-static const DRIVER_INDEX usart_index[] =
-{
-		USART1_IRQn,
-		USART2_IRQn,
-		USART3_IRQn,
-		UART4_IRQn,
-		UART5_IRQn,
-		USART6_IRQn,
-		INALID_DRV_INDX
-};
+#ifndef TRACE_UART_LEVEL
+#define TRACE_UART_LEVEL	TRACE_LEVEL_NONE
+#endif
+
+#define TRACE_UART(x)		(drv_info->info.drv_index == x)
+
+#if (TRACE_UART_LEVEL >= TRACE_DEFAULT_LEVEL)
+#define IS_TRACE_UART  TRACE_UART(USART3_IRQn) || TRACE_UART(USART1_IRQn)
+#endif
+
+#if TRACE_IS  && defined IS_TRACE_UART
 
 #pragma GCC optimize ("Os")
-
 static char get_uart_index(USART_DRIVER_INFO * drv_info)
 {
 	uint32_t  res = 0;
@@ -43,20 +49,11 @@ static char get_uart_index(USART_DRIVER_INFO * drv_info)
 	}
 	return '0' + res;
 }
-
 #pragma GCC reset_options
 
-#define TRACE_UART(x)		(drv_info->info.drv_index == x)
-
-#if (TRACE_UART_LEVEL >= TRACE_DEFAULT_LEVEL)
-#define IS_TRACE_UART  TRACE_UART(USART6_IRQn) //|| TRACE_DMA_CH(USART1_IRQn)
-#else
-#define IS_TRACE_UART	0
-#endif
-
-#define UART_TRACE_CHAR(ch) 		do{if(IS_TRACE_UART)TRACE_CHAR_LEVEL(TRACE_DMA_LEVEL, ch);}while(0)
-#define UART_TRACE(...) 			do{if(IS_TRACE_UART)TRACE_LEVEL(TRACE_DMA_LEVEL, __VA_ARGS__);}while(0)
-#define UART_TRACE1(str)			do{if(IS_TRACE_UART)TRACE1_LEVEL(TRACE_DMA_LEVEL, str);}while(0)
+#define UART_TRACE_CHAR(ch) 		do{if(IS_TRACE_UART)TRACE_CHAR_LEVEL(TRACE_UART_LEVEL, ch);}while(0)
+#define UART_TRACE(...) 			do{if(IS_TRACE_UART)TRACE_LEVEL(TRACE_UART_LEVEL, __VA_ARGS__);}while(0)
+#define UART_TRACE1(str)			do{if(IS_TRACE_UART)TRACE1_LEVEL(TRACE_UART_LEVEL, str);}while(0)
 #define UART_TRACELN(str, ...)		do{if(IS_TRACE_UART){	\
 									TRACE_LEVEL(TRACE_UART_LEVEL, "\r\nUSART%c ",get_uart_index(drv_info));\
 									TRACE_LEVEL(TRACE_UART_LEVEL, str, ##__VA_ARGS__);}\
@@ -69,6 +66,18 @@ static char get_uart_index(USART_DRIVER_INFO * drv_info)
 									TRACELN("\r\n\e[91mUSART%c :",get_uart_index(drv_info));\
 									TRACE(str "\e[m", ##__VA_ARGS__);\
 									}while(0)
+#else
+
+#define UART_TRACE_CHAR(ch)
+#define UART_TRACE(...)
+#define UART_TRACE1(str)
+#define UART_TRACELN(str, ...)
+#define UART_TRACELN1(str)
+#define UART_TRACE_ERROR(str, ...)
+
+#endif // TRACE_IS && IS_TRACE_UART
+
+
 /**
  *
  * @param drv_data	contains the current USART mode
@@ -101,17 +110,23 @@ static bool SLOW_FLASH ConfigureUsart(USART_DRIVER_INFO * drv_info, USART_DRIVER
 	USART_DRIVER_DATA * drv_data = drv_info->drv_data;
 	USART_DRIVER_MODE& drv_mode = drv_data->mode;
 
-	drv_mode.mode_cr1 = (mode->mode_cr1 & ~USART_ISR_ENABLE_MASK) | USART_ENABLE;
+	// before configuring the USART, it must be disabled
+	drv_mode.mode_cr1 = (mode->mode_cr1 & ~(USART_ISR_ENABLE_MASK|USART_ENABLE));
 	drv_mode.mode_cr2 = mode->mode_cr2;
 	drv_mode.mode_cr3 = mode->mode_cr3 & ~(USART_CR3_DMAR|USART_CR3_DMAT|USART_CR3_CTSIE);
 	drv_mode.baudrate = mode->baudrate;
 
-	USARTx->USART_CR2 = drv_mode.mode_cr2;
+	//Some bits in CR1,CR2 and CR3 can only be written when the USART is disabled
 	USARTx->USART_CR1 = drv_mode.mode_cr1;
+	USARTx->USART_CR2 = drv_mode.mode_cr2;
 	USARTx->USART_CR3 = drv_mode.mode_cr3;
 
 	/* Configure the USART Baud Rate -------------------------------------------*/
 	set_usart_baudrate(USARTx, drv_info->info.peripheral_indx, mode->baudrate);
+
+	// Now the USART can be enabled
+	drv_mode.mode_cr1  |= USART_ENABLE;
+	USARTx->USART_CR1 = drv_mode.mode_cr1;
 
 	drv_enable_isr(&drv_info->info); // NVIC enable
 	if(NVIC_GetPendingIRQ(drv_info->info.drv_index))
@@ -258,7 +273,7 @@ static inline void START_TX_HND(USART_DRIVER_INFO * drv_info, USART_TypeDef* uar
 #if USE_UART_DMA_DRIVER
 	if(drv_info->tx_dma_mode.dma_index < INALID_DRV_INDX)
 	{
-		drv_info->drv_data->tx_dma_hnd.drv_read_write((void*)&get_usart_rdr(uart),
+		drv_info->drv_data->tx_dma_hnd.drv_read_write((void*)&get_usart_tdr(uart),
 				hnd->src.as_charptr, hnd->len);
 		uart->USART_CR3 |= USART_CR3_DMAT; // enable a peripheral to send a DMA requests
 		return;
@@ -488,13 +503,23 @@ void USART_DCR(USART_DRIVER_INFO* drv_info, unsigned int reason, HANDLE hnd)
 				{
 					if(!is_same_mode(drv_data, usart_mode))
 						break; // return ERR (exit form case)
+					UART_TRACELN(" OPEN[%u]", drv_data->cnt);
 				}
 				else
 				{
 					// Enable AND Reset the UART peripheral
 					RCCPeripheralEnable(drv_info->info.peripheral_indx);
 					RCCPeripheralReset(drv_info->info.peripheral_indx);
-					PIO_Cfg_List(drv_info->uart_pins);
+					// configures the USART pins
+					if(usart_mode->use_pins == nullptr){
+						// uses default pins and their modes
+						PIO_Cfg_List(drv_info->uart_pins);
+					}else{
+						// user defined  pins and modes
+						// NOTE! more than 4 pins can be configured
+						PIO_Cfg_List(usart_mode->use_pins);
+					}
+					UART_TRACELN1(" OPEN");
 					if(!ConfigureUsart(drv_info, usart_mode))
 						break; // return ERR (exit form case)
 /*
@@ -539,7 +564,7 @@ void USART_DCR(USART_DRIVER_INFO* drv_info, unsigned int reason, HANDLE hnd)
 				}
 				drv_data->tx_dma_hnd.close();
 #endif
-
+				UART_TRACELN1(" CLOSED");
 				NVIC_DisableIRQ(drv_info->info.drv_index);
 				//	Uart->UARTDisable();
 				//	STOP_RX(Uart);
@@ -698,12 +723,14 @@ void USART_ISR(USART_DRIVER_INFO* drv_info)
 
 
 	status = get_usart_sr(uart);
+	UART_TRACELN("isr %x", status);
 	status &= get_usart_imr(uart);
 
+	UART_TRACE("/%x", status);
 	//check the receiver
 	if (status & USART_STATUS_ORE)
 	{
-//		TRACELN("over");
+		TRACELN("over");
 		clr_usart_over(uart); //clear overrun flag
     	if( (hnd=drv_data->hnd_rcv) )
     	{
@@ -786,7 +813,7 @@ void USART_ISR(USART_DRIVER_INFO* drv_info)
 	    			{
 						if((((uint16_t *)drv_data->rx_ptr - (uint16_t *)drv_data->rx_wrptr)>>1) != hnd->len)
 						{
-	//	  		  			TRACELN("idle");
+		  		  			TRACELN("idle");
 							STOP_RX_HND(uart, drv_data, hnd, RES_SIG_OK);
 						}
 	    			}
@@ -794,7 +821,7 @@ void USART_ISR(USART_DRIVER_INFO* drv_info)
 	    			{
 						if(((uint8_t *)drv_data->rx_ptr - (uint8_t *)drv_data->rx_wrptr) != hnd->len)
 						{
-	//	  		  			TRACELN("idle");
+		  		  			TRACELN("idle");
 							STOP_RX_HND(uart, drv_data, hnd, RES_SIG_OK);
 						}
 	    			}

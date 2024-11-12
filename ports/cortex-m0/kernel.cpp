@@ -31,9 +31,19 @@ extern TASK_DESCRIPTION main_task_desc;
  * frequency
  */
 volatile __no_init unsigned int system_clock_frequency;
+/**
+ * APB1_clock_frequency is gloabal variable and shows the current APB1 clock
+ * frequency
+ */
+volatile __no_init unsigned int APB1_clock_frequency;
+/**
+ * APB2_clock_frequency is gloabal variable and shows the current APB2 clock
+ * frequency
+ */
+volatile __no_init unsigned int APB2_clock_frequency;
 
 #if USE_EXCEPTION_RECORD
-volatile __no_init EXCEPTION_RECORD_STRU exception_record;
+volatile __bkp_no_init EXCEPTION_RECORD_STRU exception_record;
 
 extern "C" unsigned int exception_crc(const unsigned int* record)
 {
@@ -162,6 +172,7 @@ extern "C" void sys_kernel_init( void)
 	//------------- initialize dynamic memory  ---------------//
 #if USE_TMOS_STDLIB
 	svc_pool_init(&end, (void*)(BASE_SRAM + RAM_SIZE));
+	TRACELN("===== Dynamic memory %u =====", (char *)(BASE_SRAM + RAM_SIZE) - &end);
 #endif
 
     // initialize main task
@@ -199,7 +210,6 @@ extern "C" void sys_kernel_init( void)
 //*----------------------------------------------------------------------------
 extern "C" void __cxa_pure_virtual()
 {
-
 	TRACE_ERROR("\r\n\e[31mERROR: pure virtual function is called!\e[m");
 }
 
@@ -247,12 +257,12 @@ void usr_task_init_static(TASK_DESCRIPTION const * desc, int bStart)
 
 	if (bStart)
 	{
-		if (__get_CONTROL() & 2)
-
-			usr_task_schedule(task);
-
-		else
+		if (__get_IPSR() == 11){
+			// SVCall
 			svc_task_schedule(task);
+		}else{
+			usr_task_schedule(task);
+		}
 	}
 }
 
@@ -264,12 +274,11 @@ Task* usr_task_create_dynamic(const char* name, TASK_FUNCTION func,
 
 	//Allocate task control block and stack
 	stack_words = (stack_words * 4) + sizeof(TASK_STRU);
-	if (__get_CONTROL() & 2)
-	{
-		task = (Task*)((unsigned int)usr_malloc(stack_words+4) +4);
-	} else
-	{
+	if (__get_IPSR() == 11){
+		// SVCall
 		task = (Task*)((unsigned int)svc_malloc(stack_words+4)+4);
+	}else{
+		task = (Task*)((unsigned int)usr_malloc(stack_words+4) +4);
 	}
 
 	if(task != (void *)4)

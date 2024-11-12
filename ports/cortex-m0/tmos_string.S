@@ -54,6 +54,7 @@ FUNC(	memcmp		)
 3:
 				movs			r0, #0
   				bx				lr
+
 ENDF(	memcmp		)
 
 //*----------------------------------------------------------------------------
@@ -152,6 +153,27 @@ FUNC(	memmove		)
 2:
 				bx				lr
 ENDF(	memmove		)
+
+//*----------------------------------------------------------------------------
+//*		void* memchr(const void* src, unsigned int ch, unsigned int i)
+//*----------------------------------------------------------------------------
+FUNC(	memchr		)
+1:
+				cmp				r2, #0		// len == 0
+				beq				2f
+				ldrb			r3, [r0]
+				cmp 			r3, r1
+				beq				3f
+				adds			r0, #1
+				subs			r2, #1
+				b				1b
+2:
+				movs			r0, #0
+3:
+				bx				lr
+
+ENDF(	memchr		)
+
 
 //*----------------------------------------------------------------------------
 //*		void *strcpy(void *dst, void *src)
@@ -319,10 +341,10 @@ ENDF(	strpbrk		)
 //*----------------------------------------------------------------------------
 //*		int islower(unsigned int c)
 //*----------------------------------------------------------------------------
-FUNC(	islower )
-
+FUNC(	islower		)
+.weak islower
 				uxtb			r2, r0
-				ldr				r1, =G_char_2_type_
+				ldr				r1, =_char_2_type_
 				ldrb			r0, [r2, r1]
 				lsls			r0, #31
 				bx				lr
@@ -332,10 +354,10 @@ ENDF(	islower		)
 //*----------------------------------------------------------------------------
 //*		int isupper(unsigned int c)
 //*----------------------------------------------------------------------------
-FUNC(	isupper	)
-
+FUNC(	isupper		)
+.weak isupper
 				uxtb			r2, r0
-				ldr				r1, =G_char_2_type_
+				ldr				r1, =_char_2_type_
 				ldrb			r0, [r2, r1]
 				lsrs			r0, #7
 				bx				lr
@@ -458,11 +480,64 @@ ENDF(   strstr     )
 //*----------------------------------------------------------------------------
 //*	return:
 //*----------------------------------------------------------------------------
-#if USE_FIXED_CPAGE == 1251
-FUNC(	strcasecmp	)
+#if USE_FIXED_CPAGE == 1250
+FUNC_SECT(  strcasecmp, .text.casecmp   )
+.weak strcasecmp
+                push            {r4, r5}
+                adr             r2, _char_2_type_
+1:
+                ldrb            r3, [r0], #1
+                ldrb            r4, [r2, r3]
+                lsrs            r4, #7              //isupper
+                beq             3f
+                lsrs            r4, r3, #6
+                cmp             r4, #2
+                bne             2f
+                cmp             r3, #0xA5        //A
+                it              eq
+                moveq           r3, #0xB9 - 16   //a
+                cmp             r3, #0xBC        //L
+                it              eq
+                moveq           r3, 0xBE -16     //l
+                subs            r3, #16
+2:
+                adds            r3, #32
+3:
 
+                ldrb            r5, [r1], #1
+                cbz             r3, 6f
+                ldrb            r4, [r2, r5]
+                lsrs            r4, #7              //isupper
+                beq             5f
+                lsrs            r4, r5, #6
+                cmp             r4, #2
+                bne             4f
+                cmp             r5, #0xA5        //A
+                it              eq
+                moveq           r5, #0xB9 - 16   //a
+                cmp             r5, #0xBC        //L
+                it              eq
+                moveq           r5, 0xBE -16     //l
+                subs            r5, #16
+4:
+                adds            r5, #32
+5:
+
+                cmp             r3, r5
+                beq             1b
+6:
+                subs            r0, r3, r5
+                pop             {r4, r5}
+                bx              lr
+
+ENDF(   strcasecmp      )
+#endif // USE_FIXED_CPAGE == 1250
+
+#if USE_FIXED_CPAGE == 1251
+FUNC_SECT(  strcasecmp, .text.casecmp   )
+.weak strcasecmp
 				push			{r4, r5}
-				ldr				r2, =G_char_2_type_
+				ldr				r2, =_char_2_type_
 				subs			r0, r1
 1:
 				ldrb			r3, [r0, r1]
@@ -493,12 +568,73 @@ ENDF(	strcasecmp		)
 //*----------------------------------------------------------------------------
 //*	return:
 //*----------------------------------------------------------------------------
+#if USE_FIXED_CPAGE == 1250
+FUNC_SECT(  strncasecmp,    .text.casecmp   )
+.weak strncasecmp
+
+                cbz             r2, 9f
+                adr             r3, _char_2_type_
+                push            {r4, r5, r6}
+1:
+                ldrb            r6, [r0], #1
+                ldrb            r4, [r3, r6]
+                lsrs            r4, r4, #7          //isupper
+                beq             3f
+                lsrs            r4, r6, #6
+                cmp             r4, #2
+                bne             2f
+                cmp             r6, #0xA5        //A
+                it              eq
+                moveq           r6, #0xB9 - 16   //a
+                cmp             r6, #0xBC        //L
+                it              eq
+                moveq           r6, 0xBE -16     //l
+                subs            r6, #16
+2:
+                adds            r6, #32
+3:
+
+                ldrb            r5, [r1], #1
+                cbz             r6, 6f
+                ldrb            r4, [r3, r5]
+                lsrs            r4, r4, #7          //isupper
+                beq             5f
+                lsrs            r4, r5, #6
+                cmp             r4, #2
+                bne             4f
+                cmp             r5, #0xA5        //A
+                it              eq
+                moveq           r5, #0xB9 - 16   //a
+                cmp             r5, #0xBC        //L
+                it              eq
+                moveq           r5, 0xBE -16     //l
+                subs            r5, #16
+4:
+                adds            r5, #32
+5:
+
+                subs            r2, #1
+                beq             6f
+                cmp             r6, r5
+                beq             1b
+6:
+                subs            r0, r6, r5
+                pop             {r4, r5, r6}
+                bx              lr
+9:
+                movs            r0, #0
+                bx              lr
+
+ENDF(   strncasecmp     )
+#endif // USE_FIXED_CPAGE == 1250
+
 #if USE_FIXED_CPAGE == 1251
-FUNC(	strncasecmp	)
+FUNC_SECT(  strncasecmp,    .text.casecmp   )
+.weak strncasecmp
 
 				rsbs			r2, #0
 				beq				3f
-				ldr				r3, =G_char_2_type_
+				ldr				r3, =_char_2_type_
 				push			{r4, r5, r6}
 				subs			r0, r2
 				subs			r1, r2
@@ -535,10 +671,44 @@ ENDF(	strncasecmp		)
 //*----------------------------------------------------------------------------
 //* return:
 //*----------------------------------------------------------------------------
-#if USE_FIXED_CPAGE == 1251
-FUNC(  toupper      )
+#if USE_FIXED_CPAGE == 1250
+FUNC_SECT(  toupper, .text.casecmp      )
+.weak toupper
+                ldr             r2, =_char_2_type_
+                ldrb            r1, [r0, r2]
+                lsls            r1, r1, #31             //islower
+                beq             1f
+                lsrs            r1, r0, #6
+                cmp             r1, #2
+                bne             4f
+                cmp             r0, #0xB9    //a
+                beq             2f
+                cmp             r0, #0xBE    //l
+                beq             3f
+                subs            r0, #16
+1:
+                bx              lr
 
-                ldr             r2, =G_char_2_type_
+2:
+                movs            r0, #0xA5    //A
+                bx              lr
+
+3:
+                movs            r0, #0xBC    //L
+                bx              lr
+
+4:
+                subs            r0, #32
+                bx              lr
+
+ENDF(   toupper     )
+#endif // USE_FIXED_CPAGE == 1250
+
+#if USE_FIXED_CPAGE == 1251
+FUNC_SECT(  toupper, .text.casecmp      )
+.weak toupper
+
+                ldr             r2, =_char_2_type_
                 ldrb            r1, [r0, r2]
                 lsls            r1, r1, #31             //islower
                 lsrs			r1, #31-5
@@ -553,10 +723,45 @@ ENDF(   toupper     )
 //*----------------------------------------------------------------------------
 //*	return:
 //*----------------------------------------------------------------------------
-#if USE_FIXED_CPAGE == 1251
-FUNC(	tolower		)
+#if USE_FIXED_CPAGE == 1250
+FUNC_SECT(  tolower, .text.casecmp      )
+.weak tolower
 
-				ldr				r2, =G_char_2_type_
+                ldr             r2, =_char_2_type_
+                ldrb            r1, [r0, r2]
+                lsrs            r1, r1, #7              //isupper
+                beq             1f
+                lsrs            r1, r0, #6
+                cmp             r1, #2
+                bne             4f
+                cmp             r0, #0xA5    //A
+                beq             2f
+                cmp             r0, #0xBC    //L
+                beq             3f
+                adds            r0, #16
+1:
+                bx              lr
+
+2:
+                movs            r0, #0xB9    //a
+                bx              lr
+
+3:
+                movs            r0, #0xBE    //l
+                bx              lr
+
+4:
+                adds            r0, #32
+                bx              lr
+
+ENDF(   tolower     )
+#endif // USE_FIXED_CPAGE == 1250
+
+#if USE_FIXED_CPAGE == 1251
+FUNC_SECT(  tolower, .text.casecmp      )
+.weak tolower
+
+				ldr				r2, =_char_2_type_
 				ldrb			r1, [r0, r2]
 				lsrs			r1, #7					//isupper
 				lsls			r1, #5
@@ -582,11 +787,48 @@ ENDF(	tolower		)
 #define _X			0x40
 #define	_B			0x02
 
-                .section .text.char_2_type
-//				.global G_char_2_type_
-.align 2
-#if USE_FIXED_CPAGE == 1251
+				.global G_char_2_type_
+.weak G_char_2_type_
+#if USE_FIXED_CPAGE == 1250
 G_char_2_type_:
+_char_2_type_:
+    .byte   _C, _C, _C, _C, _C, _C, _C, _C                                  //00
+    .byte   _C, _C|_S,  _C|_S,  _C|_S,  _C|_S,  _C|_S,  _C, _C              //08
+    .byte   _C, _C, _C, _C, _C, _C, _C, _C                                  //10
+    .byte   _C, _C, _C, _C, _C, _C, _C, _C                                  //18
+    .byte   _S|_B,  _P, _P, _P, _P, _P, _P, _P                              //20  !"#$%&'
+    .byte   _P, _P, _P, _P, _P, _P, _P, _P                                  //28 ()*+,-./
+    .byte   _N, _N, _N, _N, _N, _N, _N, _N                                  //30 01234567
+    .byte   _N, _N, _P, _P, _P, _P, _P, _P                                  //38 89:;<=>?
+    .byte   _P, _U|_X,  _U|_X,  _U|_X,  _U|_X,  _U|_X,  _U|_X,  _U          //40 @ABCDEFG
+    .byte   _U, _U, _U, _U, _U, _U, _U, _U                                  //48 HIJKLMNO
+    .byte   _U, _U, _U, _U, _U, _U, _U, _U                                  //50 PQRSTUVW
+    .byte   _U, _U, _U, _P, _P, _P, _P, _P                                  //58 XYZ[\]^_
+    .byte   _P, _L|_X,  _L|_X,  _L|_X,  _L|_X,  _L|_X,  _L|_X,  _L          //60 'abcdefg
+    .byte   _L, _L, _L, _L, _L, _L, _L, _L                                  //68 hijklmno
+    .byte   _L, _L, _L, _L, _L, _L, _L, _L                                  //70 pqrstuvw
+    .byte   _L, _L, _L, _P, _P, _P, _P, _C                                  //78 xyz{|}~
+    .byte    0,  0, _P,  0, _P,  _P,  0,  0                                 //80 ‚Ç¨ÔøΩ‚ÄöÔøΩ‚Äû‚Ä¶‚Ä†‚Ä° 128
+    .byte    0, _P, _U, _P, _U,  _U, _U, _U                                 //88 ÔøΩ‚Ä∞≈†‚Äπ≈ö≈§≈Ω≈π 136
+    .byte    0, _P, _P, _P, _P, _P, _P, _P                                  //90 ÔøΩ‚Äò‚Äô‚Äú‚Äù‚Ä¢‚Äì‚Äî 144
+    .byte    0,  0, _L, _P, _L, _L, _L, _L                                  //98 *‚Ñ¢≈°‚Ä∫≈õ≈•≈æ≈∫ 152
+    .byte   _C, _P, _P, _U,  0, _U, _P, _P                                  //A0 ¬†ÀáÀò≈Å¬§ƒÑ¬¶¬ß 160
+    .byte   _P,  0, _U, _P,  0,  0,  0, _U                                  //A8 ¬®¬©≈û¬´¬¨ ¬≠¬Æ≈ª 168
+    .byte   _P, _P,  0, _L, _P,  0,  0,  0                                  //B0 ¬∞¬±Àõ≈Ç¬¥¬µ¬∂¬∑ 176
+    .byte    0, _L, _L, _P, _U, _P, _L, _L                                  //B8 ¬∏ƒÖ≈ü¬ªƒΩÀùƒæ≈º 184
+    .byte   _U, _U, _U, _U, _U, _U, _U, _U                                  //C0 ≈î√Å√ÇƒÇ√ÑƒπƒÜ√á 192
+    .byte   _U, _U, _U, _U, _U, _U, _U, _U                                  //C8 ƒå≈áƒò√ãƒö√ç√éƒé 200
+    .byte   _U, _U, _U, _U, _U, _U, _U,  0                                  //D0 ƒê≈É≈á√ì√î≈ê√ñ√ó 208
+    .byte   _U, _U, _U, _U, _U, _U, _U,  0                                  //D8 ≈ò≈Æ√ö≈∞√ú√ù≈¢√ü 216
+    .byte   _L, _L, _L, _L, _L, _L, _L, _L                                  //E0 ≈ï√°√¢ƒÉ√§ƒ∫ƒá√ß 224
+    .byte   _L, _L, _L, _L, _L, _L, _L, _L                                  //E8 ƒç√©ƒô√´ƒõ√≠√Æƒè 232
+    .byte   _L, _L, _L, _L, _L, _L, _L, _P                                  //F0 ƒë≈Ñ≈à√≥√¥≈ë√∂√∑ 240
+    .byte   _L, _L, _L, _L, _L, _L, _L,  0                                  //F8 ≈ô≈Ø√∫≈±√º√Ω6Àô 248
+#else
+#if USE_FIXED_CPAGE == 1251
+.align 2
+G_char_2_type_:
+_char_2_type_:
 	.byte	_C,	_C,	_C,	_C,	_C,	_C,	_C,	_C									//00
 	.byte	_C,	_C|_S,	_C|_S,	_C|_S,	_C|_S,	_C|_S,	_C,	_C				//08
 	.byte	_C,	_C,	_C,	_C,	_C,	_C,	_C,	_C									//10
@@ -603,23 +845,25 @@ G_char_2_type_:
 	.byte	_L,	_L,	_L,	_L,	_L,	_L,	_L,	_L									//68 hijklmno
 	.byte	_L,	_L,	_L,	_L,	_L,	_L,	_L,	_L									//70 pqrstuvw
 	.byte	_L,	_L,	_L,	_P,	_P,	_P,	_P,	_C									//78 xyz{|}~
-	.byte	0,	0,	0,	0,	0,	0,	0,	0									//80 ÄÅÇÉÑÖÜá 128
-	.byte	0,	0,	0,	0,	0,	0,	0,	0									//88 àâäãåçéè 136
-	.byte	0,	0,	0,	0,	0,	0,	0,	0									//90 êëíìîïñó 144
-	.byte	0,	0,	0,	0,	0,	0,	0,	0									//98 *ôöõúùûü 152
-	.byte	0,	0,	0,	0,	0,	0,	0,	0									//A0 †°¢£§•¶ß 160
-	.byte	0,	0,	0,	0,	0,	0,	0,	0									//A8 ®©™´¨≠ÆØ 168
-	.byte	0,	0,	0,	0,	0,	0,	0,	0									//B0 ∞±≤≥¥µ∂∑ 176
-	.byte	0,	0,	0,	0,	0,	0,	0,	0									//B8 ∏π∫ªºΩæø 184
-	.byte	_U,	_U,	_U,	_U,	_U,	_U,	_U,	_U									//C0 ¿¡¬√ƒ≈∆« 192
-	.byte	_U,	_U,	_U,	_U,	_U,	_U,	_U,	_U									//C8 »“ ÀÃÕŒœ 200
-	.byte	_U,	_U,	_U,	_U,	_U,	_U,	_U,	_U									//D0 –—“”‘’÷◊ 208
-	.byte	_U,	_U,	_U,	_U,	_U,	_U,	_U,	_U									//D8 ÿŸ⁄€‹›ﬁﬂ 216
-	.byte	_L,	_L,	_L,	_L,	_L,	_L,	_L,	_L									//E0 ‡·‚„‰ÂÊÁ 224
-	.byte	_L,	_L,	_L,	_L,	_L,	_L,	_L,	_L									//E8 ËÈÍÎÏÌÓÔ 232
-	.byte	_L,	_L,	_L,	_L,	_L,	_L,	_L,	_L									//F0 ÒÚÛÙıˆ˜ 240
-	.byte	_L,	_L,	_L,	_L,	_L,	_L,	_L,	_L									//F8 ¯˘˙˚¸˝6ˇ 248
+	.byte	0,	0,	0,	0,	0,	0,	0,	0									//80 –Ç–É‚Äö—ì‚Äû‚Ä¶‚Ä†‚Ä° 128
+	.byte	0,	0,	0,	0,	0,	0,	0,	0									//88 ‚Ç¨‚Ä∞–â‚Äπ–ä–å–ã–è 136
+	.byte	0,	0,	0,	0,	0,	0,	0,	0									//90 —í‚Äò‚Äô‚Äú‚Äù‚Ä¢‚Äì‚Äî 144
+	.byte	0,	0,	0,	0,	0,	0,	0,	0									//98 *‚Ñ¢—ô‚Ä∫—ö—ú—õ—ü 152
+	.byte	0,	0,	0,	0,	0,	0,	0,	0									//A0 ¬†–é—û–à¬§“ê¬¶¬ß 160
+	.byte	0,	0,	0,	0,	0,	0,	0,	0									//A8 –Å¬©–Ñ¬´¬¨¬≠¬Æ–á 168
+	.byte	0,	0,	0,	0,	0,	0,	0,	0									//B0 ¬∞¬±–Ü—ñ“ë¬µ¬∂¬∑ 176
+	.byte	0,	0,	0,	0,	0,	0,	0,	0									//B8 —ë‚Ññ—î¬ª—ò–Ö—ï—ó 184
+	.byte	_U,	_U,	_U,	_U,	_U,	_U,	_U,	_U									//C0 –ê–ë–í–ì–î–ï–ñ–ó 192
+	.byte	_U,	_U,	_U,	_U,	_U,	_U,	_U,	_U									//C8 –ò–¢–ö–õ–ú–ù–û–ü 200
+	.byte	_U,	_U,	_U,	_U,	_U,	_U,	_U,	_U									//D0 –†–°–¢–£–§–•–¶–ß 208
+	.byte	_U,	_U,	_U,	_U,	_U,	_U,	_U,	_U									//D8 –®–©–™–´–¨–≠–Æ–Ø 216
+	.byte	_L,	_L,	_L,	_L,	_L,	_L,	_L,	_L									//E0 –∞–±–≤–≥–¥–µ–∂–∑ 224
+	.byte	_L,	_L,	_L,	_L,	_L,	_L,	_L,	_L									//E8 –∏–π–∫–ª–º–Ω–æ–ø 232
+	.byte	_L,	_L,	_L,	_L,	_L,	_L,	_L,	_L									//F0 —Ä—Å—Ç—É—Ñ—Ö—Ü—á 240
+	.byte	_L,	_L,	_L,	_L,	_L,	_L,	_L,	_L									//F8 —à—â—ä—ã—å—ç6—è 248
+
 #endif // USE_FIXED_CPAGE == 1251
+#endif // USE_FIXED_CPAGE == 1250
 
 #endif //USE_FIXED_CPAGE
 

@@ -288,6 +288,10 @@ static inline uint32_t stm32_dma_psize(uint32_t SxCR, uint32_t size)
 
 void stm32_en_ints(DMA_TypeDef* dmac, uint32_t indx, DMA_DRIVER_MODE* mode);
 void stm32_dis_ints(DMA_TypeDef* dmac, uint32_t indx);
+static inline void stm32_dma_complete(DMA_TypeDef* dmac, uint32_t indx)
+{
+	// does nothing, just for compatibility
+}
 
 #endif /* DMA_H7_H_ */
 

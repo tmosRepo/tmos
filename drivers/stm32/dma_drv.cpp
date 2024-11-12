@@ -17,10 +17,9 @@
 
 #if (TRACE_DMA_LEVEL >= TRACE_DEFAULT_LEVEL)
 #define TRACE_DMA_CHANNEL  TRACE_DMA_CH(DMA2_Stream1_IRQn) //|| TRACE_DMA_CH(DMA2_Stream7_IRQn)
-#else
-#define TRACE_DMA_CHANNEL	0
 #endif
 
+#if TRACE_IS  && defined TRACE_DMA_CHANNEL
 #define DMA_TRACE_CHAR(ch) 			do{if(TRACE_DMA_CHANNEL)TRACE_CHAR_LEVEL(TRACE_DMA_LEVEL, ch);}while(0)
 #define DMA_TRACE(...) 				do{if(TRACE_DMA_CHANNEL)TRACE_LEVEL(TRACE_DMA_LEVEL, __VA_ARGS__);}while(0)
 #define DMA_TRACE1(str)				do{if(TRACE_DMA_CHANNEL)TRACE1_LEVEL(TRACE_DMA_LEVEL, str);}while(0)
@@ -34,10 +33,20 @@
 									TRACELN("\r\n\e[91mDMA%c/%u ",((drv_info->hw_base == DMA2)?'2':'1'), drv_info->ch_indx);\
 									TRACE(str "\e[m", ##__VA_ARGS__);\
 									}while(0)
+#else
+#define DMA_TRACE_CHAR(ch)
+#define DMA_TRACE(...)
+#define DMA_TRACE1(str)
+#define DMA_TRACELN(str, ...)
+#define DMA_TRACELN1(str)
+#define DMA_TRACE_ERROR(str, ...)
+#endif
 
-
+#ifdef DMA2
 #define SET_ERROR(err)	(err | (1<<(8 + drv_info->ch_indx +((drv_info->hw_base == DMA2)?8:0))))
-
+#else
+#define SET_ERROR(err)	(err | (1<<(8 + drv_info->ch_indx)))
+#endif
 extern 	 char* const DRV_TABLE[INALID_DRV_INDX+1];
 
 #if STATUS_OF_USED_DMA
@@ -411,6 +420,7 @@ void DMA_ISR(DMA_DRIVER_INFO* drv_info)
 				{
 					ON_DMA_END(drv_info);
 				}
+				stm32_dma_complete(drv_info->hw_base, drv_info->ch_indx);
 				hnd->len = 0;
 				DMA_TRACELN("complete l:%u", stm32_dma_ndtr(drv_info->hw_base, drv_info->ch_indx));
 				usr_HND_SET_STATUS(hnd, RES_SIG_OK);

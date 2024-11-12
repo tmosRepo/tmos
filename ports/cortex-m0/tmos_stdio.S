@@ -590,7 +590,8 @@ _print_ptr:
 		movs		r3, #'X'
                                              // r0  r1  r2  r3  r4  r5  r6  r7  r12
 _print_hex:                                  // dst fmt arg 'x' ___ arg buf flg ar0    wdt pre
-        subs        r3, #'x'-'a'-'0'+10
+        subs        r3, #'x'-'a' +10
+        subs		r3, #'0'
 _print_hex_loop:
 		lsls		r4, r5, #28
 		lsrs		r4, #28

@@ -1,6 +1,6 @@
 #-------------------------------------------------------------------------------
 #
-#	Config file for f0m1
+#	Config file for f0m1 (fiscal memory version 1)
 #	
 #   www.thumbos.com
 #

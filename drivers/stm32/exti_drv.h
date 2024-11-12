@@ -35,7 +35,11 @@ struct EXTI_DRIVER_INFO
 #define PIOHND_WAITING		0x01	//!< Handle is waiting for interrupt
 #define PIOHND_INTPENDING	0x02	//!< Interrupt received, but handles is not busy
 
+#if CFG_SERIES == stm32f0
+#define GPIO_IRQn EXTI0_1_IRQn		//!< Use this to open handles
+#else
 #define GPIO_IRQn EXTI0_IRQn		//!< Use this to open handles
+#endif
 
 void EXTI_DCR(EXTI_DRIVER_INFO* drv_info, unsigned int reason, HANDLE hnd) FAST_FLASH;
 void EXTI_DSR(EXTI_DRIVER_INFO* drv_info, HANDLE hnd) FAST_FLASH;

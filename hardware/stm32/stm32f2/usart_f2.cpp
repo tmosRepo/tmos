@@ -12,6 +12,16 @@
 #include <tmos.h>
 #include <fam_cpp.h>
 
+const DRIVER_INDEX usart_index[] =
+{
+		USART1_IRQn,
+		USART2_IRQn,
+		USART3_IRQn,
+		UART4_IRQn,
+		UART5_IRQn,
+		USART6_IRQn,
+		INALID_DRV_INDX
+};
 
 /**
  * Get peripheral clock for given uart id

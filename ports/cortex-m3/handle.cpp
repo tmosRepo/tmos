@@ -108,7 +108,7 @@ bool CHandle::tsk_open(DRIVER_INDEX index, const void * m)
 			return false;
 		}
 		error = 0;
-		if( !(res & FLG_CLOSED))
+		if( drv_index != INALID_DRV_INDX && !(res & FLG_CLOSED))
 		{
 			TRACELN_ERROR("Handle is already open:%x", this);
 			close();
@@ -136,6 +136,7 @@ bool CHandle::tsk_open(DRIVER_INDEX index, const void * m)
 	    	TRACELN1_ERROR("\r\nNo free signals for task ");
 	    	TRACE1_ERROR((char*)CURRENT_TASK->name);
 	    }
+	 	res = RES_CLOSED;
 		drv_index = INALID_DRV_INDX;
 	} else
 		TRACELN_ERROR("Memory err INDEX:%u", index);
@@ -147,7 +148,7 @@ bool CHandle::drv_open(DRIVER_INDEX index, const void * m)
 	if (IS_NOT_NULL(this))
 	{
 		error = 0;
-		if (!(res & FLG_CLOSED))
+		if ( drv_index != INALID_DRV_INDX && !(res & FLG_CLOSED))
 		{
 			TRACELN_ERROR("Handle is already open:%x", this);
 			close();
@@ -164,6 +165,7 @@ bool CHandle::drv_open(DRIVER_INDEX index, const void * m)
 			return (true);
 		}
 		TRACELN_ERROR("Handle open err INDEX:%u", drv_index);
+	 	res = RES_CLOSED;
 		drv_index = INALID_DRV_INDX;
 	}
 	else
@@ -350,6 +352,25 @@ RES_CODE CHandle::tsk_read_pkt(void * buf, unsigned int l, unsigned int time)
 	if(!l && !res)
 		res = RES_OK;
 	return (res);
+}
+
+/**
+ * Start read locked operation
+ * @param buf
+ * @param l
+ * @return
+ */
+bool CHandle::tsk_start_read_locked(void * buf, unsigned int l)
+{
+	if(!complete())
+		return (false);
+
+	//handle is idle and open
+	len = l;
+	set_res_cmd(CMD_READ|CMD_LOCK);
+	dst.as_voidptr = buf;
+	tsk_start_handle();
+	return (true);
 }
 
 /**
@@ -626,26 +647,6 @@ bool CHandle::tsk_start_command(void * c, void *ptr)
 }
 
 /**
- *
- * @param cmd
- * @param par
- * @param ptr
- * @return
- */
-bool CHandle::tsk_start_command(unsigned int c, void * par, void *ptr)
-{
-	if(!complete())
-		return (res);
-
-	//handle is idle and open
-	set_res_cmd(c);
-	dst.as_voidptr = ptr;
-	src.as_voidptr = par;
-	tsk_start_handle();
-	return (true);
-}
-
-/**
  * Blocking command
  * @param c
  * @param ptr
@@ -681,6 +682,27 @@ RES_CODE CHandle::tsk_command(unsigned int c, void * par, void *ptr)
 	src.as_voidptr = par;
 	return (tsk_start_and_wait());
 }
+
+/**
+ *
+ * @param cmd
+ * @param par
+ * @param ptr
+ * @return
+ */
+bool CHandle::tsk_start_command(unsigned int c, void * par, void *ptr)
+{
+	if(!complete())
+		return (res);
+
+	//handle is idle and open
+	set_res_cmd(c);
+	dst.as_voidptr = ptr;
+	src.as_voidptr = par;
+	tsk_start_handle();
+	return (true);
+}
+
 
 /**
  * Locked command

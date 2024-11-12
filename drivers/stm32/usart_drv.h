@@ -3,6 +3,10 @@
  *
  *  Created on: Nov 6, 2012
  *      Author: miro
+ *
+ *  Edited on: Oct 9, 2024
+ *      Editor: bratkov
+ *  ability to redefine UART pins, e.g. when using full/half duplex
  */
 
 #ifndef USART_DRV_H_
@@ -24,10 +28,11 @@
 /** UART Driver mode structure **/
 struct USART_DRIVER_MODE
 {
-	uint32_t baudrate;		//!< baudrate e.g. 9600, For M0 USART1 two MSB = clock source
-	uint16_t mode_cr1;		//!< USART_CR1 register value
-	uint16_t mode_cr2;		//!< USART_CR2 register value
-	uint16_t mode_cr3;		//!< USART_CR3 register value
+	uint32_t baudrate;			//!< baudrate e.g. 9600, For M0 USART1 two MSB = clock source
+	uint16_t mode_cr1;			//!< USART_CR1 register value
+	uint16_t mode_cr2;			//!< USART_CR2 register value
+	uint16_t mode_cr3;			//!< USART_CR3 register value
+	const PIN_DESC* use_pins;	//!< User defined pins or nullptr if you use the default ones.
 };
 
 /** USART Driver data structure **/

@@ -1,9 +1,9 @@
 /**************************************************************************//**
  * @ingroup	 ports
- * @defgroup ports_cortex Cortex M3 port
+ * @defgroup ports_cortex Cortex M0 port
  * @{
- * @file     cortex-m3/port_cpp.h
- * @brief    Cortex M3 kernel CPP header
+ * @file     cortex-m0/port_cpp.h
+ * @brief    Cortex M0 kernel CPP header
  * @version  V3.00
  * @date     08. November 2010
  * @author	 Miroslav Kostadinov
@@ -14,6 +14,14 @@
 
 #ifndef PORT_CPP_H_
 #define PORT_CPP_H_
+
+//#if GD32F4XX_COMPATIBLE
+//#define FAST_FLASH __attribute__((section(".FastFlash")))
+//#define SLOW_FLASH __attribute__((section(".SlowFlash")))
+//#else
+#define FAST_FLASH
+#define SLOW_FLASH
+//#endif
 
 #if USE_TMOS_STDLIB
 #include <tmos_stdlib.h>
@@ -41,6 +49,9 @@
 extern "C"
 {
 	extern volatile __no_init unsigned int system_clock_frequency;
+	// Cortex-M0 has one peripheral bus, but APB1/2 have been added for compatibility
+	extern volatile __no_init unsigned int APB1_clock_frequency;
+	extern volatile __no_init unsigned int APB2_clock_frequency;
 
 	extern const char restart_on_exception;
 

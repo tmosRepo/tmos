@@ -369,6 +369,7 @@ extern "C" void SLOW_FLASH DefaultSystemInit( void )
 	system_clock_frequency = clocks.SYSCLK_Frequency;
 	APB1_clock_frequency = clocks.PCLK1_Frequency;
 	APB2_clock_frequency = clocks.PCLK2_Frequency;
+
 }
 
 /**
