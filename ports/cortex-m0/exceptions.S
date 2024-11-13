@@ -265,6 +265,43 @@ FUNC_SECT(  __gnu_thumb1_case_uqi, gnu_thumb1_case_uqi    )
                 bx          lr
 ENDF(   __gnu_thumb1_case_uqi     )
 
+FUNC_SECT( __gnu_thumb1_case_sqi, gnu_thumb1_case_sqi )
+				mov		r12, r1
+				mov		r1, lr
+				lsrs	r1, r1, #1
+				lsls	r1, r1, #1
+				ldrsb	r1, [r1, r0]
+				lsls	r1, r1, #1
+				add	lr, lr, r1
+				mov		r1, r12
+				bx	lr
+ENDF( __gnu_thumb1_case_sqi )
+
+FUNC_SECT( __gnu_thumb1_case_uhi, gnu_thumb1_case_uhi )
+				push	{r0, r1}
+				mov		r1, lr
+				lsrs	r1, r1, #1
+				lsls	r0, r0, #1
+				lsls	r1, r1, #1
+				ldrh	r1, [r1, r0]
+				lsls	r1, r1, #1
+				add		lr, lr, r1
+				pop		{r0, r1}
+				bx	lr
+ENDF( __gnu_thumb1_case_uhi )
+
+FUNC_SECT( __gnu_thumb1_case_shi, gnu_thumb1_case_shi )
+				push	{r0, r1}
+				mov		r1, lr
+				lsrs	r1, r1, #1
+				lsls	r0, r0, #1
+				lsls	r1, r1, #1
+				ldrsh	r1, [r1, r0]
+				lsls	r1, r1, #1
+				add		lr, lr, r1
+				pop	{r0, r1}
+				bx	lr
+ENDF( __gnu_thumb1_case_shi )
 
 //*----------------------------------------------------------------------------
 //*         EABI Unwind
