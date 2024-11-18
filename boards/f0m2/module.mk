@@ -6,7 +6,7 @@
 #
 #-------------------------------------------------------------------------------
 
-OUT_NAME	?= f0m1
+OUT_NAME	?= f0m2
 OUT_DIR		?= out/$(OUT_NAME)/
 
 #  optimisation level  can be [0, 1, 2, 3, s].
