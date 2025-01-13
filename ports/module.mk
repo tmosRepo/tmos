@@ -7,6 +7,10 @@
 #
 ##########################################################################
 
+ifndef USE_MCU_DETECT
+USE_MCU_DETECT  :=y
+endif
+
 # local sources
 local_as_src-y	:=
 local_c_src-y 	:= 
@@ -19,10 +23,10 @@ local_c_src-$(USE_CRC32)		+= crc32.c
 
 local_cpp_src-$(USE_CACHE)		+= cache.cpp
 local_cpp_src-$(USE_TMOS_STDLIB)+= tmos_stdlib.cpp
-local_cpp_src-y					+= mcu_id.cpp
+local_cpp_src-$(USE_MCU_DETECT)	+= mcu_id.cpp
 
 local_h_src-y 					+= tmos.h tmos_cfg.h tmos_inc.h tmos_types.h 
-local_h_src-y 					+= mcu_id.h 
+local_h_src-$(USE_MCU_DETECT)	+= mcu_id.h 
 local_h_src-$(USE_TMOS_STDLIB)	+= tmos_stdlib.h
 
 local_h_src-$(USE_CACHE)		+= cache.h
