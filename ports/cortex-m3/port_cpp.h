@@ -44,7 +44,14 @@
 #include <tmos_swi.h>
 #include <services.h>
 #include <tmos_stdio.h>
+
+#ifndef USE_MCU_DETECT
+#define USE_MCU_DETECT	1
+#endif
+
+#if USE_MCU_DETECT
 #include <mcu_id.h>
+#endif
 
 #ifdef __cplusplus
 extern "C"
