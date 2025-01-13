@@ -607,9 +607,9 @@ void usb_drv_end_transfers(Endpoint *endpoint, unsigned int status)
 		endpoint->pending = hnd->next;
 		if (__get_IPSR() == 11){
 			// SVCall
-			svc_usb_HND_SET_STATUS(hnd, status);
+			svc_HND_SET_STATUS(hnd, status);
 		}else{
-			usr_usb_HND_SET_STATUS(hnd, status);
+			usr_HND_SET_STATUS(hnd, status);
 		}
 	}
 }
