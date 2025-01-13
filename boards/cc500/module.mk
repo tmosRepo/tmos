@@ -30,7 +30,7 @@ DEBUG 		?= dwarf-2
 #=========================   Project settings       ===========================#
 
 # Select Target CPU
-
+USE_MCU_DETECT ?= n
 
 # Select Target board
 
