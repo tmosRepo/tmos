@@ -22,6 +22,8 @@
 #include "uart_inc.h"
 #include "timer_inc.h"
 
+#define CFG_FAMILY_LM3S 	1	//!< Enable LM3S family specific code
+
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 		 LM3S  CMSIS configuration
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
