@@ -11,6 +11,7 @@
 #ifndef BRD_CFG_H_
 #define BRD_CFG_H_
 
+#define USE_MCU_DETECT		0
 
 #define HW_KEY_VER		    2
 
@@ -50,7 +51,8 @@
 #define GUI_DEFAULT_DISP	2
 
 
-#define USE_TMOS_TL_V1		1
+#define USE_TMOS_TL_V1		0
+#define USE_TMOS_TL_V2		1
 #define USE_CSTRING			1
 
 #define USE_TMOS_STRING		1
@@ -66,6 +68,7 @@
 #define USE_GUI				1
 #define USE_GUI2			0
 #define USE_AES_TMOS		1
+#define STATIC_AES_TABLES	1
 #define	USE_GPIO_EXPANDER 	1
 
 #define USE_EXCEPTION_RECORD 1

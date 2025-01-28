@@ -43,7 +43,9 @@ USE_MCU_DETECT ?= n
 USE_TMOS_STRING	?=y
 
 # TMOS_TL_V1
-USE_TMOS_TL_V1	?=y
+USE_TMOS_TL_V1	?=n
+# TMOS_TL_V2
+USE_TMOS_TL_V2	?=y
 USE_CSTRING		?=y
 
 # tmos stdlib -> sys_malloc() sys_realloc() svc_free()
@@ -94,6 +96,10 @@ USE_GPIO_EXPANDER ?=y
 #net
 USE_NET			?=y
 
+#security
+USE_SECURITY		?=y
+USE_SECURITY_TLS	?=y
+USE_SECURITY_CRYPTO	?=y
 
 ################################################################################
 
