@@ -514,7 +514,7 @@ RES_CODE tls_context_t::tls_read_cbk(void* data, uint32_t len)
 			res = RES_TLS_NOT_CONFIGURED;
 		else
 		{
-			res = tls_socket->tsk_read(data, len);
+			res = tls_socket->tsk_read(data, len, TLS_READ_TIMEOUT);
 			if(res != RES_OK && (tls_socket->sock_state & SOCKET_CLOSED))
 				res = RES_EOF;
 		}

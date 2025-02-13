@@ -27,6 +27,10 @@
 #define TLS_SERVER_SUPPORT	0
 #endif
 
+// Read timeout 1 minute
+#ifndef TLS_READ_TIMEOUT
+   #define TLS_READ_TIMEOUT 	(60*1000)
+#endif
 
 //Minimum TLS version that can be negotiated
 #ifndef TLS_MIN_VERSION
