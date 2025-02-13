@@ -114,7 +114,7 @@ uint32_t time_t::get_week_day() const
 
 int time_t::sscanf(const char* buf, const char* format, ... )
 {
-	int scaned = 0, new_pos, tmp, pos=0;
+	int scaned = 0, new_pos=0, tmp, pos=0;
 	va_list lst;
 	va_start(lst, format);
 	bool stop = false;
@@ -145,6 +145,22 @@ int time_t::sscanf(const char* buf, const char* format, ... )
 					}
 					stop = true;
 					continue;
+					break;
+
+				case 'w':
+					for(int i=1; i<=7; i++)
+					{
+						if(!strncmp(buf, day_name[i], 3))
+						{
+							new_pos = 3;
+							break;
+						}
+					}
+					if(!new_pos)
+					{
+						stop = true;
+						continue;
+					}
 					break;
 
 				case 'Y':
