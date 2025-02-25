@@ -1287,6 +1287,10 @@ void tls_context_t::tlsProcessError(RES_CODE errorCode)
 		//The timeout interval has elapsed
 		case RES_IDLE:
 			break;
+		// socket closed
+		case NET_ERR_SOCK_CLOSED:
+		case RES_TLS_NOT_CONFIGURED:
+			break;
 			//The read/write operation has failed
 		case RES_TLS_WRITE_FAILED:
 		case RES_TLS_READ_FAILED:

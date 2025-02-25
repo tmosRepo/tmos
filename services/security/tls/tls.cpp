@@ -516,7 +516,9 @@ RES_CODE tls_context_t::tls_read_cbk(void* data, uint32_t len)
 		{
 			res = tls_socket->tsk_read(data, len, TLS_READ_TIMEOUT);
 			if(res != RES_OK && (tls_socket->sock_state & SOCKET_CLOSED))
-				res = RES_EOF;
+				res = NET_ERR_SOCK_CLOSED;
+			if(res == FLG_EOF && tls_socket->error > RES_EOF)
+				res = tls_socket->error;
 		}
 		if(res != RES_OK)
 			break;
@@ -537,7 +539,13 @@ RES_CODE tls_context_t::tls_write_cbk(const void* data, uint32_t len)
 	if (tls_socket == nullptr || tls_socket->res >= RES_CLOSED)
 		res = RES_TLS_NOT_CONFIGURED;
 	else
+	{
 		res = tls_socket->tsk_write(data, len);
+		if(res != RES_OK && (tls_socket->sock_state & SOCKET_CLOSED))
+			res = NET_ERR_SOCK_CLOSED;
+		if(res == FLG_EOF && tls_socket->error > RES_EOF)
+			res = tls_socket->error;
+	}
     TRACELN_TLS("TLS w_cbk res=%u", res);
     return res;
 }
