@@ -111,5 +111,7 @@ struct Mpi
 
 void mpiDump(const char* prepend, const Mpi* a);
 
+extern "C" void mpiMulAccCore(uint32_t *r, const uint32_t *a, int m, const uint32_t b);
+
 
 #endif /* SERVICES_SECURITY_CRYPTO_MPI_H_ */

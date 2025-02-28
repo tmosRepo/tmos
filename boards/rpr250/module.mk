@@ -98,6 +98,7 @@ USE_LWIP_1_4_1	?=y
 USE_SECURITY		?=y
 USE_SECURITY_TLS	?=y
 USE_SECURITY_CRYPTO	?=y
+MPI_ASM_SUPPORT		?=y
 
 ################################################################################
 

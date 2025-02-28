@@ -105,6 +105,7 @@ USE_WIFI_ESP8266 	?=n
 USE_SECURITY		?=y
 USE_SECURITY_TLS	?=y
 USE_SECURITY_CRYPTO	?=y
+MPI_ASM_SUPPORT		?=y
 
 
 ################################################################################

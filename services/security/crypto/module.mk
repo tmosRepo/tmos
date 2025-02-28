@@ -14,6 +14,7 @@ local_cpp_src-y	:=
 local_h_src-y 	:=
 
 local_as_src-y	+= poly1305.S
+local_as_src-$(MPI_ASM_SUPPORT) += mpi_arm_v7m.S
 
 local_cpp_src-y	+= asn1.cpp base64.cpp chacha.cpp chacha20_poly1305.cpp
 local_cpp_src-y	+= cipher_cbc.cpp cipher_ccm.cpp cipher_gcm.cpp crypto.cpp dh.cpp

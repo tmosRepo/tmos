@@ -11,7 +11,9 @@
 
 #if MPI_SUPPORT
 
-#if (MPI_ASM_SUPPORT == DISABLED)
+#if MPI_ASM_SUPPORT
+// mpiMulAccCore is implemented in assembly
+#else
 
 /**
  * @brief Multiply-accumulate operation
@@ -21,7 +23,7 @@
  * @param[in] b Second operand B
  **/
 
-void mpiMulAccCore(uint32_t *r, const uint32_t *a, int m, const uint32_t b)
+extern "C" void mpiMulAccCore(uint32_t *r, const uint32_t *a, int m, const uint32_t b)
 {
    int i;
    uint32_t c;
