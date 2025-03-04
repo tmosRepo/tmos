@@ -99,7 +99,8 @@
 #define USB_ENABLE_CDC		1
 #define USB_ENABLE_PRN		0
 #define USB_ENABLE_HID		0
-
+//#define TRACE_USB_LEVEL		TRACE_LEVEL_TRACE
+#define USB_DEV0_DRV 		USB0_IRQn
 /// Ethernet
 #define USE_NET				1
 
