@@ -57,6 +57,7 @@ public:
 	}
 	void set_cache_pos(uint32_t pos);
 
+	RES_CODE read_cached_data(CSTRING& str, unsigned int& toRead);
 	char getc(); // get 1 char
 	char topc();
 	char getc_rev(); // get 1 char in reverse
