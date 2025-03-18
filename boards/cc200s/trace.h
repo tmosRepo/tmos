@@ -51,6 +51,7 @@
 # define TRACE_CHAR( ch)						\
 	do {usr_trace_char(ch);}while(0)
 
+/*
 # define swd_trace(...)								\
 	do											\
 	{											\
@@ -58,6 +59,7 @@
 		tmos_sprintf(tr_buf, __VA_ARGS__);		\
 		swd_trace_str(tr_buf);					\
 	}while(0)
+*/
 
 #ifdef __cplusplus
 extern "C"
