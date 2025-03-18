@@ -12,7 +12,22 @@
 
 #define LWIP_TCP_PCBS_CNT 8
 
+#if USE_LWIP_2_2_0
+#define LWIP_MDNS_RESPONDER   1
+#define MDNS_MAX_SERVICES     3
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+uint32_t rand(void);
+#define LWIP_RAND() rand()
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif // USE_LWIP_2_2_0
 //*****************************************************************************
 //
 // ---------- lwIP Port Options ----------
@@ -41,9 +56,15 @@
 //
 //*****************************************************************************
 #define MEM_LIBC_MALLOC                 1
+#if USE_LWIP_2_2_0
+#define mem_clib_free tsk_free
+#define mem_clib_malloc tsk_malloc
+#define mem_clib_calloc tsk_malloc_clear
+
+#else
 #define malloc		tsk_malloc
 #define free		tsk_free
-
+#endif
 #define MEM_ALIGNMENT                   4           // default is 1
 #define MEM_SIZE                        (22 * 1024)  // default is 1600, was 16K
 //#define MEMP_OVERFLOW_CHECK             0
@@ -58,14 +79,19 @@
 //*****************************************************************************
 #define MEMP_NUM_PBUF                     24    // Default 16, was 16
 //#define MEMP_NUM_RAW_PCB                4
-//#define MEMP_NUM_UDP_PCB                4
+#define MEMP_NUM_UDP_PCB                  5     // Defauul 4 + MDNS
 #define MEMP_NUM_TCP_PCB                  16    // Default 5, was 12
 //#define MEMP_NUM_TCP_PCB_LISTEN         8
 //#define MEMP_NUM_TCP_SEG                16
 //#define MEMP_NUM_REASSDATA              5
 //#define MEMP_NUM_ARP_QUEUE              30
 //#define MEMP_NUM_IGMP_GROUP             8
-#define MEMP_NUM_SYS_TIMEOUT              6		//Default 3 (LWIP_DHCP )
+#if USE_LWIP_2_2_0
+													//1        + 0 			   + 1        + (2*1)         + (1 || 1) + (1)       + 1       + 0                 + (0 * (1 + 0 + 0 + 0)))
+#define MEMP_NUM_SYS_TIMEOUT              (7 +3)	//LWIP_TCP + IP_REASSEMBLY + LWIP_ARP + (2*LWIP_DHCP) + LWIP_ACD + LWIP_IGMP + LWIP_DNS + PPP_NUM_TIMEOUTS + (LWIP_IPV6 * (1 + LWIP_IPV6_REASS + LWIP_IPV6_MLD + LWIP_IPV6_DHCP6)))
+#else
+#define MEMP_NUM_SYS_TIMEOUT              6			//Default 3 (LWIP_DHCP )
+#endif
 //#define MEMP_NUM_NETBUF                 2
 //#define MEMP_NUM_NETCONN                4
 //#define MEMP_NUM_TCPIP_MSG_API          8
@@ -160,7 +186,7 @@
 // ---------- IGMP options ----------
 //
 //*****************************************************************************
-//#define LWIP_IGMP                       0
+#define LWIP_IGMP                       (LWIP_MDNS_RESPONDER)
 
 //*****************************************************************************
 //
@@ -231,9 +257,12 @@
 //*****************************************************************************
 #define LWIP_NETIF_HOSTNAME               1
 //#define LWIP_NETIF_API                  0
-//#define LWIP_NETIF_STATUS_CALLBACK      0
+#define LWIP_NETIF_STATUS_CALLBACK        1
 #define LWIP_NETIF_LINK_CALLBACK          1
 //#define LWIP_NETIF_HWADDRHINT           0
+//Increase LWIP_NUM_NETIF_CLIENT_DATA by 1 (MDNS needs one entry on netif).
+#define LWIP_NUM_NETIF_CLIENT_DATA        (LWIP_MDNS_RESPONDER)
+
 
 //*****************************************************************************
 //
@@ -391,6 +420,7 @@
 // ---------- Debugging options ----------
 //
 //*****************************************************************************
+#if USE_LWIP_1_4_1
 #if 0
 #define U8_F "c"
 #define S8_F "c"
@@ -454,8 +484,237 @@
 
 #define LWIP_DEBUG_TIMERNAMES			0
 
+#endif //USE_LWIP_1_4_1
+
+#if USE_LWIP_2_2_0
+
+//#define LWIP_DEBUG	1
 
 
+#ifdef LWIP_DEBUG
+#define LWIP_PLATFORM_DIAG(x) do {TRACE x;} while(0)
+#define LWIP_PLATFORM_ASSERT(x) do {TRACE("Assertion \"%s\" failed at line %d in %s\n", \
+                                     x, __LINE__, __FILE__); } while(0)
 
+#else
+
+#define LWIP_PLATFORM_DIAG(x)
+#define LWIP_PLATFORM_ASSERT(x)
+
+#endif
+/*
+   ---------------------------------------
+   ---------- Debugging options ----------
+   ---------------------------------------
+*/
+/**
+ * @defgroup lwip_opts_debugmsg Debug messages
+ * @ingroup lwip_opts_debug
+ * @{
+ */
+/**
+ * LWIP_DBG_MIN_LEVEL: After masking, the value of the debug is
+ * compared against this value. If it is smaller, then debugging
+ * messages are written.
+ * @see debugging_levels
+ */
+#if !defined LWIP_DBG_MIN_LEVEL
+#define LWIP_DBG_MIN_LEVEL              LWIP_DBG_LEVEL_ALL
+#endif
+
+/**
+ * LWIP_DBG_TYPES_ON: A mask that can be used to globally enable/disable
+ * debug messages of certain types.
+ * @see debugging_levels
+ */
+#if !defined LWIP_DBG_TYPES_ON
+#define LWIP_DBG_TYPES_ON               LWIP_DBG_ON
+#endif
+
+/**
+ * ETHARP_DEBUG: Enable debugging in etharp.c.
+ */
+#define ETHARP_DEBUG                    LWIP_DBG_OFF
+
+/**
+ * NETIF_DEBUG: Enable debugging in netif.c.
+ */
+#define NETIF_DEBUG                     LWIP_DBG_OFF
+
+/**
+ * PBUF_DEBUG: Enable debugging in pbuf.c.
+ */
+#define PBUF_DEBUG                      LWIP_DBG_OFF
+
+/**
+ * API_LIB_DEBUG: Enable debugging in api_lib.c.
+ */
+#define API_LIB_DEBUG                   LWIP_DBG_OFF
+
+/**
+ * API_MSG_DEBUG: Enable debugging in api_msg.c.
+ */
+#define API_MSG_DEBUG                   LWIP_DBG_OFF
+
+/**
+ * SOCKETS_DEBUG: Enable debugging in sockets.c.
+ */
+#define SOCKETS_DEBUG                   LWIP_DBG_OFF
+
+/**
+ * ICMP_DEBUG: Enable debugging in icmp.c.
+ */
+#define ICMP_DEBUG                      LWIP_DBG_OFF
+
+/**
+ * IGMP_DEBUG: Enable debugging in igmp.c.
+ */
+#define IGMP_DEBUG                      LWIP_DBG_OFF
+
+/**
+ * INET_DEBUG: Enable debugging in inet.c.
+ */
+#define INET_DEBUG                      LWIP_DBG_OFF
+
+/**
+ * IP_DEBUG: Enable debugging for IP.
+ */
+#define IP_DEBUG                        LWIP_DBG_OFF
+
+/**
+ * IP_REASS_DEBUG: Enable debugging in ip_frag.c for both frag & reass.
+ */
+#define IP_REASS_DEBUG                  LWIP_DBG_OFF
+
+/**
+ * RAW_DEBUG: Enable debugging in raw.c.
+ */
+#define RAW_DEBUG                       LWIP_DBG_OFF
+
+/**
+ * MEM_DEBUG: Enable debugging in mem.c.
+ */
+#define MEM_DEBUG                       LWIP_DBG_OFF
+
+/**
+ * MEMP_DEBUG: Enable debugging in memp.c.
+ */
+#define MEMP_DEBUG                      LWIP_DBG_OFF
+
+/**
+ * SYS_DEBUG: Enable debugging in sys.c.
+ */
+#define SYS_DEBUG                       LWIP_DBG_OFF
+
+/**
+ * TIMERS_DEBUG: Enable debugging in timers.c.
+ */
+
+#define TIMERS_DEBUG                    LWIP_DBG_OFF
+#define LWIP_DEBUG_TIMERNAMES			0
+
+/**
+ * TCP_DEBUG: Enable debugging for TCP.
+ */
+#define TCP_DEBUG                       LWIP_DBG_OFF
+
+/**
+ * TCP_INPUT_DEBUG: Enable debugging in tcp_in.c for incoming debug.
+ */
+#define TCP_INPUT_DEBUG                 LWIP_DBG_OFF
+
+/**
+ * TCP_FR_DEBUG: Enable debugging in tcp_in.c for fast retransmit.
+ */
+#define TCP_FR_DEBUG                    LWIP_DBG_OFF
+
+/**
+ * TCP_RTO_DEBUG: Enable debugging in TCP for retransmit
+ * timeout.
+ */
+#define TCP_RTO_DEBUG                   LWIP_DBG_OFF
+
+/**
+ * TCP_CWND_DEBUG: Enable debugging for TCP congestion window.
+ */
+#define TCP_CWND_DEBUG                  LWIP_DBG_OFF
+
+/**
+ * TCP_WND_DEBUG: Enable debugging in tcp_in.c for window updating.
+ */
+#define TCP_WND_DEBUG                   LWIP_DBG_OFF
+
+/**
+ * TCP_OUTPUT_DEBUG: Enable debugging in tcp_out.c output functions.
+ */
+#define TCP_OUTPUT_DEBUG                LWIP_DBG_OFF
+
+/**
+ * TCP_RST_DEBUG: Enable debugging for TCP with the RST message.
+ */
+#define TCP_RST_DEBUG                   LWIP_DBG_OFF
+
+/**
+ * TCP_QLEN_DEBUG: Enable debugging for TCP queue lengths.
+ */
+#define TCP_QLEN_DEBUG                  LWIP_DBG_OFF
+
+/**
+ * UDP_DEBUG: Enable debugging in UDP.
+ */
+#define UDP_DEBUG                       LWIP_DBG_OFF
+
+/**
+ * TCPIP_DEBUG: Enable debugging in tcpip.c.
+ */
+#define TCPIP_DEBUG                     LWIP_DBG_OFF
+
+/**
+ * SLIP_DEBUG: Enable debugging in slipif.c.
+ */
+#define SLIP_DEBUG                      LWIP_DBG_OFF
+
+/**
+ * DHCP_DEBUG: Enable debugging in dhcp.c.
+ */
+#define DHCP_DEBUG                      LWIP_DBG_OFF
+
+/**
+ * AUTOIP_DEBUG: Enable debugging in autoip.c.
+ */
+#define AUTOIP_DEBUG                    LWIP_DBG_OFF
+
+/**
+ * ACD_DEBUG: Enable debugging in acd.c.
+ */
+#define ACD_DEBUG                       LWIP_DBG_OFF
+
+/**
+ * DNS_DEBUG: Enable debugging for DNS.
+ */
+#define DNS_DEBUG                       LWIP_DBG_OFF
+
+/**
+ * IP6_DEBUG: Enable debugging for IPv6.
+ */
+#define IP6_DEBUG                       LWIP_DBG_OFF
+
+/**
+ * DHCP6_DEBUG: Enable debugging in dhcp6.c.
+ */
+#define DHCP6_DEBUG                     LWIP_DBG_OFF
+/**
+ * @}
+ */
+
+/**
+ * LWIP_TESTMODE: Changes to make unit test possible
+ */
+#define LWIP_TESTMODE                   0
+
+
+#define MDNS_DEBUG						LWIP_DBG_ON
+
+#endif //USE_LWIP_2_2_0
 
 #endif /* BOARDS_RPR250_LWIPOPTS_H_ */
