@@ -53,6 +53,46 @@ void CCache::set_cache_pos(uint32_t pos)
 		}
 	}
 }
+/**
+ * Read raw cached data
+ * @param str    - CSTRING where to store the data
+ * @param toRead - The desired size of the data to read,
+ *                 if it exceeds the available cached data, is reduced by the value of the read
+ * @return       - OK, there is still cached data
+ *               - EOF there is no cached data
+ *               - OUT_OF_MEMORY
+ */
+RES_CODE CCache::read_cached_data(CSTRING& str, unsigned int& toRead)
+{
+	RES_CODE res = RES_EOF;
+
+	int len = buf.length() - cache_pos;
+
+	if(len > 0) {
+		if((unsigned)len >= toRead) {
+			len = toRead;
+		}
+		unsigned int str_len = str.length();
+		const char* ptr = buf.c_str()+ cache_pos;
+		if(str.reserve(str_len + len) >= (str_len + len)) {
+			memcpy((void *)(str.c_str()+str_len), ptr, len);
+			str.m_set_size(str_len + len);
+			cache_pos += toRead;
+			toRead -= len;
+			len = buf.length() - cache_pos;
+			if(len > 0) {
+				res = RES_OK;
+			}else{
+				buf.clear();
+				cache_pos =0;
+				res = RES_EOF;
+			}
+		}else{
+			res = RES_OUT_OF_MEMORY;
+		}
+	}
+	return res;
+}
 
 /**
  * Reads single character from the cached object
