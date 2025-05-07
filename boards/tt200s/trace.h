@@ -50,13 +50,14 @@
 
 # define TRACE_CHAR( ch)						\
 	do {usr_trace_char(ch);}while(0)
+
 /*
-# define TRACE(...)								\
+# define swd_trace(...)								\
 	do											\
 	{											\
 		char tr_buf[80];						\
 		tmos_sprintf(tr_buf, __VA_ARGS__);		\
-		usr_trace_str(tr_buf);					\
+		swd_trace_str(tr_buf);					\
 	}while(0)
 */
 
@@ -117,25 +118,35 @@ int tmos_dbgprintf( uint32_t zero, const char *format, ... );
 #define TRACE_CHAR_LEVEL(level, ch) do{ if (level >= TRACE_DEFAULT_LEVEL) TRACE_CHAR(ch); }while(0)
 #define TRACE_LEVEL(level, ...) do{ if (level >= TRACE_DEFAULT_LEVEL) TRACE(__VA_ARGS__); }while(0)
 #define TRACE1_LEVEL(level, str) do{ if (level >= TRACE_DEFAULT_LEVEL) TRACE1(str); }while(0)
+#define TRACELN_LEVEL(level, str, ...) do{ if (level >= TRACE_DEFAULT_LEVEL) TRACELN(str, ##__VA_ARGS__); }while(0)
+#define TRACELN1_LEVEL(level, str) do{ if (level >= TRACE_DEFAULT_LEVEL) TRACELN1(str); }while(0)
 
 #if TRACE_DEFAULT_LEVEL >= TRACE_LEVEL_DEBUG
 #	define TRACE_CHAR_DEBUG(ch)	TRACE_CHAR(ch)
 #	define TRACE_DEBUG(...)		TRACE(__VA_ARGS__)
 #	define TRACE1_DEBUG(str)	TRACE1(str)
+#   define TRACELN_DEBUG(str,...) 	TRACE("\r\n" str, ##__VA_ARGS__)
+#   define TRACELN1_DEBUG(str) 		TRACE1("\r\n" str)
 #else
 #	define TRACE_CHAR_DEBUG(ch)
 #	define TRACE_DEBUG(...)
 #	define TRACE1_DEBUG(str)
+#   define TRACELN_DEBUG(str,...)
+#   define TRACELN1_DEBUG(str)
 #endif
 
 #if TRACE_DEFAULT_LEVEL >= TRACE_LEVEL_FATAL
 #	define TRACE_CHAR_FATAL(ch)	TRACE_CHAR(ch)
 #	define TRACE_FATAL(...)		TRACE(__VA_ARGS__)
 #	define TRACE1_FATAL(str)	TRACE1(str)
+#   define TRACELN_FATAL(str,...) 	TRACE("\r\n" str, ##__VA_ARGS__)
+#   define TRACELN1_FATAL(str) 		TRACE1("\r\n" str)
 #else
 #	define TRACE_CHAR_FATAL(ch)
 #	define TRACE_FATAL(...)
 #	define TRACE1_FATAL(str)
+#   define TRACELN_FATAL(str,...)
+#   define TRACELN1_FATAL(str)
 #endif
 
 #if TRACE_DEFAULT_LEVEL >= TRACE_LEVEL_ERROR
@@ -148,50 +159,37 @@ int tmos_dbgprintf( uint32_t zero, const char *format, ... );
 #	define TRACE_CHAR_ERROR(ch)
 #	define TRACE_ERROR(...)
 #	define TRACE1_ERROR(str)
+#   define TRACELN_ERROR(str,...)
+#   define TRACELN1_ERROR(str)
 #endif
 
 #if TRACE_DEFAULT_LEVEL >= TRACE_LEVEL_WARNING
 #	define TRACE_CHAR_WARNING(ch)	TRACE_CHAR(ch)
 #	define TRACE_WARNING(...)		TRACE(__VA_ARGS__)
 #	define TRACE1_WARNING(str)		TRACE1(str)
+#   define TRACELN_WARNING(str,...) 	TRACE("\r\n" str, ##__VA_ARGS__)
+#   define TRACELN1_WARNING(str) 		TRACE1("\r\n" str)
 #else
 #	define TRACE_CHAR_WARNING(ch)
 #	define TRACE_WARNING(...)
 #	define TRACE1_WARNING(str)
+#   define TRACELN_WARNING(str,...)
+#   define TRACELN1_WARNING(str)
 #endif
 
 #if TRACE_DEFAULT_LEVEL >= TRACE_LEVEL_INFO
 #	define TRACE_CHAR_INFO(ch)		TRACE_CHAR(ch)
 #	define TRACE_INFO(...)			TRACE(__VA_ARGS__)
 #	define TRACE1_INFO(str)			TRACE1(str)
+#   define TRACELN_INFO(str,...) 	TRACE("\r\n" str, ##__VA_ARGS__)
+#   define TRACELN1_INFO(str) 		TRACE1("\r\n" str)
 #else
 #	define TRACE_CHAR_INFO(ch)
 #	define TRACE_INFO(...)
 #	define TRACE1_INFO(str)
+#   define TRACELN_INFO(str,...)
+#   define TRACELN1_INFO(str)
 #endif
-
-//*----------------------------------------------------------------------------
-//*			USB
-//*----------------------------------------------------------------------------
-#define TRACE_USB(...) 			TRACE_LEVEL(TRACE_USB_LEVEL, __VA_ARGS__)
-#define TRACE1_USB(str)			TRACE1_LEVEL(TRACE_USB_LEVEL, str)
-
-#if TRACE_USB_LEVEL >= TRACE_LEVEL_DEBUG
-#	define TRACELN_USB(...)			TRACELN(__VA_ARGS__)
-#	define TRACELN1_USB(...)		TRACELN1(__VA_ARGS__)
-#else
-#	define TRACELN_USB(str,...)
-#	define TRACELN1_USB(str)
-#endif
-
-#if TRACE_USB_LEVEL >= TRACE_LEVEL_WARNING
-#	define TRACE_USB_WARNING(...)		TRACE_WARNING(__VA_ARGS__)
-#	define TRACE1_USB_WARNING(str)	TRACE1_WARNING(str)
-#else
-#	define TRACE_USB_WARNING(...)
-#	define TRACE1_USB_WARNING(str)
-#endif
-
 
 //*----------------------------------------------------------------------------
 //*			DINAMIC MEMORY

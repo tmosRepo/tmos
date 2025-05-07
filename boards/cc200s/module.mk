@@ -97,6 +97,7 @@ USE_NET			?=y
 # Ethernet
 USE_LWIP_1_4_1	?=n
 USE_LWIP_2_2_0	?=y
+USE_LWIP_MDNS	?=y
 
 # WiFi
 USE_WIFI			?=n

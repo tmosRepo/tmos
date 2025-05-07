@@ -111,6 +111,7 @@
 #define USE_NET				1
 #define USE_LWIP_1_4_1		0
 #define USE_LWIP_2_2_0		1
+#define USE_LWIP_MDNS		1
 #define ETH_PHY_TLK110		1
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //		USART DRIVER

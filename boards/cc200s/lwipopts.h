@@ -10,11 +10,16 @@
 
 #include <tmos.h>
 
-#define LWIP_TCP_PCBS_CNT 8
+#define LWIP_TCP_PCBS_CNT 10 // it was 8
 
 #if USE_LWIP_2_2_0
+// LWIP_2_2_0
+#if USE_LWIP_MDNS
 #define LWIP_MDNS_RESPONDER   1
 #define MDNS_MAX_SERVICES     3
+#else
+#define LWIP_MDNS_RESPONDER   0
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -26,7 +31,7 @@ uint32_t rand(void);
 #ifdef __cplusplus
 }
 #endif
-
+// LWIP_2_2_0
 #endif // USE_LWIP_2_2_0
 //*****************************************************************************
 //
@@ -60,11 +65,11 @@ uint32_t rand(void);
 #define mem_clib_free tsk_free
 #define mem_clib_malloc tsk_malloc
 #define mem_clib_calloc tsk_malloc_clear
-
 #else
 #define malloc		tsk_malloc
 #define free		tsk_free
-#endif
+#endif // USE_LWIP_2_2_0
+
 #define MEM_ALIGNMENT                   4           // default is 1
 #define MEM_SIZE                        (22 * 1024)  // default is 1600, was 16K
 //#define MEMP_OVERFLOW_CHECK             0
@@ -79,19 +84,23 @@ uint32_t rand(void);
 //*****************************************************************************
 #define MEMP_NUM_PBUF                     24    // Default 16, was 16
 //#define MEMP_NUM_RAW_PCB                4
+#if USE_LWIP_2_2_0
 #define MEMP_NUM_UDP_PCB                  5     // Defauul 4 + MDNS
+#define MEMP_NUM_TCP_PCB                  20    // Default 5, was 12
+#else
+#define MEMP_NUM_UDP_PCB                  4     // Defauul 4
 #define MEMP_NUM_TCP_PCB                  16    // Default 5, was 12
+#endif
 //#define MEMP_NUM_TCP_PCB_LISTEN         8
 //#define MEMP_NUM_TCP_SEG                16
 //#define MEMP_NUM_REASSDATA              5
 //#define MEMP_NUM_ARP_QUEUE              30
 //#define MEMP_NUM_IGMP_GROUP             8
 #if USE_LWIP_2_2_0
-													//1        + 0 			   + 1        + (2*1)         + (1 || 1) + (1)       + 1       + 0                 + (0 * (1 + 0 + 0 + 0)))
-#define MEMP_NUM_SYS_TIMEOUT              (7 +3)	//LWIP_TCP + IP_REASSEMBLY + LWIP_ARP + (2*LWIP_DHCP) + LWIP_ACD + LWIP_IGMP + LWIP_DNS + PPP_NUM_TIMEOUTS + (LWIP_IPV6 * (1 + LWIP_IPV6_REASS + LWIP_IPV6_MLD + LWIP_IPV6_DHCP6)))
+#define MEMP_NUM_SYS_TIMEOUT              (7 +3 +3)	//LWIP_TCP + IP_REASSEMBLY + LWIP_ARP + (2*LWIP_DHCP) + LWIP_ACD + LWIP_IGMP + LWIP_DNS + PPP_NUM_TIMEOUTS + (LWIP_IPV6 * (1 + LWIP_IPV6_REASS + LWIP_IPV6_MLD + LWIP_IPV6_DHCP6)))
 #else
 #define MEMP_NUM_SYS_TIMEOUT              6			//Default 3 (LWIP_DHCP )
-#endif
+#endif //USE_LWIP_2_2_0
 //#define MEMP_NUM_NETBUF                 2
 //#define MEMP_NUM_NETCONN                4
 //#define MEMP_NUM_TCPIP_MSG_API          8
@@ -487,21 +496,15 @@ uint32_t rand(void);
 #endif //USE_LWIP_1_4_1
 
 #if USE_LWIP_2_2_0
-
-//#define LWIP_DEBUG	1
-
-
+#define LWIP_DEBUG	1
 #ifdef LWIP_DEBUG
-#define LWIP_PLATFORM_DIAG(x) do {TRACE x;} while(0)
-#define LWIP_PLATFORM_ASSERT(x) do {TRACE("Assertion \"%s\" failed at line %d in %s\n", \
+#define LWIP_PLATFORM_DIAG(x)   do {TRACE x; TRACE_CHAR('\r');} while(0)
+#define LWIP_PLATFORM_ASSERT(x) do {TRACE("Assertion \"%s\" failed at line %d in %s\r\n", \
                                      x, __LINE__, __FILE__); } while(0)
-
 #else
-
 #define LWIP_PLATFORM_DIAG(x)
 #define LWIP_PLATFORM_ASSERT(x)
-
-#endif
+#endif // LWIP_2_2_0
 /*
    ---------------------------------------
    ---------- Debugging options ----------
@@ -594,12 +597,12 @@ uint32_t rand(void);
 /**
  * MEM_DEBUG: Enable debugging in mem.c.
  */
-#define MEM_DEBUG                       LWIP_DBG_OFF
+#define MEM_DEBUG                       LWIP_DBG_ON
 
 /**
  * MEMP_DEBUG: Enable debugging in memp.c.
  */
-#define MEMP_DEBUG                      LWIP_DBG_OFF
+#define MEMP_DEBUG                      LWIP_DBG_ON
 
 /**
  * SYS_DEBUG: Enable debugging in sys.c.
@@ -714,6 +717,16 @@ uint32_t rand(void);
 
 
 #define MDNS_DEBUG						LWIP_DBG_ON
+
+/**
+ *  ETH hardware receive,transmit and interrupts
+ */
+#define ETH_DEBUG						LWIP_DBG_OFF
+
+/**
+ *  LWIP_PORT_API: Enable debugging in ports/xxx/lwapi.cpp
+ */
+#define LWIP_PORT_API					LWIP_DBG_OFF
 
 #endif //USE_LWIP_2_2_0
 

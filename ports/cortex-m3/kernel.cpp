@@ -294,11 +294,11 @@ Task* usr_task_create_dynamic(const char* name, TASK_FUNCTION func,
 
 	//Allocate task control block and stack
 	stack_words = (stack_words * 4) + sizeof(TASK_STRU);
-	if (__get_IPSR() == 11){
+	if (__get_IPSR() == 11) {
 		// SVCall
-		task = (Task*)((unsigned int)svc_malloc(stack_words+4)+4);
-	}else{
-		task = (Task*)((unsigned int)usr_malloc(stack_words+4) +4);
+		task = (Task*) ((unsigned int) svc_malloc(stack_words + 4) + 4);
+	} else {
+		task = (Task*) ((unsigned int) usr_malloc(stack_words + 4) + 4);
 	}
 
 	if(task != (void *)4)
@@ -318,7 +318,13 @@ Task* usr_task_create_dynamic(const char* name, TASK_FUNCTION func,
 		task->signals = 0;
 		task->aloc_sig = 0;
 		task->state = TSKSTATE_SUSPEND;
-		strcpy(task->name, name);
+
+		if (strlen(name) > sizeof(task->name)) {
+			memcpy(task->name, name, sizeof(Task::name)-1);
+			task->name[sizeof(task->name)-1] = 0;
+		} else {
+			strcpy(task->name, name);
+		}
 	}
 	else
 		task = NULL;
