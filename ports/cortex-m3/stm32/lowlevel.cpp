@@ -452,3 +452,8 @@ WEAK_C unsigned int LowLevelResetCause(void)
 	RCC->RCC_CSR = RCC_CSR_RMVF;
 	return (res);
 }
+
+WEAK_C uint32_t rand(void)
+{
+	return CURRENT_TIME;
+}
