@@ -109,7 +109,9 @@
 
 /// Ethernet
 #define USE_NET				1
-#define USE_LWIP_1_4_1		1
+#define USE_LWIP_1_4_1		0    // by default use 1.4.1
+#define USE_LWIP_2_2_0		1
+#define USE_LWIP_MDNS		1
 #define ETH_PHY_TLK110		1
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //		USART DRIVER

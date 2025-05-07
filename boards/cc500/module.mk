@@ -10,7 +10,7 @@ OUT_NAME	?= cc500
 OUT_DIR		?= out/$(OUT_NAME)/
 
 #  optimisation level  can be [0, 1, 2, 3, s].
-OPT			?= -Og
+OPT			?= -Os
 
 # Build library/binary/hex. can be [y, n]
 BUILD_LIB	?= y
@@ -97,10 +97,10 @@ USE_GPIO_EXPANDER ?=y
 USE_NET			?=y
 
 #security
-USE_SECURITY		?=y
-USE_SECURITY_TLS	?=y
-USE_SECURITY_CRYPTO	?=y
-MPI_ASM_SUPPORT		?=y
+USE_SECURITY		?=n
+USE_SECURITY_TLS	?=n
+USE_SECURITY_CRYPTO	?=n
+MPI_ASM_SUPPORT		?=n
 
 ################################################################################
 
