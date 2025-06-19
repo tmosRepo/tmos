@@ -1261,18 +1261,42 @@ RES_CODE tls_context_t::tlsParseServerKeyExchange(record_ctxt_t* rc)
 		msg_len -= paramsLen;
 	}
 
-	//Non-anonymous Diffie-Hellman and ECDH key exchange method?
+   //For non-anonymous Diffie-Hellman and ECDH key exchanges, the signature
+   //over the server's key exchange parameters shall be verified
 	if (cipher_info->suite_key_exch == TLS_KEY_EXCH_DHE_RSA
 			|| cipher_info->suite_key_exch == TLS_KEY_EXCH_DHE_DSS
 			|| cipher_info->suite_key_exch == TLS_KEY_EXCH_ECDHE_RSA
 			|| cipher_info->suite_key_exch == TLS_KEY_EXCH_ECDHE_ECDSA)
 	{
-		//For non-anonymous Diffie-Hellman and ECDH key exchanges, the signature
-		//over the server's key exchange parameters shall be verified
-		res = tlsVerifyServerKeySignature(p, msg_len, params, paramsLen, &n);
+//#if (TLS_MAX_VERSION >= TLS_VERSION_1_0 && TLS_MIN_VERSION <= TLS_VERSION_1_1)
+//	      //TLS 1.0 or TLS 1.1 currently selected?
+//	      if(tls_version <= TLS_VERSION_1_1)
+//	      {
+//	         //Signature verification
+	         res = tlsVerifyServerKeySignature(p, msg_len, params, paramsLen, &n);
+//	      }
+//	      else
+//	#endif
+//#if (TLS_MAX_VERSION >= TLS_VERSION_1_2 && TLS_MIN_VERSION <= TLS_VERSION_1_2)
+//		//TLS 1.2 currently selected?
+//		if (tls_version == TLS_VERSION_1_2)
+//		{
+//			//Signature verification
+//			res = tls12VerifyServerKeySignature((Tls12DigitalSignature*) p, msg_len, params, paramsLen, &n);
+//		}
+//		else
+//#endif
+//		{
+//			//Report an error
+//			res = RES_TLS_INVALID_VERSION;
+//		}
+
+		//Any error to report?
 		if (res != RES_OK)
 			return res;
 
+		//Point to the next field
+		p += n;
 		//Remaining bytes to process
 		msg_len -= n;
 	}
@@ -1931,7 +1955,7 @@ RES_CODE tls_context_t::tls_client_key_exchange_msg_len(record_ctxt_t* rc)
 
 #if TLS_ECC_CALLBACK_SUPPORT
 			//Any registered callback?
-			if (ecdhCallback != NULL)
+			if (ecdhCallback != nullptr)
 			{
 				//Invoke user callback function
 				res = ecdhCallback(this);
@@ -2012,7 +2036,7 @@ RES_CODE tls_context_t::tls_client_key_exchange_msg(tls_client_key_exchange_t* m
 #if (TLS_PSK_SUPPORT || TLS_RSA_PSK_SUPPORT || \
 		   TLS_DHE_PSK_SUPPORT || TLS_ECDHE_PSK_SUPPORT)
 		//Any registered callback?
-		if (pskCallback != NULL)
+		if (pskCallback != nullptr)
 		{
 			//Invoke user callback function
 			if (psk_identity_hint.c_str() != nullptr)
@@ -2193,7 +2217,7 @@ RES_CODE tls_context_t::tlsSendCertificateVerify()
 
 	//The CertificateVerify message is only sent following a client
 	//certificate that has signing capability
-	if (cert != NULL)
+	if (cert != nullptr)
 	{
 		//Check certificate type
 		if (cert->type == TLS_CERT_RSA_SIGN
