@@ -716,7 +716,7 @@ uint32_t rand(void);
 #define LWIP_TESTMODE                   0
 
 
-#define MDNS_DEBUG						LWIP_DBG_ON
+#define MDNS_DEBUG						LWIP_DBG_OFF
 
 /**
  *  ETH hardware receive,transmit and interrupts

@@ -10,7 +10,7 @@
 
 #include <tmos.h>
 
-#define LWIP_TCP_PCBS_CNT 10 // it was 8
+#define LWIP_TCP_PCBS_CNT 11 // it was 8 (2 servers + 3 services * 3 sockets)
 
 #if USE_LWIP_2_2_0
 // LWIP_2_2_0
@@ -71,7 +71,7 @@ uint32_t rand(void);
 #endif // USE_LWIP_2_2_0
 
 #define MEM_ALIGNMENT                   4           // default is 1
-#define MEM_SIZE                        (22 * 1024)  // default is 1600, was 16K
+#define MEM_SIZE                        (32 * 1024)  // was 22K default is 1600, was 16K
 //#define MEMP_OVERFLOW_CHECK             0
 //#define MEMP_SANITY_CHECK               0
 //#define MEM_USE_POOLS                   0
@@ -105,8 +105,11 @@ uint32_t rand(void);
 //#define MEMP_NUM_NETCONN                4
 //#define MEMP_NUM_TCPIP_MSG_API          8
 //#define MEMP_NUM_TCPIP_MSG_INPKT        8
+#if USE_LWIP_2_2_0
+#define PBUF_POOL_SIZE                    40    // Default , was 24
+#else
 #define PBUF_POOL_SIZE                    24    // Default 16, was 36
-
+#endif
 //*****************************************************************************
 //
 // ---------- ARP options ----------
