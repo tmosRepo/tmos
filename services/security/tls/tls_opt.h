@@ -34,7 +34,7 @@
 
 //Minimum TLS version that can be negotiated
 #ifndef TLS_MIN_VERSION
-   #define TLS_MIN_VERSION TLS_VERSION_1_0
+   #define TLS_MIN_VERSION TLS_VERSION_1_2
 #endif
 
 //Maximum TLS version that can be negotiated
