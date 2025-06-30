@@ -95,6 +95,12 @@ SECTIONS
 		*(.got)
 		*(.gcc_except_table)
         KEEP(*(.SlowFlash))
+        
+	    . = ALIGN(4);
+        _servers_list = .;
+        LONG((_end_servers - _servers_list)/4 -1)
+	  	KEEP(*(.server.*));
+        _end_servers = .;
 		
         _efixed = .;
 	} > rom 
