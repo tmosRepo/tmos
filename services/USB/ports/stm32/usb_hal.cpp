@@ -1333,7 +1333,7 @@ void usb_hal_host_ept_cfg(USB_DRV_INFO drv_info, const USBEndpointDescriptor* pD
 	otg->HC_REGS[ept_indx].HCINT = -1U;
 
 	// Enable channel interrupts
-	reg = OTG_HCINT_XFRC |	OTG_HCINT_TRERR;
+	reg = OTG_HCINTMSK_XFRCM |	OTG_HCINTMSK_TRERRM;
 	if(is_in_dir)	//in direction
 		reg |= OTG_HCINT_BBERR;
 
@@ -3548,92 +3548,53 @@ static void FAST_FLASH usb_a_halt_OUT(USB_DRV_INFO drv_info, uint32_t ch_indx)
 	uint32_t ch_ints = ch_regs->HCINT & ch_regs->HCINTMSK;
 	TRACE_USB(" ch%x=%02x", ch_indx, ch_ints);
 
-	if (ch_ints & OTG_HCINT_XFRC)
+	if(ch_ints & (OTG_HCINT_STALL | OTG_HCINT_DTERR | OTG_HCINT_FRMOR | OTG_HCINT_NAK
+			| OTG_HCINT_TRERR | OTG_HCINT_NYET))
 	{
-		// Transfer completed
-		TRACE1_USB(" XF");
-		ch_regs->HCINT = (OTG_HCINT_XFRC | OTG_HCINT_ACK);
-		ch_regs->HCINTMSK &= ~(OTG_HCINTMSK_ACKM);
-		reset_error_cnt();
-		if (ENDPOINT_TYPE_BULK == epdir->epd_type){
-			//toggle data
-			epdir->epd_flags ^= EPD_FLAG_DATA1;
-		}
-
-		if( (hnd = epdir->epd_pending) )
+		if (ch_ints & OTG_HCINT_STALL)
 		{
-			uint32_t len;
-			// OUT transfer, update
-			len = hnd->len;
-			if (len)
+			TRACE1_USB(" STALL");
+			usb_a_ch_halt(drv_info, ch_indx, OTG_HCINT_STALL, EPT_HALT_STALL);
+
+		}
+		else if (ch_ints & OTG_HCINT_DTERR) //*
+		{
+			TRACE1_USB(" DTERR");
+			usb_a_ch_halt(drv_info, ch_indx, OTG_HCINT_DTERR, EPT_HALT_DTGERR);
+			ch_regs->HCINT = OTG_HCINT_NAK;
+
+		}
+		else if (ch_ints & OTG_HCINT_FRMOR) //*
+		{
+			TRACE1_USB(" FRMOR");
+			usb_a_ch_halt(drv_info, ch_indx, OTG_HCINT_FRMOR, EPT_HALT_FRMOR);
+
+		}
+		else if (ch_ints & OTG_HCINT_NAK)
+		{
+			TRACE1_USB(" NAK");
+			reset_error_cnt();
+			usb_a_ch_halt(drv_info, ch_indx, OTG_HCINT_NAK, EPT_HALT_NAK);
+		}
+		else if (ch_ints & OTG_HCINT_TRERR)
+		{
+			TRACE1_USB(" TRERR");
+			inc_error_cnt();
+//			ch_regs->HCINTMSK |= OTG_HCINTMSK_ACKM;
+			usb_a_ch_halt(drv_info, ch_indx, OTG_HCINT_TRERR, EPT_HALT_TRERR);
+		}
+		else if (ch_ints & OTG_HCINT_NYET) // USB HS
+		{
+			TRACE1_USB(" NYET");
+			reset_error_cnt();
+			if(epdir->epd_type == ENDPOINT_TYPE_CONTROL)
 			{
-				//not yet, update transfer and continue
-				if (len > epdir->epd_fifo_sz)
-					len = epdir->epd_fifo_sz;
-				hnd->src.as_byteptr += len;
-				hnd->len -= len;
+				usb_a_ch_halt(drv_info, ch_indx, OTG_HCINT_NYET, EPT_HALT_XF);
 			}
-			// End of transfer ?
-			if (!hnd->len)
+			else
 			{
-				TRACE1_USB(" Wr!");
-				usb_a_ch_halt(drv_info, ch_indx, OTG_HCINT_XFRC, EPT_HALT_XF);
-			}else
-			{
-				// start it...
-				epdir->epd_halt_reason = EPT_HALT_BUSY;
-				epdir->epd_state = ENDPOINT_STATE_SENDING;
-				stm_host_start_tx(drv_info, hnd, ch_indx >> 1, epdir);
+				usb_a_ch_halt(drv_info, ch_indx, OTG_HCINT_NYET, EPT_HALT_NYET);
 			}
-
-		}else
-		{
-			usb_a_ch_halt(drv_info, ch_indx, OTG_HCINT_XFRC, EPT_HALT_XF);
-		}
-	}
-	else if (ch_ints & OTG_HCINT_STALL)
-	{
-		TRACE1_USB(" STALL");
-		usb_a_ch_halt(drv_info, ch_indx, OTG_HCINT_STALL, EPT_HALT_STALL);
-
-	}
-	else if (ch_ints & OTG_HCINT_DTERR) //*
-	{
-		TRACE1_USB(" DTERR");
-		usb_a_ch_halt(drv_info, ch_indx, OTG_HCINT_DTERR, EPT_HALT_DTGERR);
-		ch_regs->HCINT = OTG_HCINT_NAK;
-
-	}
-	else if (ch_ints & OTG_HCINT_FRMOR) //*
-	{
-		TRACE1_USB(" FRMOR");
-		usb_a_ch_halt(drv_info, ch_indx, OTG_HCINT_FRMOR, EPT_HALT_FRMOR);
-
-	}
-	else if (ch_ints & OTG_HCINT_NAK)
-	{
-		TRACE1_USB(" NAK");
-		reset_error_cnt();
-		usb_a_ch_halt(drv_info, ch_indx, OTG_HCINT_NAK, EPT_HALT_NAK);
-	}
-	else if (ch_ints & OTG_HCINT_TRERR)
-	{
-		TRACE1_USB(" TRERR");
-		inc_error_cnt();
-		ch_regs->HCINTMSK |= OTG_HCINTMSK_ACKM;
-		usb_a_ch_halt(drv_info, ch_indx, OTG_HCINT_TRERR, EPT_HALT_TRERR);
-	}
-	else if (ch_ints & OTG_HCINT_NYET) // USB HS
-	{
-		TRACE1_USB(" NYET");
-		reset_error_cnt();
-		if(epdir->epd_type == ENDPOINT_TYPE_CONTROL)
-		{
-			usb_a_ch_halt(drv_info, ch_indx, OTG_HCINT_NYET, EPT_HALT_XF);
-		}
-		else
-		{
-			usb_a_ch_halt(drv_info, ch_indx, OTG_HCINT_NYET, EPT_HALT_NYET);
 		}
 	}
 	else if (ch_ints & OTG_HCINT_CHH)
@@ -3714,16 +3675,65 @@ static void FAST_FLASH usb_a_halt_OUT(USB_DRV_INFO drv_info, uint32_t ch_indx)
 			TRACE1_USB(" CAN");
 			[[fallthrough]];
 		default:
+			TRACE1_USB(" res:?");
 			usb_a_signal_out_hnd(drv_info, ch_indx, epdir);
 			break;
 		}
 	}
-	else if (ch_ints & OTG_HCINT_ACK)
+	else
 	{
-		TRACE1_USB(" ACK");
-		reset_error_cnt();
-		ch_regs->HCINT = OTG_HCINT_ACK;
-		ch_regs->HCINTMSK &= ~(OTG_HCINTMSK_ACKM);
+		if (ch_ints & OTG_HCINT_XFRC)
+		{
+			TRACE1_USB(" XF");
+			ch_regs->HCINT = OTG_HCINT_XFRC;
+			ch_regs->HCINTMSK |= OTG_HCINTMSK_ACKM;
+		}
+
+		if (ch_ints & OTG_HCINT_ACK)
+		{
+
+			// Transfer completed
+			reset_error_cnt();
+			TRACE1_USB(" ACK");
+			ch_regs->HCINT = (OTG_HCINT_XFRC | OTG_HCINT_ACK);
+	//		ch_regs->HCINTMSK &= ~(OTG_HCINTMSK_ACKM);
+			reset_error_cnt();
+			if (ENDPOINT_TYPE_BULK == epdir->epd_type){
+				//toggle data
+				epdir->epd_flags ^= EPD_FLAG_DATA1;
+			}
+
+			if( (hnd = epdir->epd_pending) )
+			{
+				uint32_t len;
+				// OUT transfer, update
+				len = hnd->len;
+				if (len)
+				{
+					//not yet, update transfer and continue
+					if (len > epdir->epd_fifo_sz)
+						len = epdir->epd_fifo_sz;
+					hnd->src.as_byteptr += len;
+					hnd->len -= len;
+				}
+				// End of transfer ?
+				if (!hnd->len)
+				{
+					TRACE1_USB(" Wr!");
+					usb_a_ch_halt(drv_info, ch_indx, 0, EPT_HALT_XF);
+				}else
+				{
+					// start it...
+					epdir->epd_halt_reason = EPT_HALT_BUSY;
+					epdir->epd_state = ENDPOINT_STATE_SENDING;
+					stm_host_start_tx(drv_info, hnd, ch_indx >> 1, epdir);
+				}
+
+			}else
+			{
+				usb_a_ch_halt(drv_info, ch_indx, 0, EPT_HALT_XF);
+			}
+		}
 	}
 
 }
