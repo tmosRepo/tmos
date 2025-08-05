@@ -91,3 +91,15 @@ unsigned int CalculateCRC32(const unsigned char * buf, unsigned int len)
 	return (crc ^ XOROT);
 
 }
+
+unsigned int crc32(const void * buf, unsigned int len, unsigned int crc)
+{
+	while (len--)
+	{
+		crc = (crc >> 8) ^ g_crctable[*(unsigned char*)buf++ ^ (unsigned char) crc];
+	}
+
+	return crc;
+}
+
+
