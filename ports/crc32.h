@@ -16,6 +16,7 @@ extern "C"
 extern const unsigned long g_crctable[256];
 
 unsigned int CalculateCRC32(const unsigned char * buf, unsigned int len);
+unsigned int crc32(const void * buf, unsigned int len, unsigned int crc);
 unsigned int CalculateCRC32Slow(unsigned int crc, const void * buf,
 		unsigned int len);
 unsigned int crc32_4_le(const void* buf, unsigned int len);
