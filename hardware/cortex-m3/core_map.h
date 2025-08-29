@@ -49,6 +49,9 @@
 
 ///------------ Address spaces ----------------------------------------------///
 #define BASE_CODE		0x00000000 //!< Code space
+///------------ can be accessed only by the data bus of the Cortex®-M4 core.
+#define BASE_TCMSRAM	0x10000000 //!< M4 tightly-coupled memory SRAM
+///-----------------------------------------------------------------------------
 #define BASE_SRAM		0x20000000 //!< SRAM space
 #define BASE_SRAM_BB	0x22000000 //!< SRAM bit band alias space
 #define BASE_PERIPHERAL	0x40000000 //!< Peripheral space
