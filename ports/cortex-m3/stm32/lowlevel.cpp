@@ -345,14 +345,15 @@ extern "C" void SLOW_FLASH DefaultSystemInit( void )
 	while ((RCC->RCC_CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL){
 		/* wait until PLL is selected as system clock */
 	}
-
+	//--------------------------------------------------------------------------
+	//--------------------------------------------------------------------------
 	// when Cortex_M4 is used, move service stack to TCM ram.
 	if(Cortex_M4F == cpu_identify().type){
 		asm volatile (
 		"		ldr			r2, =__stack_svc_end      \n\t"
 		"		mov			r1, sp                    \n\t"
 		"		subs		r2, r1                    \n\t"
-		"		ldr			r0, =0x1000FFFC           \n\t"
+		"		ldr			r0, =__tcm_stack_svc_end  \n\t"
 		"		subs		r0, r2                    \n\t"
 		"		bl			memcpy                    \n\t"
 		"		msr			MSP, r0                   \n\t"
