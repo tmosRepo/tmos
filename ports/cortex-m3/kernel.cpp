@@ -63,10 +63,6 @@ extern "C" unsigned int exception_crc(const unsigned int* record)
 //*			Helper functions
 //*----------------------------------------------------------------------------
 
-#if USE_TMOS_STDLIB
-extern char end;
-#endif
-
 static void process_exception()
 {
     unsigned status = SCB->SCB_CFSR;
@@ -146,6 +142,86 @@ WEAK_C void app_init(void)
 
 }
 
+//------------- initialize dynamic memory  ---------------//
+
+extern "C" void SLOW_FLASH memory_heap_init( void )
+						__attribute__ ((weak, alias ("default_memory_heap_init")));
+extern "C" void SLOW_FLASH default_memory_heap_init( void )
+{
+#if USE_TMOS_STDLIB
+#if USED_MEMORY_POOLS > 1 && USE_MCU_DETECT
+	uint32_t init_pools = 0;
+	if (Cortex_M4F == cpu_identify().type) {
+		// initialize TCM pool
+		svc_pool_init(&_tcm_end, (void*)(BASE_TCMSRAM +TCMSRAM_SIZE), pool_tcm);
+		init_pools++;
+		if (!strncmp(device_type, "GD32F4", strlen("GD32F4"))) {
+			//256 KB to 768 KB of SRAM
+			//1. Memory density information
+			uint32_t ram_size = *(uint32_t *)0x1FFF7A20;
+			// [15:0]The value indicates the on-chip SRAM density of the device in Kbytes.
+			ram_size &= 0xFFFF; // total amount of available RAM, including that of TCM
+			ram_size -= 64; 	// subtracts the size of the TCM (64Kbytes) and now we have the size (in Kbytes) of the available memory.
+			ram_size <<= 10;    // size in bytes
+
+			//2. Available SRAM for pool(s)
+			uint32_t pool_start = (uint32_t)&__stack_svc_start;
+			uint32_t pool_end = BASE_SRAM + ram_size;
+
+			ram_size = pool_end - pool_start;
+			if (ram_size > POOL_MAX_SIZE) {
+				// The memory pool size cannot be more than 127 Kbytes + 1020bytes, so more pools are created
+				pool_end = pool_start + POOL_MAX_SIZE;
+			}
+			uint32_t pool_indx = pool_default;
+			while (ram_size) {
+				svc_pool_init((void*)pool_start, (void*)pool_end, pool_indx);
+				init_pools++;
+
+				ram_size -= (pool_end - pool_start);
+				pool_start = pool_end;
+				pool_end = pool_start;
+				if (ram_size > POOL_MAX_SIZE) {
+					pool_end += POOL_MAX_SIZE;
+				} else {
+					pool_end += ram_size;
+				}
+				pool_indx += (1<<28);
+				if (pool_indx == pool_tcm) {
+					pool_indx = pool_addsram_1;
+				}
+			}
+
+		} else {
+			svc_pool_init(&__stack_svc_start, (void*)(BASE_SRAM + RAM_SIZE + SRAM2_SIZE), pool_default);
+			init_pools++;
+		}
+
+	} else {
+		svc_pool_init(&_sram_end, (void*)(BASE_SRAM + RAM_SIZE), 0);
+		init_pools++;
+	}
+
+	TRACELN1("===== Dynamic memory =======");
+	for (uint32_t indx=0; indx < USED_MEMORY_POOLS; indx++) {
+		if (init_pools <= indx) {
+			memory_heap[indx].start = memory_heap[0].start;
+			memory_heap[indx].end = memory_heap[0].end;
+			TRACELN("memory #%u not present", indx);
+		} else {
+			TRACELN("memory #%u size: %.6u bytes",
+					indx, (uint32_t)memory_heap[indx].end - (uint32_t)memory_heap[indx].start);
+		}
+
+	}
+#else
+	svc_pool_init(&_sram_end, (void*)(BASE_SRAM + RAM_SIZE));
+	TRACELN("===== Dynamic memory %u bytes =====", (char *)(BASE_SRAM + RAM_SIZE) - &_sram_end);
+#endif // USED_MEMORY_POOLS
+#endif // USE_TMOS_STDLIB
+}
+
+
 //*----------------------------------------------------------------------------
 //*     sys_kernel_init
 //*
@@ -158,7 +234,7 @@ WEAK_C void app_init(void)
 
 extern "C" void sys_call_static_ctors(void);
 
-extern "C" void sys_kernel_init( void)
+extern "C" void SLOW_FLASH sys_kernel_init( void )
 {
     DRIVER_INFO drv_info;
     char *ptr;
@@ -189,12 +265,6 @@ extern "C" void sys_kernel_init( void)
 	TRACELN1("===== " __DATE__ " === " __TIME__ " =====    "); //few more spaces (a clock change follows)
 #endif
 
-	//------------- initialize dynamic memory  ---------------//
-#if USE_TMOS_STDLIB
-	svc_pool_init(&end, (void*)(BASE_SRAM + RAM_SIZE));
-	TRACELN("===== Dynamic memory %u =====", (char *)(BASE_SRAM + RAM_SIZE) - &end);
-#endif
-
     // initialize main task
     usr_task_init_static(&main_task_desc, false);
     PMAIN_TASK->tlist = PMAIN_TASK;
@@ -205,6 +275,10 @@ extern "C" void sys_kernel_init( void)
 #if USE_MEMORY_TRACKING
     PMAIN_TASK->aloc_mem = 0;
     PMAIN_TASK->aloc_ptrs =0;
+#endif
+	//------------- initialize dynamic memory  ---------------//
+#if USE_TMOS_STDLIB
+	memory_heap_init();
 #endif
 
     // Reset the drivers i
