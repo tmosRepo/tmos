@@ -10,6 +10,14 @@
 #include "tmos_string.h"
 #include <trace.h>
 
+
+extern "C" volatile char _memory_heap;
+extern "C" volatile char _memory_heap_end;
+extern "C" char _sram_end;
+
+#if USED_MEMORY_POOLS > 1
+volatile memory_pool_t memory_heap[USED_MEMORY_POOLS] __attribute__((section(".pools")));
+#endif
 /*-----------------------------------------------------------
  * 			Debug Dinamic Memory
  *----------------------------------------------------------*/
@@ -19,7 +27,7 @@ WEAK bool on_out_of_memory(size_t size)
 	return true;
 }
 
-void* operator new(size_t size)
+WEAK void* pool_allocator(size_t size)
 {
 	void *ptr;
 	uint32_t tmp = CURRENT_TIME;
@@ -32,32 +40,33 @@ void* operator new(size_t size)
 		tsk_sleep(1);
 		if(seconds_since(tmp) > 15 )
 		{
-	    	SYST->SYST_CSR = 0;
+			SYST->SYST_CSR = 0;
 			LowLevelReboot();
 		}
 	}
 	return  ptr;
 }
 
+void* operator new(size_t size, enum_pool_t pool)
+{
+	return pool_allocator(size | pool);
+}
+
+void* operator new[](size_t size, enum_pool_t pool)
+{
+	return pool_allocator(size | pool);
+}
+
+
+void* operator new(size_t size)
+{
+	return pool_allocator(size);
+}
+
 
 void* operator new[](size_t size)
 {
-	void *ptr;
-	uint32_t tmp = CURRENT_TIME;
-	while(true)
-	{
-		if((ptr = tsk_malloc(size)) != nullptr)
-			break;
-		if(on_out_of_memory(size))
-				break;
-		tsk_sleep(1);
-		if(seconds_since(tmp) > 15 )
-		{
-	    	SYST->SYST_CSR = 0;
-			LowLevelReboot();
-		}
-	}
-	return  ptr;
+	return pool_allocator(size);
 }
 
 void operator delete(void *p)
@@ -70,7 +79,6 @@ void operator delete[](void *p)
 	tsk_free(p);
 }
 
-extern "C" char end;
 
 #if TRACE_MEMORY_LEVEL >= TRACE_DEFAULT_LEVEL
 

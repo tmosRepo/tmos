@@ -47,7 +47,7 @@
 
 
 //------------------------------------------------------------------------------
-//void svc_pool_init(void* start, void* end);
+//void svc_pool_init(void* start, void* end, uint32_t pool_index);
 FUNC(	svc_pool_init		)
 //    +----+----+----+----+
 // s  | 0  |  2 |  0 |  2 |
@@ -58,7 +58,12 @@ FUNC(	svc_pool_init		)
 //    +----+----+----+----+
 // e  | n< |  0 | n  | 0  |
 //    +----+----+----+----+
-
+#if USED_MEMORY_POOLS > 1
+				ldr				r3, =_memory_heap
+				add				r3, r3, r2, lsr #(28-3) //
+				str				r0, [r3], #4
+				str				r1, [r3]
+#endif
 				subs			r1, #8			//e
 				movs			r2, #2
 				str				r2,[r0, #4]
@@ -113,9 +118,22 @@ ENDF(	sys_realloc		)
 //------------------------------------------------------------------------------
 //void* svc_malloc(unsigned int size);
 FUNC(	svc_malloc		)
+#if USED_MEMORY_POOLS > 1
+				ldr				r3, =_memory_heap
+				ldr				r2, =_memory_heap_end
 
-				ldr				r1, =end				//pool
+				ubfx			r1, r0, #28, #4			// r1 = size [31..28] pool index
+				add				r1, r3, r1, lsl #3		// r1 = heap[indx].start
+				cmp				r1, r2					// checks if pool is valid
+				ite				cc
+				ldrcc			r1, [r1]
+				ldrcs			r1, [r3]				// pool is invalid, default pool[0].start is used
+				bic				r0, r0, #(0xF << 28)	// removes the pool index from the size
+#else
+				ldr				r1, =_sram_end			//pool
+#endif
 				b				svc_pool_malloc
+
 ENDF(	svc_malloc		)
 
 
@@ -252,14 +270,30 @@ ENDF(	svc_pool_malloc		)
 //void svc_free(void* ptr);
 FUNC(	svc_free		)
 
-				ldr				r1, =end
+#if USED_MEMORY_POOLS > 1
+				ldr				r3, =_memory_heap
+				ldr				r2, =_memory_heap_end
+.next_pool:
+				cmp				r3, r2
+				it				HS
+				bxhs			lr
+				ldr				r1, [r3], #4
+				cmp 			r0, r1
+				ldr				r1, [r3], #4
+				blo				.next_pool
+				cmp 			r0, r1
+				bhs				.next_pool
+				ldr				r1, [r3, #-8]
+#else
+				ldr				r1, =_sram_end				//pool
+#endif
 				b 				svc_pool_free
 
 ENDF(	svc_free		)
 
 
 //------------------------------------------------------------------------------
-//void svc_pool_free(void* ptr, void* pool);
+//void svc_pool_free(void* ptr, unsigned int pool_num);
 FUNC(	svc_pool_free		)
 //------------------------------------------------------------------------------
 
@@ -377,13 +411,42 @@ FUNC(	svc_realloc		)
 //------------------------------------------------------------------------------
 
 				cmp				r0, #0
-				beq				.L5					//realloc(NULL,size) -> malloc(size)
-				cmp				r1, #0
-				beq				svc_free			//realloc(ptr, 0)	-> free(ptr)
+				itt				EQ
+				moveq			r0, r1
+				beq				svc_malloc				//realloc(NULL,size) -> malloc(size)
+
 				mov				r12, r1
-				adds			r3, r1, #7
-				lsrs			r3, r3, #2			//r3 = newsize_w
+				bic				r1, #(0xF << 28)
+				cmp				r1, #0
+				beq				svc_free				//realloc(ptr, 0)	-> free(ptr)
+
 				push			{r0, r4, r5}
+
+#if USED_MEMORY_POOLS > 1
+				ldr				r5, =_memory_heap		// r3, =_memory_heap
+				ldr				r4, =_memory_heap_end	// r2, =_memory_heap_end
+				// takes the pool number from the size
+				ubfx			r1, r12, #28, #4		// r1 = size [31..28] pool index
+				add				r1, r5, r1, lsl #3		// r1 = heap[indx].start
+				cmp				r1, r4					// checks if pool is valid
+				ite				hs
+				bichs			r12, #(0xF << 28)		// pool is invalid, default pool is used
+				movlo			r5, r1
+				// reallocation to a different pool
+				ldr				r1, [r5], #4
+				cmp 			r0, r1
+				ldr				r1, [r5], #4
+				blo				.pool_changed
+				cmp 			r0, r1
+				bhs				.pool_changed
+
+				bic				r1, r12, #(0xF << 28)	// restores r1 (size) and removes the pool number from it
+#else
+				mov				r12, r1
+#endif
+				adds			r3, r1, #7
+				lsrs			r3, r3, #2			//r3 = newsize_w (the size is rounded to double words)
+//				push			{r0, r4, r5}
 				ldrh			r2, [r0, #-4]!		//r2=cs
 				cmp				r3, r2
 				beq				.L9					//size match
@@ -499,8 +562,14 @@ smf_check_split:	//	r0, r1=newsize_b, r2=oldsize_w, r3=newsize_w
 //    +----+----+----+----+              +----+----+----+----+
 // nf |*?? | ?? | nf | ?? |           nf |*?? | ?? |nf-c| ?? |
 //    +----+----+----+----+              +----+----+----+----+
-				ldr				r1, =end			//r1=mem0
-
+#if USED_MEMORY_POOLS > 1
+				ldr				r1, =_memory_heap;
+				ubfx			r2, r12, #28, #4		// r1 = size [31..28] pool index
+				add				r1, r1, r2, lsl #3		// r1 = heap[indx].start
+				ldr				r1, [r1]
+#else
+				ldr				r1, =_sram_end			//r1=mem0
+#endif
 				subs			r2, r0, r1
 				lsrs			r2, r2, #2			//r2=c
 				ldrh			r3, [r1, #4]!
@@ -512,7 +581,12 @@ smf_check_split:	//	r0, r1=newsize_b, r2=oldsize_w, r3=newsize_w
 .L9:
 				pop				{r0, r4, r5}
 				bx				lr
-
+#if USED_MEMORY_POOLS > 1
+.pool_changed:
+				bic				r2, r12, #(0xF << 28)	// r2 = (size) without the pool number
+				add				r2, #7
+				lsr				r2, #2
+#endif
 .L2:
     // New block is bigger than the old block, so just mm_malloc() a new
     // one, copy the old data to the new block, and free up the old block,
@@ -536,10 +610,6 @@ smf_check_split:	//	r0, r1=newsize_b, r2=oldsize_w, r3=newsize_w
 				mov				lr, r4
 				pop				{r0, r4, r5}
 				bx				lr
-
-.L5:
-				mov				r0, r1
-    			b 				svc_malloc
 
 ENDF(	svc_realloc		)
 

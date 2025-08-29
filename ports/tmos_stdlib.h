@@ -9,6 +9,8 @@
 #define TMOS_STDLIB_H_
 
 #include <trace.h>
+#include <brd_cfg.h>
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -21,10 +23,49 @@ extern "C" {
 
 #define offsetof(type, member)  __builtin_offsetof (type, member)
 
+#define POOL_MAX_SIZE  (0x7FFF*sizeof(int))
+
+#ifndef USED_MEMORY_POOLS
+#define USED_MEMORY_POOLS 1
+#endif
+
+struct memory_pool_t
+{
+	volatile void* start;
+	volatile void* end;
+}__attribute__((packed));
+
+
+
+enum enum_pool_t
+{
+	pool_default = 0,
+	pool_tcm = (1<<28),
+	pool_addsram_1 = (2<<28),
+	pool_addsram_2 = (3<<28),
+	pool_addsram_3 = (4<<28),
+	pool_addsram_4 = (5<<28),
+};
+
+#if USED_MEMORY_POOLS > 1
+#define TCM	 (pool_tcm)
+#else
+#define TCM
+#endif
+extern char _sram_end;
+#if USED_MEMORY_POOLS > 1
+// defined in the linker script
+extern char _tcm_end;
+extern char __stack_svc_start;
+extern volatile struct memory_pool_t memory_heap[USED_MEMORY_POOLS] __attribute__((section(".pools")));
+#endif
+
 void svc_pools_init(void);
-void  svc_pool_init(void* start, void* end);
-void* svc_pool_malloc(unsigned int size, void* pool);
-void  svc_pool_free(void* ptr, void* pool);
+#if USED_MEMORY_POOLS > 1
+void svc_pool_init(void* start, void* end, uint32_t pool_index);
+#else
+void svc_pool_init(void* start, void* end);
+#endif
 
 void* svc_malloc(unsigned int size);
 void  svc_free(void* ptr);
@@ -106,12 +147,19 @@ unsigned int seconds_since(unsigned int time);
 unsigned int ms_since(unsigned int time);
 
 #ifdef __cplusplus
+}
+// C++
+
 bool on_out_of_memory(size_t size);
-constexpr void* operator new(size_t size, void* obj)
+void* pool_allocator(size_t size);
+void* operator new(size_t size, enum_pool_t pool);
+void* operator new[](size_t size, enum_pool_t pool);
+
+inline void* operator new(size_t size, void* obj)
 {
     return (obj);
 }
-}
+
 #endif
 
 #endif /* TMOS_STDLIB_H_ */
