@@ -18,6 +18,7 @@ MEMORY
   rom (rx)   	: ORIGIN = 0x00004000, LENGTH = 1007k    
   ram (rwx)  	: ORIGIN = 0x20000000, LENGTH = 112k
   bkpram (w)	: ORIGIN = 0x40024000, LENGTH = 4k
+  ccm (rw)  	: ORIGIN = 0x10000000, LENGTH = 64k
 }
 
 /*
@@ -40,6 +41,7 @@ SECTIONS
 	/* ----- fixed(text) -------- */
 	.rodata :
 	{
+        KEEP(*(.SlowFlash))
         
 		*(.rodata .rodata*)
 		
@@ -94,7 +96,6 @@ SECTIONS
 		*(.glue_7t)
 		*(.got)
 		*(.gcc_except_table)
-        KEEP(*(.SlowFlash))
         
 	    . = ALIGN(4);
         _servers_list = .;
@@ -128,14 +129,19 @@ SECTIONS
         _stasks = .;
 	  	*(SORT(.task.*));
         _etasks = .;
-        
+
 	    . = ALIGN(4);
+		*(.ramnoinitsec .ramnoinitsec.*)
+		
+	    . = ALIGN(4);
+	    PROVIDE (_memory_heap = .);
+	    KEEP(*(.pools));
+	    PROVIDE (_memory_heap_end = .);
 	    PROVIDE (__stack_svc_start = .);	/*SVC*/
 	    . += SVC_STACK_SIZE;
 	    PROVIDE (__stack_svc_end = .);
-		*(.ramnoinitsec .ramnoinitsec.*)
-		PROVIDE (end = .);
-		
+		PROVIDE (_sram_end = .);
+		/* SRAM pool */
   	} > ram
 
   	.rambackup (NOLOAD) :
@@ -148,7 +154,16 @@ SECTIONS
 
   	} > bkpram
   	
-
+	.tcm (NOLOAD) :
+	{
+		PROVIDE (__tcm_stack_svc_start = .); /* SVC has been moved to CCM */
+	    . += SVC_STACK_SIZE;
+	    PROVIDE (__tcm_stack_svc_end = .);
+	    _tcm_end = .;
+	    /* CCM pool */
+	    
+	} > ccm
+	
 	/* for exception handling/unwind - some Newlib functions (in common with C++
 		 and STDC++) use this. */
 	.ARM.extab : 
