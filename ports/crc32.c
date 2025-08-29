@@ -94,9 +94,11 @@ unsigned int CalculateCRC32(const unsigned char * buf, unsigned int len)
 
 unsigned int crc32(const void * buf, unsigned int len, unsigned int crc)
 {
+	unsigned char* ptr = (unsigned char*)buf;
+
 	while (len--)
 	{
-		crc = (crc >> 8) ^ g_crctable[*(unsigned char*)buf++ ^ (unsigned char) crc];
+		crc = (crc >> 8) ^ g_crctable[*ptr++ ^ (unsigned char) crc];
 	}
 
 	return crc;
