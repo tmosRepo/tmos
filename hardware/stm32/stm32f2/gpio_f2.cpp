@@ -12,6 +12,8 @@
 #include <tmos.h>
 #include "fam_cpp.h"
 
+#pragma GCC optimize ("Os")
+
 /**
  * Configure pin(s) according to the pin description
  * @param cfg
@@ -299,4 +301,6 @@ void exti_set_line_source(unsigned int line, unsigned int port)
 	line &= 3;
 	*reg = (*reg & ~SYSCFG_EXTICRy_EXTIx_Msk(line)) | SYSCFG_EXTICRy_EXTIx_Set(line, port & 0xF);
 }
+
+#pragma GCC reset_options
 
