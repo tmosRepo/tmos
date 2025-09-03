@@ -536,8 +536,3 @@ RES_CODE usb_host_reset_bus(USB_DRV_INFO drv_info, HANDLE hnd)
 	}
 	return res;
 }
-
-
-#if TRACE_USB_LEVEL >= TRACE_LEVEL_DEBUG
-#pragma GCC reset_options
-#endif
