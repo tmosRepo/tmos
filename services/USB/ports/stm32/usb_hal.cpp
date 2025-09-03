@@ -11,7 +11,9 @@
 #include <usb_api.h>
 
 #if TRACE_USB_LEVEL >= TRACE_LEVEL_DEBUG
+#ifdef __GNUC__
 #pragma GCC optimize ("O0")
+#endif
 #endif
 //-------------------  local static functions --------------------------------//
 
@@ -4255,5 +4257,7 @@ void USB_HS_WKUP_ISR(USB_DRV_INFO drv_info)
 }
 
 #if TRACE_USB_LEVEL >= TRACE_LEVEL_DEBUG
+#ifdef __GNUC__
 #pragma GCC reset_options
+#endif
 #endif

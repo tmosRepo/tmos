@@ -8,7 +8,9 @@
 #include "key_drv.h"
 #include <tmos_drivers.h>
 
+#ifdef __GNUC__
 #pragma GCC optimize ("Os")
+#endif
 
 #ifndef KEY_DRV_COUNT
 	#define KEY_DRV_COUNT	0
@@ -283,5 +285,6 @@ void KEY_DSR(KEY_DRIVER_INFO* drv_info, HANDLE hnd)
 		svc_HND_SET_STATUS(hnd, RES_SIG_OK);
 	}
 }
-
+#ifdef __GNUC__
 #pragma GCC reset_options
+#endif
