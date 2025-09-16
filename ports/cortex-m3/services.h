@@ -73,18 +73,20 @@ void TRACE_COLOR_END();
 struct lock_t
 {
 protected: // are defined as protected so that they can be inherited
-	uint32_t lock_locker;
+	void* lock_locker;
 	uint32_t lock_cnt;
 
 public:
 	lock_t(): lock_locker(0), lock_cnt(0)
 	{;}
+	virtual ~lock_t()
+	{;}
 
-	void lock()
+	virtual void lock()
 	{
 		while(locked_set_if_null(&lock_locker, CURRENT_TASK))
 		{
-			if(lock_locker == (uint32_t)CURRENT_TASK)
+			if(lock_locker == CURRENT_TASK)
 				break;
 			tsk_sleep(1);
 		}
@@ -95,7 +97,7 @@ public:
 	{
 		if(locked_set_if_null(&lock_locker, CURRENT_TASK))
 		{
-			if(lock_locker != (uint32_t)CURRENT_TASK)
+			if(lock_locker != CURRENT_TASK)
 				return false;
 		}
 		lock_cnt++;
@@ -104,7 +106,7 @@ public:
 
 	void unlock()
 	{
-		if(lock_locker == (uint32_t)CURRENT_TASK)
+		if(lock_locker == CURRENT_TASK)
 		{
 			if(lock_cnt)
 				lock_cnt--;
@@ -115,7 +117,7 @@ public:
 
 	inline uint32_t is_locked()
 	{
-		return lock_locker;
+		return (uint32_t)lock_locker;
 	}
 
 	inline uint32_t get_lock_cnt()
