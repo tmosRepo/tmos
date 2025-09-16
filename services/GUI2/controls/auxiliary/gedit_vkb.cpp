@@ -464,7 +464,7 @@ void GVKB_keyboard::draw_this (LCD_MODULE* lcd)
 {
 	if(client_rect.height() > 0 && client_rect.width() > 0)
 	{
-		lcd->set_font(((GEditVKB*)parent)->font);
+		lcd->use_font(((GEditVKB*)parent)->font);
 		lcd->allign = (SS_LEFT|SS_TOP);
 		lcd->pos_x = client_rect.x0;
 		//rectangle takes more space but we want pixels between TXT and KB
@@ -499,6 +499,8 @@ void GVKB_keyboard::draw_this (LCD_MODULE* lcd)
 			pos_x += lcd->font->hspacing;
 		}
 		while(tempPos != max_pos && ++alphaIndex < alphabet.length() && ++(tempPos.x) >= 0);
+
+		lcd->restore_font();
 	}
 }
 
@@ -619,7 +621,7 @@ void GVKB_button::draw_this(LCD_MODULE* lcd)
 {
 	if(client_rect.height() > 0 && client_rect.width() > 0)
 	{
-		lcd->set_font(((GVKB_Controls*)parent)->font);
+		lcd->use_font(((GVKB_Controls*)parent)->font);
 		set_xy_all(lcd, ((client_rect.y1 - client_rect.y0) >> 1) - (lcd->font->height >> 1), TA_CENTER);
 		if((flags & GO_FLG_SELECTED) && (parent->flags & GO_FLG_SELECTED))
 		{
@@ -628,6 +630,7 @@ void GVKB_button::draw_this(LCD_MODULE* lcd)
 			lcd->set_color(get_bg_color());
 		}
 		draw_text_line(lcd, label.c_str(), label.length());
+		lcd->restore_font();
 	}
 }
 

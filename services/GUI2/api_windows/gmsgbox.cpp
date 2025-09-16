@@ -71,6 +71,9 @@ static const char ret_codes[] = {GO_IDOK, GO_IDRETRY, GO_IDYES, GO_IDNO, GO_IDCA
 unsigned int GMsgBox::initialize (GMessage& msg)
 {
 	LCD_MODULE* lcd = ((LCD_MODULE **)msg.lparam)[0];
+	if(font == nullptr) {
+		font = lcd->font;
+	}
 	id = ID_MB_DLG;
 	rect = lcd->rect;
 	flags = GO_FLG_BORDER|GO_FLG_ENABLED|GO_FLG_SHOW|GO_FLG_SELECTED;
@@ -86,10 +89,11 @@ unsigned int GMsgBox::initialize (GMessage& msg)
 
 	if(body.empty() && !init_size.as_int )
 	{
-		lcd->set_font(font);
+		lcd->use_font(font);
 		for(int i=0; i < lcd->chars_per_row/2; i++)
 			body += '.';
 		type |= MBF_CLR;
+		lcd->restore_font();
 	}
 
 	POINT_T bs = get_border_size();

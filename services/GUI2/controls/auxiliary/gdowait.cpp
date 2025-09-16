@@ -73,33 +73,38 @@ void CPU_usage(bool show)
 unsigned int GWait::initialize (GMessage& msg)
 {
 	LCD_MODULE* lcd = ((LCD_MODULE **)msg.lparam)[0];
+	const RENDER_MODE* font = lcd->font;
 
 	client_rect = rect = lcd->rect;
 	flags = GO_FLG_TRANSPARENT;
 	last_state = 0;
-	new_state = 0x3;
+	new_state = 0x3; // 2 small circles
 	displays = 1;  // use main display
-	R = 10;
+	// reserve one text row
+	rect.y0 += font->vspacing + font->vdistance;
+	// center of the carousel
+	base.x = rect.x0 + rect.width()/2;
+	base.y = rect.y0 + rect.height()/2;
+	// radius of rotation is 1/5 of the height of the rectangle (~37% of the free space)
+	R = rect.height()/5;
 	POINT_T r(R,R);
 	DPtoLP(r);
 	R = (r.x > r.y)?r.x:r.y;
-	// reserve one text row
-	rect.y0 += FNT5x7.vspacing + FNT5x7.vdistance;
-	base.x = rect.x0 + rect.width()/2;
-	base.y = rect.y0 + rect.height()/2;
+	// radius of small circles (~20% of the carousel radius)
+	Rc = R/5;
 	client_rect  = RECT_T(base.x - R, base.y -R, base.x +R, base.y +R);
-	SetTimer(ID_BUSY_CLOCK, BUSY_START_TIME);
-	dowait_win->owners = new GWaitOwner(parent->focus);
 	circles_pos = new POINT_T[8];
 	if(circles_pos)
 	{
 		for(int i=0; i < 8; i++)
 		{
-			circles_pos[i] = lcd->PolarToDP(i*45, R-2);
+			circles_pos[i] = lcd->PolarToDP(i*45, R-Rc);
 			circles_pos[i] += base;
 		}
 
 	}
+	SetTimer(ID_BUSY_CLOCK, BUSY_START_TIME);
+	dowait_win->owners = new GWaitOwner(parent->focus);
 	return 0;
 }
 
@@ -143,21 +148,19 @@ void GWait::draw_this(LCD_MODULE* lcd)
 		POINT_T p;//, r(R-2,R-2);
 		for(int i=0; i < 8; i++, mask <<=1)
 		{
-//			p = lcd->PolarToDP(i*45, R-2);
-//			p += base;
 			p = circles_pos[i];
 			if(last_state & mask)
 			{
 				lcd->set_color(PIX_BLACK);
-				lcd->fill_circle(p, 2);
+				lcd->fill_circle(p, Rc);
 				lcd->set_color(PIX_WHITE);
-				lcd->draw_circle(p, 2);
+				lcd->draw_circle(p, Rc);
 				continue;
 			}
 			if(new_state & mask)
-				lcd->fill_circle(p, 2);
+				lcd->fill_circle(p, Rc);
 			else
-				lcd->draw_circle(p, 2);
+				lcd->draw_circle(p, Rc);
 		}
 	}
 }
@@ -378,7 +381,7 @@ void CPU_Usage::invalidate(GObject* object, RECT_T area)
 void CPU_Usage::draw_this(LCD_MODULE* lcd)
 {
 	lcd->draw_hline(client_rect.x0, client_rect.x0 + cpu_usage_pos, rect.y0 + CPU_USAGE_WIN_HEIGHT/2);
-	lcd->set_font(&FNT5x7);
+//	lcd->set_font(&FNT5x7); the font is set in the LCD constructor
 	set_xy_all(lcd, ((rect.y1 -rect.y0) >> 1) - (lcd->font->height >> 1), TA_CENTER);
 	lcd->pos_x = cpu_peak +client_rect.x0;
 	lcd->draw_icon(GICON_SQUARE);

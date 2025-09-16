@@ -27,7 +27,7 @@ struct GMsgBox : GDialog
 	GEdit* edit_box;
 	GTitle* title_box;
 	GText*	text_box;
-	GMsgBox() : title(nullptr), body(), font(&FNT5x7), type(MB_OK), default_button(0),
+	GMsgBox() : title(nullptr), body(), font(GUI_TEXT_FONT), type(MB_OK), default_button(0),
 			edit_box(nullptr), title_box(nullptr), text_box(nullptr)
 	 {};
 

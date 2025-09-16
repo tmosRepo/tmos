@@ -45,7 +45,7 @@ struct GEdit:GText
 	}__attribute__((packed));
 	GEdit (	GId id_t, const RECT_T& rect_t, CSTRING txt_t, const char* caption_t = nullptr,
 			GFlags flags_t = GO_FLG_DEFAULT, unsigned short edit_flags_t = ES_DEFAULT,
-			const RENDER_MODE* font_t = &FNT5x7)
+			const RENDER_MODE* font_t = GUI_TEXT_FONT)
 		:GText (id_t, rect_t, txt_t, caption_t, flags_t, edit_flags_t, font_t)
 		 /*text_size (0), no need to initialize (there is a default constructor)*/
 		,cursor_on(false), pos (txt.length()), last_key (0)

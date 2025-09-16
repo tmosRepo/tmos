@@ -31,6 +31,14 @@
 #define GO_OBJ_FRAME_HEIGHT	1
 #endif
 
+#ifndef GUI_TEXT_FONT
+#define GUI_TEXT_FONT (&FNT5x7)
+#endif
+
+#ifndef GUI_LCD_FONT
+#define GUI_LCD_FONT (&FNT5x7)
+#endif
+
 // sin(x)/cos(x) and other math functions
 #ifndef USE_GUI_MATH
 #define USE_GUI_MATH 1

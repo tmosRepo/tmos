@@ -488,6 +488,12 @@ unsigned int remove_amp(CSTRING& str)
 unsigned int GMenu::initialize (GMessage& msg)
 {
 	GObject::initialize(msg);
+	// uses GEdit's default font
+	if (text_font == nullptr) {
+		// replaces with the LCD font
+		text_font = get_lcd_font(displays);
+	}
+
 	if(title)
 		client_rect.y0 += text_font->vspacing + 2*text_font->vdistance;
 	size = GetMenuSize(0);
@@ -512,12 +518,12 @@ void GMenu::draw_this (LCD_MODULE* lcd)
 
 	if(item && menu)
 	{
+		lcd->use_font(text_font);
 
 		if(scroll)
 			scroll->draw_scroll(lcd);
 
 		lcd->allign = TA_CENTER;
-		lcd->set_font(text_font);
 
 		// draw title
 		if(!item->parent)
@@ -626,6 +632,7 @@ void GMenu::draw_this (LCD_MODULE* lcd)
 			}
 			dc.RelaseLcd();
 		}
+		lcd->restore_font();
 	}
 }
 

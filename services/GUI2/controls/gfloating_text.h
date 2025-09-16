@@ -19,7 +19,7 @@ struct GFloating_Text: GObject
 	int text_width;
 
 	GFloating_Text (GId id_t, const RECT_T& rect_t,
-			CSTRING txt_t, GFlags flags_t = GO_FLG_DEFAULT,  const RENDER_MODE* font_t = &FNT5x7)
+			CSTRING txt_t, GFlags flags_t = GO_FLG_DEFAULT,  const RENDER_MODE* font_t = GUI_TEXT_FONT)
 	:GObject (id_t, rect_t, flags_t),
 		txt (txt_t), font (font_t), text_width(0){};
 

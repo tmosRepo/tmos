@@ -56,11 +56,11 @@ struct GMenu: GObject
 	GMenu (GId id_t, const RECT_T& rect_t, const char* title_t, GFlags flags_t = GO_FLG_DEFAULT)
 		:GObject (id_t, rect_t, flags_t),
 		 base(nullptr), menu(nullptr), item(nullptr), title(title_t),
-		 size(0), scroll(nullptr), text_font(&FNT5x7)
+		 size(0), scroll(nullptr), text_font(GUI_TEXT_FONT)
 	{}
 
 	GMenu(): base(nullptr), menu(nullptr), item(nullptr), title(nullptr), size(0),
-			scroll(nullptr), text_font(&FNT5x7)
+			scroll(nullptr), text_font(GUI_TEXT_FONT)
 	{}
 
 	~GMenu()

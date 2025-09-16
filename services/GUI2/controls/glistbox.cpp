@@ -59,7 +59,7 @@ void GListBox::draw_this (LCD_MODULE* lcd)
 		if(flags & GO_FLG_BORDER)
 			draw_border(rect);
 
-		lcd->set_font(text_font);
+		lcd->use_font(text_font);
 		lcd->allign = (align & (TA_HORIZONTAL|TA_VERTICAL));
 
 		draw_caption(lcd);
@@ -76,6 +76,7 @@ void GListBox::draw_this (LCD_MODULE* lcd)
 			vscroll->draw_scroll(lcd);
 		if (flags & GO_FLG_SELECTED)
 			draw_rectangle(client_rect, true);
+		lcd->restore_font();
 	}
 }
 

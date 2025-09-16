@@ -307,9 +307,9 @@ void GObject::invalidate(GObject* object, RECT_T area)
 	if (area)
 	{
 		if(flags & GO_FLG_SHOW)
-			area.normalize(rect);													//cuts the area to the size of the object
+			area.normalize(rect);												//cuts the area to the size of the object
 		if(area)
-			parent->invalidate(this, area);								//calls invalidate to the parent with this as parameter
+			parent->invalidate(this, area);										//calls invalidate to the parent with this as parameter
 	}
 	invalidate_cnt--;
 	GUI_TRACELN("<< draw %u", invalidate_cnt);
@@ -428,6 +428,64 @@ POINT_T GObject::PolarToLP(const int deg, const int r) const
 	p.y += ((int32_t)rem*2)/10000000;
 	return p;
 
+}
+
+void GObject::adjust_rectangle_to_scrren()
+{
+	GObject* tmp;
+	if (rect.x1 < 0 || rect.y1 < 0) {
+		tmp = parent;
+#if GUI_DISPLAYS > 1
+		POINT_T p;
+		uint32_t num_of_LCDs;
+
+		while(tmp && !(num_of_LCDs = tmp->is_lcd())) {
+			tmp = tmp->parent;
+		}
+		GUI_ASSERT(tmp);
+		GUI_ASSERT(tmp->is_lcd() > 1);
+		for(unsigned i=0; i < num_of_LCDs; i++) {
+			if(displays & (1<<i)) {
+				if(p.x < ((LCD_MULT*)tmp)->lcd[i]->size_x) {
+					p.x = ((LCD_MULT*)tmp)->lcd[i]->size_x;
+				}
+				if(p.y < ((LCD_MULT*)tmp)->lcd[i]->size_y) {
+					p.y = ((LCD_MULT*)tmp)->lcd[i]->size_y;
+				}
+			}
+		}
+		if (rect.x1 < 0) {
+			rect.x1 += p.x;
+			GUI_ASSERT(rect.x1 >= 0);
+		}
+		if (rect.y1 < 0) {
+			rect.y1 += p.y;
+			GUI_ASSERT(rect.y1 >= 0);
+		}
+#else
+		while(tmp && !tmp->is_lcd()) {
+			tmp = tmp->parent;
+		}
+		GUI_ASSERT(tmp);
+		if (rect.x1 < 0) {
+			rect.x1 += ((LCD_MODULE*)tmp)->size_x;
+			GUI_ASSERT(rect.x1 >= 0);
+		}
+		if (rect.y1 < 0) {
+			rect.y1 += ((LCD_MODULE*)tmp)->size_y;
+			GUI_ASSERT(rect.y1 >= 0);
+		}
+#endif
+	}
+}
+
+const RENDER_MODE* GObject::get_lcd_font(const GFlags lcd_x) const
+{
+	if (parent) {
+		return parent->get_lcd_font(lcd_x);
+	}
+	GUI_ASSERT(parent);
+	return GUI_LCD_FONT;
 }
 
 void GObject::clear_rect (const RECT_T& area)
@@ -775,6 +833,7 @@ unsigned int GObject::message (GMessage& msg)
 
 unsigned int GObject::initialize(GMessage& msg)
 {
+	adjust_rectangle_to_scrren();
 	client_rect = rect;
 	if(flags & GO_FLG_BORDER)
 		allocate_border();

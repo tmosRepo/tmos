@@ -33,8 +33,9 @@ void GFloating_Button::draw_border(RECT_T& frame)
 
 unsigned int GFloating_Button::initialize (GMessage& msg)
 {
-
+	adjust_rectangle_to_scrren();
 	client_rect = rect;
+
 	if(flags & GO_FLG_BORDER)
 		allocate_border();
 

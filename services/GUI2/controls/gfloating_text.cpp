@@ -22,6 +22,12 @@ unsigned int GFloating_Text::initialize(GMessage& msg)
 */
 
 	GObject::initialize(msg);
+	// uses GEdit's default font
+	if (font == nullptr) {
+		// replaces with the LCD font
+		font = get_lcd_font(displays);
+	}
+
 	text_rect = client_rect;
 	text_width = (font->hdistance<<2) +(txt.length()+1)*font->hspacing;
 	client_rect.y0 = text_rect.y0 = client_rect.y0 + (rect.height() >> 1) - ((font->vspacing + font->vdistance) >> 1);
@@ -36,7 +42,7 @@ unsigned int GFloating_Text::initialize(GMessage& msg)
 
 void GFloating_Text::draw_this (LCD_MODULE* lcd)
 {
-	lcd->set_font(font);
+	lcd->use_font(font);
 	lcd->pos_x = text_rect.x0 + (signed)lcd->font->hdistance;
 	lcd->pos_y = text_rect.y0 + (signed)lcd->font->vdistance;
 	lcd->allign = TA_LEFT;
@@ -47,6 +53,7 @@ void GFloating_Text::draw_this (LCD_MODULE* lcd)
 	client_rect = tmp;
 	if(flags & GO_FLG_BORDER)
 		draw_border(rect);
+	lcd->restore_font();
 }
 
 unsigned int GFloating_Text::process_default(GMessage& msg)

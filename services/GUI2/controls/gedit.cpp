@@ -106,6 +106,13 @@ extern const MENUTEMPLATE WEAK g_keyboard_menu[] =
 
 unsigned int GEdit::initialize (GMessage& msg)
 {
+	adjust_rectangle_to_scrren();
+	// uses GEdit's default font
+	if (text_font == nullptr) {
+		// replaces with the LCD font
+		text_font = get_lcd_font(displays);
+	}
+
 	if((flags & GO_FLG_SELECTED) && is_available() && parent)
 		get_focus();
 
@@ -148,7 +155,7 @@ void GEdit::draw_this(LCD_MODULE* lcd)
 //	if(flags & GO_FLG_BORDER)
 //		draw_border(rect);
 
-	lcd->set_font(text_font);
+	lcd->use_font(text_font);
 	lcd->allign = (align & (TA_HORIZONTAL|TA_VERTICAL));
 	draw_caption(lcd);
 
@@ -208,6 +215,7 @@ void GEdit::draw_this(LCD_MODULE* lcd)
 	}
 	if(flags & GO_FLG_BORDER)
 		draw_border(rect);
+	lcd->restore_font();
 }
 
 void GEdit::move(int x, int y)

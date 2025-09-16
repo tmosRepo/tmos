@@ -21,19 +21,19 @@ struct GText: GObject
 	RECT_T scroll_rect;
 	const char* caption;
 	GText (GId id_t, const RECT_T& rect_t, CSTRING txt_t, const char* caption_t=nullptr,
-			GFlags flags_t = GO_FLG_DEFAULT, unsigned short align_t = SS_DEFAULT, const RENDER_MODE* font_t = &FNT5x7)
+			GFlags flags_t = GO_FLG_DEFAULT, unsigned short align_t = SS_DEFAULT, const RENDER_MODE* font_t = GUI_TEXT_FONT)
 		:GObject (id_t, rect_t, flags_t), txt (txt_t), align(align_t), text_font (font_t),
 		 vscroll(nullptr), hscroll(nullptr), caption(caption_t)
 	{;}
 
 	GText (GId id_t, const RECT_T& rect_t, const char* txt_t,
-			GFlags flags_t = GO_FLG_DEFAULT, unsigned short align_t = SS_DEFAULT, const RENDER_MODE* font_t = &FNT5x7)
+			GFlags flags_t = GO_FLG_DEFAULT, unsigned short align_t = SS_DEFAULT, const RENDER_MODE* font_t = GUI_TEXT_FONT)
 		:GObject (id_t, rect_t, flags_t), txt (txt_t), align(align_t), text_font (font_t),
 		 vscroll(nullptr), hscroll(nullptr), caption(nullptr)
 	{;}
 
 
-	GText () : GObject(),txt (), align(0), text_font (0),
+	GText () : GObject(),txt (), align(0), text_font (nullptr),
 			 vscroll(nullptr), hscroll(nullptr), caption(nullptr)
 	{;}
 
@@ -68,7 +68,7 @@ protected:
 struct GTitle: GText
 {
 	GTitle (GId id_t, const RECT_T& rect_t, CSTRING txt_t, const char* caption_t=nullptr,
-			GFlags flags_t = GO_FLG_DEFAULT, unsigned short align_t = SS_DEFAULT, const RENDER_MODE* font_t = &FNT5x7)
+			GFlags flags_t = GO_FLG_DEFAULT, unsigned short align_t = SS_DEFAULT, const RENDER_MODE* font_t = GUI_TEXT_FONT)
 		:GText (id_t, rect_t, txt_t, caption_t,
 				flags_t, align_t, font_t)
 	{;}

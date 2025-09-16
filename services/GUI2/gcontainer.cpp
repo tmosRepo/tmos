@@ -9,6 +9,7 @@
 
 unsigned int GContainer::initialize (GMessage& msg)								//sets the client rectangle and calls the initialize of the children
 {
+	adjust_rectangle_to_scrren();
 	client_rect = rect;
 	if(flags & GO_FLG_BORDER)
 		allocate_border();

@@ -34,7 +34,7 @@ public:
 			CSTRING txt_t, const char* caption_t=nullptr,
 			GFlags flags_t = GO_FLG_DEFAULT,
 			unsigned short align_t = LBS_DEFAULT,
-			const RENDER_MODE* font_t = &FNT5x7):
+			const RENDER_MODE* font_t = GUI_TEXT_FONT):
 			GText (id_t, rect_t, txt_t, caption_t, flags_t, align_t, font_t),
 			list(nullptr)
 	{;}

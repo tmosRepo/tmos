@@ -9,6 +9,13 @@
 
 unsigned int GText::initialize (GMessage& msg)
 {
+	adjust_rectangle_to_scrren();
+	// uses GEdit's default font
+	if (text_font == nullptr) {
+		// replaces with the LCD font
+		text_font = get_lcd_font(displays);
+	}
+
 	if((flags & GO_FLG_SELECTED) && is_available() && parent)
 		get_focus();
 
@@ -245,7 +252,7 @@ void GText::draw_this (LCD_MODULE* lcd)
 		if(flags & GO_FLG_BORDER)
 			lcd->draw_border(rect);
 
-		lcd->set_font(text_font);
+		lcd->use_font(text_font);
 		lcd->allign = (align & (TA_HORIZONTAL|TA_VERTICAL));
 
 		draw_caption(lcd);
@@ -261,6 +268,7 @@ void GText::draw_this (LCD_MODULE* lcd)
 			vscroll->draw_scroll(lcd);
 		if (flags & GO_FLG_SELECTED)
 			lcd->draw_poligon(rect);
+		lcd->restore_font();
 	}
 }
 
@@ -273,7 +281,7 @@ void GTitle::draw_this (LCD_MODULE* lcd)
 {
 	if(client_rect.height() > 0 && client_rect.width() > 0)
 	{
-		lcd->set_font(text_font);
+		lcd->use_font(text_font);
 		lcd->allign = (align & (TA_HORIZONTAL|TA_VERTICAL));
 		GClientLcd dc(this);
 		if(dc.CreateLcd(scroll_rect, lcd))
@@ -291,5 +299,6 @@ void GTitle::draw_this (LCD_MODULE* lcd)
 		draw_poligon(client_rect, true);
 		draw_hline(client_rect.x0, client_rect.x1, client_rect.y1);
 		client_rect = rc;
+		lcd->restore_font();
 	}
 }

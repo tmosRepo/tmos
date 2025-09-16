@@ -82,6 +82,12 @@ bool time_pos_map::dec_index()
 
 unsigned int GDateTime::initialize (GMessage& msg)
 {
+	adjust_rectangle_to_scrren();
+	// uses GEdit's default font
+	if (text_font == nullptr) {
+		// replaces with the LCD font
+		text_font = get_lcd_font(displays);
+	}
 	if((flags & GO_FLG_SELECTED) && is_available() && parent)
 		get_focus();
 	txt = time->sprintf(time_format);

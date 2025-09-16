@@ -113,7 +113,9 @@ struct GObject : public u_colors_t
 	{
 		void *p;
 		uint32_t tmp = CURRENT_TIME;
-
+#if USED_MEMORY_POOLS > 1
+		size |= pool_tcm;
+#endif
 		// Do not return nullptr !!!
 		while ((p = tsk_malloc(size)) == nullptr)
 		{
@@ -152,7 +154,8 @@ struct GObject : public u_colors_t
 	virtual void DPtoLP(POINT_T& size, const unsigned char lcd_index =0) const;
 	virtual POINT_T PolarToDP(const int deg, const int r, const unsigned char lcd_index=0) const;
 	POINT_T PolarToLP(const int deg, const int r) const;
-
+	void adjust_rectangle_to_scrren();
+	virtual const RENDER_MODE* get_lcd_font(const GFlags lcd_x) const;
 	// Draw methods
 
 	bool cut_hline(int& x0, int& x1, int& y) const;

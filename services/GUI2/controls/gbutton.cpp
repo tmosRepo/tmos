@@ -41,7 +41,7 @@ void GButton::draw_this (LCD_MODULE* lcd)
 			lcd->set_color(PIX_LIGHTGRAY);
 		draw_border(rect);
 	}
-	lcd->set_font(&FNT5x7);
+//	lcd->set_font(&FNT5x7); the font is set in the LCD constructor
 	set_xy_all(lcd, ((client_rect.y1 - client_rect.y0) >> 1) - (lcd->font->height >> 1), TA_CENTER);
 	if(type)
 	{
@@ -75,7 +75,7 @@ void GButton::draw_this (LCD_MODULE* lcd)
 		lcd->clear_rect(RECT_T(lcd->pos_x/*client_rect.x0*/, client_rect.y0+1, client_rect.x1, client_rect.y1-1));
 		lcd->set_color(get_bg_color());
 	}
-	text_metrics_t size = get_text_metrics(label.c_str(), client_rect.width() -lcd->pos_x, &FNT5x7);
+	text_metrics_t size = get_text_metrics(label.c_str(), client_rect.width() -lcd->pos_x, lcd->font);
 	if(size.height > client_rect.height())
 		draw_text_line(lcd, label.c_str(), label.length());
 	else

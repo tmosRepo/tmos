@@ -40,10 +40,10 @@ struct GWaitOwner
 
 struct GWait : GContainer    //GWindow
 {
-	uint16_t	 new_state, last_state;
-	uint32_t R;
+	uint16_t new_state, last_state;
+	uint16_t R, Rc;
 	POINT_T  base;
-	POINT_T *circles_pos;
+	POINT_T* circles_pos;
 //private:
 	static GWait*   	dowait_win;
 	static int32_t		dowait_cnt;
@@ -53,6 +53,7 @@ public:
 	new_state(3)
 	, last_state(0)
 	, R(15)
+	, Rc(3)
 	, circles_pos(nullptr)
 	, owners(nullptr)
 	{
