@@ -30,6 +30,16 @@ inline int IS_NOT_NULL(const void* x)	//!< Suppress GCC 7.X warnings
 /// stored in backup ram if available
 #define __bkp_no_init			__attribute__ ((section (".backupnoinit")))
 
+#define DO_PRAGMA(x) _Pragma(#x)
+
+#ifdef __GNUC__
+#define FILE_OPTIMIZE(x)     DO_PRAGMA(GCC optimize (x))
+#define FILE_RESET_OPTIONS	 DO_PRAGMA(GCC reset_options)
+#else
+#define FILE_OPTIMIZE(x)
+#define FILE_RESET_OPTIONS
+#endif
+
 #ifdef __cplusplus
 #	define EXTERN_C		extern "C"
 namespace tmos

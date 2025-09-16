@@ -7,9 +7,7 @@
 
 #include <basic_shapes.h>
 
-#ifdef __GNUC__
-#pragma GCC optimize ("Os")
-#endif
+FILE_OPTIMIZE("Os")
 //*----------------------------------------------------------------------------
 //*			Point
 //*----------------------------------------------------------------------------
@@ -145,9 +143,7 @@ bool RECT_T::normalize (short int x0_t, short int y0_t, short int x1_t, short in
 		y1 = y1_t;
 	return true;
 }
-#ifdef __GNUC__
-#pragma GCC reset_options
-#endif
 
+FILE_RESET_OPTIONS
 
 

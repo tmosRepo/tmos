@@ -13,9 +13,7 @@
 #include <usb_msc_reqs.h>
 
 #if TRACE_MSC_LEVEL >= TRACE_LEVEL_DEBUG
-#ifdef __GNUC__
-#pragma GCC optimize ("O0")
-#endif
+FILE_OPTIMIZE("O0")
 #endif
 
 //------------------------------------------------------------------------------
@@ -691,7 +689,5 @@ RES_CODE usb_remote_msc_t::scan_msc(uint32_t port_indx, USBSubClassCode subcls, 
 }
 
 #if TRACE_MSC_LEVEL >= TRACE_LEVEL_DEBUG
-#ifdef __GNUC__
-#pragma GCC reset_options
-#endif
+FILE_RESET_OPTIONS
 #endif

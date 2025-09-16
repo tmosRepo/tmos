@@ -12,9 +12,7 @@
 #include <tmos.h>
 #include "fam_cpp.h"
 
-#ifdef __GNUC__
-#pragma GCC optimize ("Os")
-#endif
+FILE_OPTIMIZE("Os")
 /**
  * Configure pin(s) according to the pin description
  * @param cfg
@@ -303,6 +301,4 @@ void exti_set_line_source(unsigned int line, unsigned int port)
 	*reg = (*reg & ~SYSCFG_EXTICRy_EXTIx_Msk(line)) | SYSCFG_EXTICRy_EXTIx_Set(line, port & 0xF);
 }
 
-#ifdef __GNUC__
-#pragma GCC reset_options
-#endif
+FILE_RESET_OPTIONS

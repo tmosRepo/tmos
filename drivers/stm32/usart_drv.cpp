@@ -35,9 +35,7 @@
 
 #if TRACE_IS  && defined IS_TRACE_UART
 
-#ifdef __GNUC__
-#pragma GCC optimize ("Os")
-#endif
+FILE_OPTIMIZE("Os")
 static char get_uart_index(USART_DRIVER_INFO * drv_info)
 {
 	uint32_t  res = 0;
@@ -51,9 +49,7 @@ static char get_uart_index(USART_DRIVER_INFO * drv_info)
 	}
 	return '0' + res;
 }
-#ifdef __GNUC__
-#pragma GCC reset_options
-#endif
+FILE_RESET_OPTIONS
 
 #define UART_TRACE_CHAR(ch) 		do{if(IS_TRACE_UART)TRACE_CHAR_LEVEL(TRACE_UART_LEVEL, ch);}while(0)
 #define UART_TRACE(...) 			do{if(IS_TRACE_UART)TRACE_LEVEL(TRACE_UART_LEVEL, __VA_ARGS__);}while(0)
