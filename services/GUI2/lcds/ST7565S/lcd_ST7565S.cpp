@@ -103,7 +103,7 @@ void ST7565S::do_reset()
 	}
 }
 
-#pragma GCC optimize ("Os")
+FILE_OPTIMIZE("Os")
 
 void ST7565S::draw_bitmap( int x0, int y0, const char* src, int width, int rows)
 {
@@ -321,7 +321,7 @@ void ST7565S::invert_vline( int y0, int y1, int x)
 	}
 }
 
-#pragma GCC reset_options
+FILE_RESET_OPTIONS
 
 void ST7565S::redraw_screen (GObject* object, RECT_T area)
 {

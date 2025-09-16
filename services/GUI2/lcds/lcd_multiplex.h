@@ -21,11 +21,12 @@ struct LCD_MULT: GContainer
 	void LPtoDP(POINT_T& size, const unsigned char lcd_index=0) const override;
 	void DPtoLP(POINT_T& size, const unsigned char lcd_index=0) const override;
 	POINT_T PolarToDP(const int deg, const int r, const unsigned char lcd_index=0) const override;
+	const RENDER_MODE* get_lcd_font(const GFlags lcd_x) const override;
 protected:
 	void redraw_screen(GObject* object, RECT_T area) override;
 	inline virtual unsigned int is_lcd() const override __attribute__((optimize("Os"), always_inline))
 	{
-		return 1;
+		return GUI_DISPLAYS;
 	}
 
 };

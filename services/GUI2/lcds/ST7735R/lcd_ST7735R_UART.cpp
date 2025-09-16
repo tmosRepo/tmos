@@ -124,6 +124,7 @@ const unsigned short ST7735R_UART::ST7735R_lsb_init[] =
 
 const unsigned short ST7735R_UART::ST7735R_lsb_init_size = sizeof(ST7735R_UART::ST7735R_lsb_init);
 
+/*
 static const unsigned short ST7735R_lsb_row_address[] =
 {
 	MSB2LSB(ST7735R_RASET),
@@ -131,15 +132,33 @@ static const unsigned short ST7735R_lsb_row_address[] =
 		MSB2LSB(ST7735R_DATA(0)),MSB2LSB(ST7735R_DATA(0)),
 	MSB2LSB(ST7735R_RAMWR)
 };
+*/
 
 void ST7735R_UART::lcd_reset()
 {
 	tsk_sleep(100);
-	lcd_hnd->tsk_write(ST7735R_lsb_init, 1);
-	tsk_sleep(120);
-	lcd_hnd->tsk_write(ST7735R_lsb_init+1, sizeof(ST7735R_lsb_init)/2 -1);
-}
 
+	if (uart_lock) {
+		uart_lock->lock();
+	}
+	PIO_Assert(pins[CSX_PIN_INDX]);
+	lcd_hnd->tsk_write(ST7735R_lsb_init, 1);
+	PIO_Deassert(pins[CSX_PIN_INDX]);
+	if (uart_lock) {
+		uart_lock->unlock();
+	}
+
+	tsk_sleep(120);
+	if (uart_lock) {
+		uart_lock->lock();
+	}
+	PIO_Assert(pins[CSX_PIN_INDX]);
+	lcd_hnd->tsk_write(ST7735R_lsb_init+1, sizeof(ST7735R_lsb_init)/2 -1);
+	PIO_Deassert(pins[CSX_PIN_INDX]);
+	if (uart_lock) {
+		uart_lock->unlock();
+	}
+}
 
 
 

@@ -58,3 +58,24 @@ POINT_T LCD_MULT::PolarToDP(const int deg, const int r, const unsigned char lcd_
 		return lcd[lcd_index]->PolarToDP(deg, r, lcd_index);
 	return POINT_T();
 }
+
+const RENDER_MODE* LCD_MULT::get_lcd_font(const GFlags lcd_x) const
+{
+	const RENDER_MODE* res_font = nullptr;
+	if (lcd_x < (1<<GUI_DISPLAYS)-1) {
+		for (int i = 0; i < GUI_DISPLAYS; i++)	{
+			if (lcd[i]->displays & lcd_x) {
+				if (res_font) {
+					if(res_font->char_bytes < lcd[i]->font->char_bytes) {
+						continue;
+					}
+				}
+				res_font = lcd[i]->font;
+			}
+		}
+	}
+	GUI_ASSERT(res_font);
+	if(!res_font)
+		return GUI_LCD_FONT;
+	return res_font;
+}

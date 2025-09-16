@@ -19,11 +19,10 @@ struct ST7735R_UART : public SPFD5414D_UART
 
 	ST7735R_UART(unsigned int x, unsigned int y,
 			unsigned int dx, unsigned int dy,
-			HANDLE hnd, const PIN_DESC* p) :
-		SPFD5414D_UART(x, y, dx, dy, hnd, p)
-	{
-	}
-	;
+			HANDLE hnd, const PIN_DESC* p, const RENDER_MODE* _font = GUI_LCD_FONT,
+			lock_t*  _lock = nullptr) :
+		SPFD5414D_UART(x, y, dx, dy, hnd, p, _font, _lock)
+	{ ; }
 
 	void lcd_reset() override;
 };

@@ -56,7 +56,7 @@ static const unsigned int lut_to_tft_color[16] =
 	PIX_RGB_WHITE
 };
 
-const unsigned short tft_init[] =
+static const unsigned short tft_init[] =
 {
 	SPFD5414D_SLPOUT,
 	// ColorModeSet 16bpp
@@ -72,7 +72,7 @@ const unsigned short tft_init[] =
 	SPFD5414D_RASET, SPFD5414D_DATA(0), SPFD5414D_DATA(0), SPFD5414D_DATA(0), SPFD5414D_DATA(127),
 };
 
-const unsigned short tft_init_address[] =
+static const unsigned short tft_init_address[] =
 {
 	SPFD5414D_CASET, SPFD5414D_DATA(0), SPFD5414D_DATA(0), SPFD5414D_DATA(0), SPFD5414D_DATA(127),
 	SPFD5414D_RASET, SPFD5414D_DATA(0), SPFD5414D_DATA(0), SPFD5414D_DATA(0), SPFD5414D_DATA(0),
@@ -95,11 +95,12 @@ void SPFD5414D::do_reset()
 
 void SPFD5414D::clear_screen()
 {
-	memclr(disp_buf, sizeof(disp_buf));
+//	memclr(disp_buf, sizeof(disp_buf));
+	memclr(disp_buf[0], size_y * (size_x/2));
+
 }
 
-
-#pragma GCC optimize ("Os")
+FILE_OPTIMIZE("Os")
 
 #if PIX_FORMAT == PIX_4BIT_FORMAT
 /**
@@ -420,8 +421,7 @@ void SPFD5414D::invert_hline( int x0, int x1, int y)
 	}
 }
 
-#pragma GCC reset_options
-
+FILE_RESET_OPTIONS
 
 void SPFD5414D::adjust_for_screen (GObject** object, RECT_T& area)				//change the area and object to desktop if the display draws only rows or columns
 {
@@ -449,14 +449,15 @@ void SPFD5414D::tft_write_row(unsigned short address_cmd[])
  */
 	address_cmd[2] = SPFD5414D_DATA(frame.x0); address_cmd[4] = SPFD5414D_DATA(frame.x1);
 	address_cmd[7] = SPFD5414D_DATA(frame.y0); address_cmd[9] = SPFD5414D_DATA(frame.y0);
-	unsigned int * dst = tft_buf;
-	for(int x= 0; x < 64; x++)
+	//TODO: use_dcx_pin
+	unsigned int * dst = (unsigned int *)tft_buf;
+	for(int x= 0; x < size_x/2; x++)
 	{
 		*dst++ = lut_to_tft_color[(disp_buf[frame.y0][x] & 0xF0)>>4];
 		*dst++ = lut_to_tft_color[disp_buf[frame.y0][x] & 0x0F];
 	}
 	lcd_hnd->tsk_write(address_cmd, sizeof(tft_init_address)/2);
-	lcd_hnd->tsk_write(tft_buf+frame.x0, frame.x1 - frame.x0 +1);
+	lcd_hnd->tsk_write(((unsigned int *)tft_buf)+frame.x0, frame.x1 - frame.x0 +1);
 }
 
 void SPFD5414D::redraw_screen (GObject* object, RECT_T area)
@@ -497,111 +498,157 @@ void SPFD5414D::direct_write(GSplash draw_cb)
     }
 }
 
+//------------------------------------------------------------------------------
+#define SDA 	(pins[SDA_PIN_INDX])
+#define SCL		(pins[SCL_PIN_INDX])
+#define CSX		(pins[CSX_PIN_INDX])
+#define DCX		(pins[DCX_PIN_INDX])
+#define RST		(pins[RST_PIN_INDX])
 
-void TFT_CHECK::delay(unsigned int time)
+#define INPUT_SETUP_TIME	2
+/*
+#define PINS_TRACE(str)	do { \
+	TRACELN("%s  D%u   CL%u   CS%u", str, PIO_Read(SDA)?1:0, PIO_Read(SCL)?1:0, PIO_Read(CSX)?1:0); \
+	tsk_sleep(2); }while(0)
+*/
+FILE_OPTIMIZE("Os")
+
+unsigned int TFT_CHECK::tft_read( unsigned int bits )
 {
-	if(time)
+	unsigned int res = 0;
+	PIN_DESC SDI = SDA & ~(PD_PULL_DOWN|PD_PULL_UP);
+
+	PIO_CfgInput(SDI|PD_PULL_UP);
+	// data bits
+
+	for (unsigned int i = 0; i < bits; i++)
 	{
-		tsk_sleep(time);
+		PIO_ClrOutput(SCL);
+
+		res <<= 1;
+		z_bits <<= 1;
+		if (PIO_Read(SDA)) {
+			res ++;
+			PIO_CfgInput(SDI|PD_PULL_DOWN);
+			delay(INPUT_SETUP_TIME);
+			if (!PIO_Read(SDI)) {
+				z_bits++;
+			}
+			PIO_CfgInput(SDI|PD_PULL_UP);
+			delay(INPUT_SETUP_TIME);
+		}
+		PIO_SetOutput(SCL);
 	}
+
+	PIO_ClrOutput(SCL);
+	return (res);
 }
 
-void TFT_CHECK::tft_write( unsigned int value)
+void TFT_CHECK::tft_write(unsigned int value, unsigned int bits)
 {
+	int i = 0;
 	//SET SDA to Port
-	PIO_CfgOutput0(pins[SDA_PIN_INDX]);
+	PIO_CfgOutput0(SDA);
+
+	if (dcx && bits == 8) {
+		i=1;
+		value <<= 1;
+		PIO_CfgOutput0(DCX);
+	}
 
 	//9 data bits
-	for (int i = 0; i < 9; i++)
+	for (; i < 9; i++)
 	{
-		PIO_ClrOutput(pins[SCL_PIN_INDX]);
-		delay();
+		PIO_ClrOutput(SCL);
 
 		//    TFT_SDA = nByte & Mask8[i] ? 1 : 0;//51 msec
 		if(value & 0x100)
-		{
-			PIO_SetOutput(pins[SDA_PIN_INDX]);
-		} else
-		{
-			PIO_ClrOutput(pins[SDA_PIN_INDX]);
-		}
+			PIO_SetOutput(SDA);
+		else
+			PIO_ClrOutput(SDA);
 		value <<= 1;
-		delay();
-
-		PIO_SetOutput(pins[SCL_PIN_INDX]);
-		delay();
+		PIO_SetOutput(SCL);
 	}
-	PIO_ClrOutput(pins[SCL_PIN_INDX]);
-	delay();
-	PIO_SetOutput(pins[SCL_PIN_INDX]);
-	delay();
-	PIO_ClrOutput(pins[SCL_PIN_INDX]);
-	delay();
+	PIO_CfgInput(SDA);
+
+	PIO_ClrOutput(SCL);
+	if (dcx) {
+		PIO_SetOutput(DCX);
+	}
 }
 
-unsigned int TFT_CHECK::tft_read( )
+void TFT_CHECK::tft_reset()
 {
-	unsigned int res = 0;
+    PIO_CfgOutput1(RST);
 
-	PIO_CfgInput(pins[SDA_PIN_INDX]);
-
-	//8 data bits
-	for (int i = 0; i < 8; i++)
-	{
-		PIO_ClrOutput(pins[SCL_PIN_INDX]);
-		delay();
+    PIO_ClrOutput(RST);
+	delay(5);
+	PIO_SetOutput(RST);
+	delay(150);
 
 
-		res <<= 1;
-		if(PIO_Read(pins[SDA_PIN_INDX]))
-			res ++;
+    PIO_CfgOutput0(SCL);
+    PIO_CfgOutput1(CSX);
 
-		PIO_SetOutput(pins[SCL_PIN_INDX]);
-		delay();
-	}
-	PIO_ClrOutput(pins[SCL_PIN_INDX]);
-	delay();
-	return (res);
+#if 0
+	PIO_ClrOutput(CSX);
+	delay(5);
+	tft_write(SPFD5414D_SWRESET);
+	delay(5);
+	PIO_SetOutput(CSX);
+	delay(150);
+
+	PIO_ClrOutput(CSX);
+	tft_write(SPFD5414D_SLPOUT);
+	PIO_SetOutput(CSX);
+	delay(150);
+#endif
+
 }
 
 unsigned int TFT_CHECK::read_id()
 {
-
-    PIO_CfgOutput0(pins[RST_PIN_INDX]);
-	delay(5);
-	PIO_SetOutput(pins[RST_PIN_INDX]);
-	delay(150);
-
-	PIO_CfgOutput0(pins[CSX_PIN_INDX]);
-	delay(5);
-	tft_write(SPFD5414D_SWRESET);
-	delay(5);
-	PIO_SetOutput(pins[CSX_PIN_INDX]);
-	delay(150);
-
-    PIO_CfgOutput0(pins[SCL_PIN_INDX]);
-
-	PIO_CfgOutput0(pins[CSX_PIN_INDX]);
-	tft_write(SPFD5414D_SLPOUT);
-	PIO_SetOutput(pins[CSX_PIN_INDX]);
-	delay(150);
-	return id();
+	tft_reset();
+	if (id() ) {
+		return  ID_24bits;
+	} else if(dcx) {
+		tft_reset();
+		if (id(8)) {
+			return  ID_24bits;
+		}
+	}
+	return -1u;
 }
 
-unsigned int TFT_CHECK::id()
+bool TFT_CHECK::id(unsigned int bits)
 {
-	unsigned int res =0;
+	ID_24bits =0;
+	ID_3x8bits =0;
+	z_bits =0;
 
-	PIO_CfgOutput0(pins[SCL_PIN_INDX]);
-	PIO_CfgOutput0(pins[CSX_PIN_INDX]);
-	tft_write(SPFD5414D_RDDID);
-	res = tft_read();	//2A
-	res <<= 8;
-	res |= tft_read(); //2A40
-	res <<= 8;
-	res |= tft_read(); //2A4033
-	PIO_SetOutput(pins[CSX_PIN_INDX]);
-	return res;
+	PIO_ClrOutput(CSX);
+	tft_write(SPFD5414D_RDDID, bits);
+
+	PIO_SetOutput(SCL);		// dummy clock
+	PIO_ClrOutput(SCL);
+
+	ID_24bits = tft_read(24);
+	PIO_SetOutput(CSX);
+
+	delay(1);
+
+	for (unsigned int i=0; i < 3; i++) {
+		ID_3x8bits <<= 8;
+
+		PIO_ClrOutput(CSX);
+		tft_write(SPFD5414D_RDID1+i, bits);
+		ID_3x8bits |= tft_read(8);
+		PIO_SetOutput(CSX);
+	}
+
+	if((ID_24bits | ID_3x8bits) == 0xFFFFFF)
+		return false;
+	return ((ID_24bits == ID_3x8bits) );
 }
 
-
+FILE_RESET_OPTIONS

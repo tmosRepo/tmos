@@ -103,6 +103,10 @@ void SPFD5414D_UART::tft_init_address_cmd(unsigned short address_cmd[])
 
 void SPFD5414D_UART::tft_write_row(unsigned short address_cmd[])
 {
+	if (uart_lock) {
+		uart_lock->lock();
+	}
+	PIO_Assert(pins[CSX_PIN_INDX]);
 /*		0					1					2				3					4
 	SPFD5414D_CASET, SPFD5414D_DATA(0), SPFD5414D_DATA(0), SPFD5414D_DATA(0), SPFD5414D_DATA(127),
 		5					6					7				8					9
@@ -111,19 +115,37 @@ void SPFD5414D_UART::tft_write_row(unsigned short address_cmd[])
  */
 	address_cmd[2] = rotate(SPFD5414D_DATA(frame.x0)); address_cmd[4] = rotate(SPFD5414D_DATA(frame.x1));
 	address_cmd[7] = address_cmd[9] = rotate(SPFD5414D_DATA(frame.y0));
-	unsigned int * dst = tft_buf;
-	for(int x= 0; x < 64; x++)
+	//TODO: use_dcx_pin
+	unsigned int * dst = (unsigned int *)tft_buf;
+	for(int x= 0; x < size_x/2; x++)
 	{
 		*dst++ = lut_to_tft_color_rotated[(disp_buf[frame.y0][x] & 0xF0)>>4];
 		*dst++ = lut_to_tft_color_rotated[disp_buf[frame.y0][x] & 0x0F];
 	}
 	lcd_hnd->tsk_write(address_cmd, sizeof(spdf5414d_lsb_row_address)/2);
-	lcd_hnd->tsk_write_locked(tft_buf+frame.x0, (frame.x1 - frame.x0 +1)*2);
+	lcd_hnd->tsk_write_locked(((unsigned int *)tft_buf)+frame.x0, (frame.x1 - frame.x0 +1)*2);
+
+	PIO_Deassert(pins[CSX_PIN_INDX]);
+	if (uart_lock) {
+		uart_lock->unlock();
+	}
+
 }
 
 void SPFD5414D_UART::lcd_reset()
 {
+	if (uart_lock) {
+		uart_lock->lock();
+	}
+	PIO_Assert(pins[CSX_PIN_INDX]);
+
 	lcd_hnd->tsk_write_locked(spdf5414d_lsb_init, sizeof(spdf5414d_lsb_init)/2);
+
+	PIO_Deassert(pins[CSX_PIN_INDX]);
+	if (uart_lock) {
+		uart_lock->unlock();
+	}
+
 }
 
 

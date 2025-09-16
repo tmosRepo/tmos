@@ -70,8 +70,8 @@ struct ST7735R : public SPFD5414D
 
     ST7735R(unsigned int x, unsigned int y,
     		unsigned int dx, unsigned int dy,
-    		HANDLE hnd, const PIN_DESC* p) :
-    	SPFD5414D(x, y, dx, dy, hnd, p)
+    		HANDLE hnd, const PIN_DESC* p, const RENDER_MODE* _font = GUI_LCD_FONT) :
+    	SPFD5414D(x, y, dx, dy, hnd, p, _font)
 	{
 	}
 	;

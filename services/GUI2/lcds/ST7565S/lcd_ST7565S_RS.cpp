@@ -32,7 +32,8 @@ void ST7565S_RS::lcd_command(unsigned int cmd)
 
 }
 
-#pragma GCC optimize ("Os")
+FILE_OPTIMIZE("Os")
+
 __attribute__((always_inline)) char ST7565S_RS::revert_char (char ch)
 {
 	unsigned int tmp = __RBIT((unsigned int) ch);
@@ -295,7 +296,7 @@ void ST7565S_RS::invert_vline( int y0, int y1, int x)
 	}
 }
 
-#pragma GCC reset_options
+FILE_RESET_OPTIONS
 
 void ST7565S_RS::update_screen()
 {

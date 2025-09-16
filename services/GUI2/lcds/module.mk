@@ -29,7 +29,7 @@ h_sources  	+= $(call changepath,$(local_h_src-y))
 inc_dirs += $(subdirectory)
 
 #submodules
-local_modules-y :=  ST7565S ST7735R SPFD5414D EM6125
+local_modules-y :=  ST7565S ST7735R SPFD5414D EM6125 ST7789P3
 
 sub_modules := $(call changepath,$(local_modules-y))
 modules += $(sub_modules)

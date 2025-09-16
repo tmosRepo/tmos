@@ -3,6 +3,9 @@
 
 #include <stdgui.h>
 #include <hardware_cpp.h>
+#include <tmos_stdlib.h>
+
+extern volatile unsigned int backlight_time;
 
 #define SIG_BACKLIGHT_TASK	1
 
@@ -42,6 +45,7 @@ struct LCD_MODULE: public GContainer
 		unsigned short chars_per_row;
 		unsigned short allign;
 		const RENDER_MODE* font;
+		const RENDER_MODE* previously_used_font;
 		HANDLE lcd_hnd;
 		const PIN_DESC* pins;
 		//draw colors are only allocated if the GUI is monochrome, otherwise they
@@ -59,10 +63,16 @@ protected:
 public:
 	LCD_MODULE(	unsigned int x, unsigned int y,
 				unsigned int dx, unsigned int dy,
-				HANDLE hnd, const PIN_DESC* p) :
-		size_x(x), size_y(y), dot_pitch_x(dx), dot_pitch_y(dy), lcd_hnd(hnd), pins(p)
+				HANDLE hnd, const PIN_DESC* p,
+				const RENDER_MODE* _font = GUI_LCD_FONT) :
+		pos_x(0), pos_y(0),
+		size_x(x), size_y(y),
+		dot_pitch_x(dx), dot_pitch_y(dy),
+		font(_font), previously_used_font(nullptr),
+		lcd_hnd(hnd), pins(p)
 	{
 		rect = RECT_T (0, 0, x - 1, y - 1);
+		set_font(_font);
 #if GUI_MONOCHROME
 		fg_color = PIX_WHITE;
 		bg_color = PIX_BLACK;
@@ -89,7 +99,15 @@ public:
 	virtual void adjust_for_screen (GObject** object, RECT_T &area)
 		{;}
 
-	void set_font(const RENDER_MODE* afont);
+	void use_font(const RENDER_MODE* afont);
+	void restore_font();
+
+	const RENDER_MODE* get_lcd_font(const GFlags lcd_x) const override
+	__attribute__((optimize("Os"), always_inline))
+	{
+		return font;
+	}
+
 	void set_xy_all(unsigned int xy, unsigned int all);
 	void clear_rect (const RECT_T& area) override;
 	const char* get_next_txt_row(const char *txt) const;
@@ -128,12 +146,14 @@ public:
 
 #endif
 protected:
+	void set_font(const RENDER_MODE* afont);
 	inline virtual unsigned int is_lcd() const override __attribute__((optimize("Os"), always_inline))
 	{
 		return 1;
 	}
 
 };
+
 
 struct GClientLcd : GObject
 {
@@ -148,6 +168,7 @@ private:
 	}
 };
 
+/*
 template <class T, uint32_t min_size>
 class stack
 {
@@ -217,4 +238,5 @@ public:
 	}
 };
 
+*/
 #endif

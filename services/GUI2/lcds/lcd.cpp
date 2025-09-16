@@ -279,6 +279,24 @@ void LCD_MODULE::set_font(const RENDER_MODE* afont)
 	chars_per_row = size_x / font->hspacing;
 }
 
+void LCD_MODULE::use_font(const RENDER_MODE* afont)
+{
+	GUI_ASSERT(previously_used_font == nullptr);
+	previously_used_font = font;
+	set_font(afont);
+}
+
+void LCD_MODULE::restore_font()
+{
+	GUI_ASSERT(previously_used_font);
+	if (previously_used_font) {
+		set_font(previously_used_font);
+		previously_used_font = nullptr;
+	} else {
+		set_font(GUI_LCD_FONT);
+	}
+}
+
 void LCD_MODULE::set_xy_all(unsigned int xy, unsigned int all)
 {
 	pos_y = xy;
