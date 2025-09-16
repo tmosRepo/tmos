@@ -10,7 +10,9 @@
 #ifndef BRD_CFG_H_
 #define BRD_CFG_H_
 
-
+#define GD32F4XX_COMPATIBLE 1
+// 0 - default, 1 - DTCM, 2,3,4 - additional SRAM
+#define USED_MEMORY_POOLS	5
 
 #define USE_TMOS_TL_V2		1
 #define USE_CSTRING			1
@@ -36,9 +38,14 @@
 #define USE_MEMORY_TRACKING	1
 #define USE_TASK_REGISTERS	1
 
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// GUI
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #define GUI_DISPLAYS		1
 #define GUI_DEFAULT_DISP	1
 #define GUI_MONOCHROME  	0
+// Determines which font to use depending on the display
+#define GUI_TEXT_FONT		nullptr
 
 #define URL_CUSTOM_ROUTING	1
 
