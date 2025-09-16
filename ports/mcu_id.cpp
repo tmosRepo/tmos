@@ -8,7 +8,7 @@
 #include <hardware_cpp.h>
 #include <mcu_id.h>
 
-__no_init char device_type[16];
+__no_init char mcu_name[16];
 /* CoreSight infrastructure IDs for an ARMv7-M implementation */
 /*
  * CIDx values are fully defined for the ROM table, and are CoreSight compliant.
@@ -214,12 +214,12 @@ static char* stm_f0(char* ptr, uint32_t ID_CODE)
 /*
  * To be called only before the initialization of the drivers !
  */
-const char* get_mcu_type(void)
+const char* get_mcu_name(void)
 {
-	char *ptr = device_type;
+	char *ptr = mcu_name;
 	uint32_t jep = mcu_jep106();
 
-	memset(device_type, 0, sizeof(device_type));
+	memset(mcu_name, 0, sizeof(mcu_name));
 	switch(jep)
 	{
 	case MCU_JEP106_APM:
@@ -297,7 +297,7 @@ const char* get_mcu_type(void)
 		break;
 	default:
 		strcpy(ptr, "????"); // TODO: to add other ID codes
-		return device_type;
+		return mcu_name;
 	}
 	ptr += strlen(ptr);
 	if(jep == MCU_JEP106_GD)
@@ -313,11 +313,12 @@ const char* get_mcu_type(void)
 			break;
 		}
 	}
-	return device_type;
+	return mcu_name;
 }
-cpu_t cpu_identify(void)
+
+core_t get_core(void)
 {
-	cpu_t cpu;
+	core_t cpu;
 	switch ((REG_SCB_CPUID>>16)&0xf) // ARCHITECTURE
 	{
 	case 0xC:

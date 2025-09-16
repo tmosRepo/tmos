@@ -151,11 +151,11 @@ extern "C" void SLOW_FLASH default_memory_heap_init( void )
 #if USE_TMOS_STDLIB
 #if USED_MEMORY_POOLS > 1 && USE_MCU_DETECT
 	uint32_t init_pools = 0;
-	if (Cortex_M4F == cpu_identify().type) {
+	if (Cortex_M4F == get_core().type) {
 		// initialize TCM pool
 		svc_pool_init(&_tcm_end, (void*)(BASE_TCMSRAM +TCMSRAM_SIZE), pool_tcm);
 		init_pools++;
-		if (!strncmp(device_type, "GD32F4", strlen("GD32F4"))) {
+		if (!strncmp(mcu_name, "GD32F4", strlen("GD32F4"))) {
 			//256 KB to 768 KB of SRAM
 			//1. Memory density information
 			uint32_t ram_size = *(uint32_t *)0x1FFF7A20;

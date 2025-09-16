@@ -220,12 +220,12 @@ extern "C" void SLOW_FLASH DefaultSystemInit( void )
 		StartUpCounter++;
 	} while ((HSEStatus == 0) && (StartUpCounter != HSE_STARTUP_TIMEOUT));
 
-	get_mcu_type();
-	if(0 == strncmp(device_type, "GD32F4", strlen("GD32F4"))){
+	get_mcu_name();
+	if(0 == strncmp(mcu_name, "GD32F4", strlen("GD32F4"))){
 
 		RCC->RCC_PLLSAICFGR = 0x24003000; // reset value
 		over_drive = true;
-		switch(device_type[strlen("GD32F4")])
+		switch(mcu_name[strlen("GD32F4")])
 		{
 		case '7': // GD32F47X
 			// 240 MHz
@@ -246,13 +246,13 @@ extern "C" void SLOW_FLASH DefaultSystemInit( void )
 			system_clock_frequency =168;
 			break;
 		}
-	}else if(0 == strncmp(device_type, "APM32F4", strlen("APM32F4"))){
+	}else if(0 == strncmp(mcu_name, "APM32F4", strlen("APM32F4"))){
 		system_clock_frequency =168;
 	}else{
 		//ST32
-		if(Cortex_M4F == cpu_identify().type)
+		if(Cortex_M4F == get_core().type)
 		{
-			switch(device_type[strlen("STM32F4")])
+			switch(mcu_name[strlen("STM32F4")])
 			{
 			case '0':
 			case '1':
@@ -279,13 +279,13 @@ extern "C" void SLOW_FLASH DefaultSystemInit( void )
 	}
 
 	// MCU specific settings
-	if(device_type[0] == 'A' || device_type[0] == 'S' ){ // APM or STM
+	if(mcu_name[0] == 'A' || mcu_name[0] == 'S' ){ // APM or STM
 
 	/* Configure Flash prefetch, Instruction cache, Data cache and wait state */
 	FLASH->FLASH_ACR = FLASH_ACR_PRFTEN | FLASH_ACR_ICEN | FLASH_ACR_DCEN
 					| FLASH_ACR_LATENCY_3WS;
 
-	}else if(device_type[0] == 'G'){ // GigaDevice
+	}else if(mcu_name[0] == 'G'){ // GigaDevice
 
 		uint32_t reg = RCC->RCU_ADDCTL;
 #if GD_USB_SDIO_USE_PLLSAI || GD_USB_SDIO_USE_IRC48M
@@ -348,7 +348,7 @@ extern "C" void SLOW_FLASH DefaultSystemInit( void )
 	//--------------------------------------------------------------------------
 	//--------------------------------------------------------------------------
 	// when Cortex_M4 is used, move service stack to TCM ram.
-	if(Cortex_M4F == cpu_identify().type){
+	if(Cortex_M4F == get_core().type){
 		asm volatile (
 		"		ldr			r2, =__stack_svc_end      \n\t"
 		"		mov			r1, sp                    \n\t"

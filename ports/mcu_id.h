@@ -11,14 +11,14 @@
 
 #ifdef __cplusplus
 
-enum cpu_arch_t:uint8_t
+enum core_arch_t:uint8_t
 {
 	Arch_Unknown,
 	ArmV6,
 	ArmV7
 };
 
-enum cpu_type_t:uint8_t
+enum core_type_t:uint8_t
 {
 	CPU_Unknown,
 	Cortex_M0,
@@ -34,16 +34,16 @@ typedef struct
 {
 	union{
 		struct{
-		cpu_type_t 	type;
-		cpu_arch_t	arch;
+		core_type_t type;
+		core_arch_t	arch;
 		uint8_t		variant;
 		uint8_t		revision;
 		} __attribute__((packed));
 		uint32_t id;
 	};
-}cpu_t;
+}core_t;
 
-cpu_t cpu_identify(void);
+core_t get_core(void);
 
 #endif
 
@@ -51,12 +51,12 @@ cpu_t cpu_identify(void);
 #define MCU_JEP106_STM		0x020	// STMicroelectronics
 #define MCU_JEP106_APM		0xB23	// Apex Microelectronics Co Ltd
 
-extern __no_init char device_type[];
+extern __no_init char mcu_name[];
 
 uint32_t mcu_jep106(void);
 uint32_t mcu_part(void);
 uint32_t mcu_revision(void);
 const char* mcu_manufacturer(void);
-const char* get_mcu_type(void);
+const char* get_mcu_name(void);
 
 #endif /* PORTS_CORTEX_M3_MCU_ID_H_ */
