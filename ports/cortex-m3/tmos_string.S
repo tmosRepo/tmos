@@ -153,7 +153,7 @@ ENDF(	memmove		)
 //*		void* memchr(const void* src, unsigned int ch, unsigned int i)
 //*----------------------------------------------------------------------------
 FUNC(	memchr		)
-
+				cbz				r0, 3f
 1:
 				cbz				r2, 2f
 				subs			r3, r2, #1
@@ -301,8 +301,8 @@ ENDF(	strpbrk		)
 //*     unsigned int strcspn(const char * str1, const char * str2);
 //*----------------------------------------------------------------------------
 FUNC(   strcspn     )
-
                 cbz             r0, 4f
+				cbz				r1, 5f
                 push            {r0}
 1:
                 ldrb            r2, [r0]
@@ -322,6 +322,16 @@ FUNC(   strcspn     )
                 subs            r0, r1
 4:
                 bx              lr
+
+5:
+				adds			r2, r0, #1
+6:
+				ldrb			r3, [r0], #1
+				cmp				r3, #0
+  				bne				6b
+  				subs			r0, r2
+ 				bx				lr
+
 
 ENDF(   strcspn     )
 
@@ -388,6 +398,8 @@ ENDF(	strcmp		)
 //*----------------------------------------------------------------------------
 FUNC(	strncmp		)
 
+				cbz				r0, 5f
+				cbz				r1, 4f
 				cbz				r2, 3f
 1:
 				ldrb			r12, [r0], #1
@@ -405,6 +417,16 @@ FUNC(	strncmp		)
 				movs			r0, #0
   				bx				lr
 
+4:
+                ldrb            r0, [r0]
+5:
+                cbz             r1, 6f
+                ldrb            r1, [r1]
+6:
+				subs			r0, r1
+  				bx				lr
+
+
 ENDF(	strncmp		)
 
 //*----------------------------------------------------------------------------
@@ -416,7 +438,8 @@ ENDF(	strncmp		)
 //* return:
 //*----------------------------------------------------------------------------
 FUNC(  strstr      )
-
+				cbz				r0, 10f
+				cbz				r1, 10f
                 push            {r4,r5}
 1:
                 mov             r3, r1
@@ -444,6 +467,7 @@ FUNC(  strstr      )
                 subs            r0, #1
 9:
                 pop             {r4, r5}
+10:
                 bx              lr
 
 ENDF(   strstr     )
@@ -457,6 +481,8 @@ ENDF(   strstr     )
 #if USE_FIXED_CPAGE == 1250
 FUNC_SECT(  strcasecmp, .text.casecmp   )
 .weak strcasecmp
+				cbz				r0, 8f
+				cbz				r1, 7f
                 push            {r4, r5}
                 adr             r2, _char_2_type_
 1:
@@ -504,12 +530,22 @@ FUNC_SECT(  strcasecmp, .text.casecmp   )
                 pop             {r4, r5}
                 bx              lr
 
+7:
+                ldrb            r0, [r0]
+8:
+                cbz             r1, 9f
+                ldrb            r1, [r1]
+9:
+				subs			r0, r1
+  				bx				lr
 ENDF(   strcasecmp      )
 #endif // USE_FIXED_CPAGE == 1250
 
 #if USE_FIXED_CPAGE == 1251
 FUNC_SECT(  strcasecmp, .text.casecmp   )
 .weak strcasecmp
+				cbz				r0, 8f
+				cbz				r1, 7f
                 push            {r4, r5}
                 adr             r2, _char_2_type_
 1:
@@ -529,6 +565,14 @@ FUNC_SECT(  strcasecmp, .text.casecmp   )
                 pop             {r4, r5}
                 bx              lr
 
+7:
+                ldrb            r0, [r0]
+8:
+                cbz             r1, 9f
+                ldrb            r1, [r1]
+9:
+				subs			r0, r1
+  				bx				lr
 ENDF(   strcasecmp      )
 #endif // USE_FIXED_CPAGE == 1251
 
@@ -542,6 +586,8 @@ FUNC_SECT(  strncasecmp,    .text.casecmp   )
 .weak strncasecmp
 
                 cbz             r2, 9f
+				cbz				r0, 8f
+				cbz				r1, 7f
                 adr             r3, _char_2_type_
                 push            {r4, r5, r6}
 1:
@@ -594,6 +640,14 @@ FUNC_SECT(  strncasecmp,    .text.casecmp   )
                 movs            r0, #0
                 bx              lr
 
+7:
+                ldrb            r0, [r0]
+8:
+                cbz             r1, 10f
+                ldrb            r1, [r1]
+10:
+				subs			r0, r1
+  				bx				lr
 ENDF(   strncasecmp     )
 #endif // USE_FIXED_CPAGE == 1250
 
@@ -602,6 +656,8 @@ FUNC_SECT(  strncasecmp,    .text.casecmp   )
 .weak strncasecmp
 
                 cbz             r2, 3f
+				cbz				r0, 8f
+				cbz				r1, 7f
                 adr             r3, _char_2_type_
                 push            {r4, r5, r6}
 1:
@@ -625,6 +681,15 @@ FUNC_SECT(  strncasecmp,    .text.casecmp   )
 3:
                 movs            r0, #0
                 bx              lr
+
+7:
+                ldrb            r0, [r0]
+8:
+                cbz             r1, 10f
+                ldrb            r1, [r1]
+10:
+				subs			r0, r1
+  				bx				lr
 
 ENDF(   strncasecmp     )
 #endif // USE_FIXED_CPAGE == 1251
