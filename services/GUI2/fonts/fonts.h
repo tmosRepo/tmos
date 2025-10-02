@@ -44,6 +44,7 @@ typedef struct
 
 extern const char icond5x7_1[];
 extern const char icond7x9_1[];
+extern const char icond10x14_1[];
 extern const char icond10x21_1[];
 
 
