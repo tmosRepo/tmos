@@ -313,7 +313,7 @@ unsigned int GVKB_keyboard::initialize (GMessage& msg)
 	//rows = (num pixels - TXT offset - CTRL offset) / character vspacing
 	rows = (rect.height() + 2 - VKB_TXT_OFFSET - VKB_CTRL_OFFSET) / font->vspacing;
 
-	GUI_ASSERT(rows < 1 || cols < 1); //if a VKB cannot be created
+	GUI_ASSERT( rows && cols ); //if a VKB cannot be created
 
 	unsigned int init_res = GObject::initialize(msg);
 	fill_kb();	//draw KB *after* initialization as it affects client_rect
