@@ -75,6 +75,8 @@ extern "C"
 		unsigned int task_name;
 		unsigned int reset_cause;
 		unsigned int restart_cause;
+		unsigned int exception_pc;
+		unsigned int exception_lr;
 		unsigned int record_crc;
 	} EXCEPTION_RECORD_STRU;
 	unsigned int exception_crc(const unsigned int* record);

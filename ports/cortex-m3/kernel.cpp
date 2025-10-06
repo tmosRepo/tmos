@@ -63,12 +63,9 @@ extern "C" unsigned int exception_crc(const unsigned int* record)
 //*			Helper functions
 //*----------------------------------------------------------------------------
 
-static void process_exception()
+static void process_exception(TASK_STACKED_CTX_STRU* msp)
 {
     unsigned status = SCB->SCB_CFSR;
-#if USE_EXCEPTION_RECORD
-	TASK_STACKED_CTX_STRU* msp;
-#endif
 
 #if (TRACE_IS != TRACE_DISABLED) || USE_EXCEPTION_RECORD
     unsigned int mem_adr = SCB->SCB_MMFAR;
@@ -86,20 +83,19 @@ static void process_exception()
     SCB->SCB_CFSR = status;
 
 #if USE_EXCEPTION_RECORD
+	if ((uint32_t)msp < BASE_SRAM || (uint32_t)msp >= (BASE_SRAM + RAM_SIZE) || ((uint32_t)msp & 3))
+	{
+		exception_record.exception_pc = 0;
+		exception_record.exception_lr = 0;
+	} else
+	{
+		exception_record.exception_pc = msp->pc.as_int;
+		exception_record.exception_lr = msp->lr.as_int;
+	}
     exception_record.restart_cause = __get_IPSR();
     exception_record.CFSR = status;
-	msp = (TASK_STACKED_CTX_STRU*)__get_PSP();
-	if ((uint32_t)msp < BASE_SRAM || (uint32_t)msp >= (BASE_SRAM + RAM_SIZE) || ((uint32_t)msp & 3))
-		msp = NULL;
-	if( (status & SCB_CFSR_MMFSR_MMARVALID) || !msp)
-		exception_record.MMFAR = mem_adr;
-	else
-		exception_record.MMFAR = msp->pc.as_int;
-
-	if( (status & SCB_CFSR_BFSR_BFARVALID) || !msp)
-	    exception_record.BFAR = bus_adr;
-	else
-		exception_record.BFAR = msp->lr.as_int;
+	exception_record.MMFAR = mem_adr;
+    exception_record.BFAR = bus_adr;
     exception_record.cur_task = (unsigned int)CURRENT_TASK;
     if (((unsigned int) CURRENT_TASK > BASE_SRAM)
 			&& ((unsigned int) CURRENT_TASK < (BASE_SRAM + RAM_SIZE)))
@@ -119,8 +115,18 @@ static void process_exception()
 extern "C" void FaultHandler( void )
 {
     volatile unsigned int i=1;
+    TASK_STACKED_CTX_STRU* msp;
 
-    process_exception();
+	asm volatile (
+		"TST lr, #4			\n\t"
+		"ITE EQ				\n\t"
+		"MRSEQ %0, MSP		\n\t"
+		"MRSNE %0, PSP		\n\t"
+	  : "=r"(msp)
+	  :
+	  : );
+
+	process_exception(msp);
 
     if(restart_on_exception)
     {
@@ -293,6 +299,24 @@ extern "C" void SLOW_FLASH sys_kernel_init( void )
     app_init();
 #if USE_STATIC_CONSTRUCTORS
     sys_call_static_ctors();
+#endif
+
+#if USE_EXCEPTION_RECORD
+	if(exception_record.restart_cause)
+	{
+		TRACELN1("EXCEPTION!!!");
+		TRACELN("PC:%X", exception_record.exception_pc);
+		TRACELN("LR:%X", exception_record.exception_lr);
+		TRACELN("MA:%X", exception_record.MMFAR);
+		TRACELN("BA:%X", exception_record.BFAR);
+		TRACELN("IPSR:%08X", exception_record.restart_cause);
+		TRACELN("CFSR:%08X", exception_record.CFSR);
+		TRACELN("TSK:%.8s", &exception_record.task_name);
+#if !USE_GUI2
+		exception_record.restart_cause = 0;
+#endif
+	}
+
 #endif
 }
 

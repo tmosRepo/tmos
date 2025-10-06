@@ -412,16 +412,8 @@ extern "C" void SLOW_FLASH DefaultLowLevelInit( void )
 		memclr((void *)&exception_record,sizeof(exception_record));
 	}
 
-	if(!exception_record.reset_cause)
-		exception_record.reset_cause = LowLevelResetCause();
-	if(!(exception_record.reset_cause & RCC_CSR_PORRSTF))
-	{
-		exception_crc((const unsigned int*)&exception_record);
-	}
-	else
-	{
-		exception_record.reset_cause = 0;
-	}
+	exception_record.reset_cause = LowLevelResetCause();
+    exception_record.record_crc = exception_crc((const unsigned int*)&exception_record);
 
 }
 
