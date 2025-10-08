@@ -300,24 +300,6 @@ extern "C" void SLOW_FLASH sys_kernel_init( void )
 #if USE_STATIC_CONSTRUCTORS
     sys_call_static_ctors();
 #endif
-
-#if USE_EXCEPTION_RECORD
-	if(exception_record.restart_cause)
-	{
-		TRACELN1("EXCEPTION!!!");
-		TRACELN("PC:%X", exception_record.exception_pc);
-		TRACELN("LR:%X", exception_record.exception_lr);
-		TRACELN("MA:%X", exception_record.MMFAR);
-		TRACELN("BA:%X", exception_record.BFAR);
-		TRACELN("IPSR:%08X", exception_record.restart_cause);
-		TRACELN("CFSR:%08X", exception_record.CFSR);
-		TRACELN("TSK:%.8s", &exception_record.task_name);
-#if !USE_GUI2
-		exception_record.restart_cause = 0;
-#endif
-	}
-
-#endif
 }
 
 //*----------------------------------------------------------------------------
