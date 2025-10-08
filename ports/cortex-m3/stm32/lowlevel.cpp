@@ -413,7 +413,14 @@ extern "C" void SLOW_FLASH DefaultLowLevelInit( void )
 	}
 
 	exception_record.reset_cause = LowLevelResetCause();
-    exception_record.record_crc = exception_crc((const unsigned int*)&exception_record);
+	if( exception_record.reset_cause & RCC_CSR_PORRSTF )
+	{
+		exception_record.reset_cause = 0;	//ignore causes with POR reset
+	}
+	else
+	{
+	    exception_record.record_crc = exception_crc((const unsigned int*)&exception_record);
+	}
 
 }
 
