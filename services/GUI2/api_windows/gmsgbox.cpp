@@ -542,17 +542,17 @@ unsigned int GMsgBox::process_key (GMessage& msg)
 	return res;
 }
 
-int _MessageBox(const char* Text, const char* Caption, unsigned int Style, unsigned int def_button)
+int _MessageBox(const char* Text, const char* Caption, uint32_t Style, uint32_t def_button, uint32_t tout)
 {
 	GMsgBox box;
 	box.type = Style;
 	box.body =  Text;
 	box.title = Caption;
 	box.default_button = def_button;
-	return box.DoModal();
+	return box.DoModal(tout);
 }
 
-int MessageBox(const char* Text, const char* Caption, unsigned int Style, unsigned int def_button)
+int MessageBox(const char* Text, const char* Caption, uint32_t Style /*=MB_OK*/, uint32_t def_button /*=0*/, uint32_t tout /*=0*/)
 {
 	GMsgBox* box = new GMsgBox;
 	unsigned int res = 0;
@@ -562,11 +562,11 @@ int MessageBox(const char* Text, const char* Caption, unsigned int Style, unsign
 		box->body =  Text;
 		box->title = Caption;
 		box->default_button = def_button;
-		res = box->DoModal();
+		res = box->DoModal(tout);
 		delete box;
 	}
 	else
-		res = _MessageBox(Text, Caption, Style, def_button);
+		res = _MessageBox(Text, Caption, Style, def_button, tout);
 	return res;
 }
 

@@ -191,7 +191,7 @@ bool GWindow::DefWinProc(GMessage& msg)
 }
 
 
-unsigned int GWindow::DoModal()
+unsigned int GWindow::DoModal(uint32_t tout /*=0 def*/)
 {
 	GMessage msg;
 
@@ -199,12 +199,16 @@ unsigned int GWindow::DoModal()
 	{
 		while(1)
 		{
-			if(GetMessage(msg))
+			if(GetMessage(msg, tout))
 			{
 				if(DefWinProc(msg))
 					return msg.param;
 			}
-			tsk_sleep(10);
+
+			if(tout)
+				break;
+			else
+				tsk_sleep(10);
 		}
 	}
 	return 0;

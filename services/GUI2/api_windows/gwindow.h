@@ -47,7 +47,7 @@ protected:
 public:
 	// client methods
 	virtual bool DefWinProc(GMessage& msg);
-	unsigned int DoModal();
+	unsigned int DoModal(uint32_t tout = 0);
 	void PostMessage(WM_MESSAGE code, unsigned int param, GObject* dst = nullptr);
 	bool GetMessage(GMessage& msg, uint32_t tout = 0);
 	bool Create();

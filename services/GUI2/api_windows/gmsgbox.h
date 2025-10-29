@@ -42,20 +42,20 @@ protected:
 	{
 		return true;
 	}
+
 private:
 	RECT_T GetButtonRect(void);
 	RECT_T GetTitleRect(void);
 	bool   SelectDefaultButton(GObject* button) const;
-
 };
 
-int MessageBox(const char* Text, const char* Caption = nullptr, unsigned int Style=MB_OK, unsigned int def_button=0);
+int MessageBox(const char* Text, const char* Caption = nullptr, uint32_t Style=MB_OK, uint32_t def_button=0, uint32_t tout=0);
 void StatusMessageBox(const char* Text, const char* Caption, unsigned int Style=0, unsigned int time=5000);
 
-#define NEB_PASSWORD (MBF_EDIT_FLAGS(ES_PASSWORD|ES_CENTER|ES_MIDDLE|ES_HIDE_CURSOR))
-#define NEB_DIGIT 	 (MBF_EDIT_FLAGS(ES_CENTER|ES_MIDDLE|ES_HIDE_CURSOR))
-#define EB_STYLE_TEXT (MBF_EDIT | MBF_INPUT_TYPE(KT_EN)| MBF_EDIT_FLAGS(ES_LEFT|ES_MIDDLE|ES_MULTILINE|ES_AUTO_SCROLL) )
-#define EB_STYLE_DIGIT (MBF_EDIT | MBF_INPUT_TYPE(KT_DIGIT)| MBF_EDIT_FLAGS(ES_LEFT|ES_MIDDLE|ES_MULTILINE|ES_AUTO_SCROLL) )
+#define NEB_PASSWORD	(MBF_EDIT_FLAGS(ES_PASSWORD|ES_CENTER|ES_MIDDLE|ES_HIDE_CURSOR))
+#define NEB_DIGIT		(MBF_EDIT_FLAGS(ES_CENTER|ES_MIDDLE|ES_HIDE_CURSOR))
+#define EB_STYLE_TEXT	(MBF_EDIT | MBF_INPUT_TYPE(KT_EN) | MBF_EDIT_FLAGS(ES_LEFT|ES_MIDDLE|ES_MULTILINE|ES_AUTO_SCROLL) )
+#define EB_STYLE_DIGIT	(MBF_EDIT | MBF_INPUT_TYPE(KT_DIGIT) | MBF_EDIT_FLAGS(ES_LEFT|ES_MIDDLE|ES_MULTILINE|ES_AUTO_SCROLL) )
 
 int NumEditBox(CSTRING& value, const char* Caption, unsigned int Style=NEB_PASSWORD, text_metrics_t size = 0);
 
