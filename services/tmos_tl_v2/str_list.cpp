@@ -1058,6 +1058,7 @@ bool CSTRING::find(unsigned int& pos, char val) const
  *
  * @return
  */
+__attribute__((optimize("Os")))
 const char* CSTRING::c_str() const
 {
 	/*
