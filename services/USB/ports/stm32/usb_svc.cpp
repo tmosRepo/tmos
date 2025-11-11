@@ -10,6 +10,12 @@
 #include <usb_hal.h>
 #include <tmos_atomic.h>
 
+#if TRACE_USB_LEVEL >= TRACE_LEVEL_DEBUG
+FILE_OPTIMIZE("O0")
+#else
+FILE_OPTIMIZE("Os")
+#endif
+
 #if USB_ENABLE_DEVICE
 void usb_svc_stall_hook(USB_DRV_INFO drv_info, HANDLE hnd)
 {

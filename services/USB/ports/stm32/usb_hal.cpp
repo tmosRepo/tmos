@@ -12,6 +12,8 @@
 
 #if TRACE_USB_LEVEL >= TRACE_LEVEL_DEBUG
 FILE_OPTIMIZE("O0")
+#else
+FILE_OPTIMIZE("Os")
 #endif
 //-------------------  local static functions --------------------------------//
 
