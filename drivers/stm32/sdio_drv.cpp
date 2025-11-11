@@ -57,7 +57,7 @@ WEAK void SDIO_POWEROFF_SLOT(SDIO_INFO drv_info, HANDLE hnd)
 	}
 }
 
-static void ResetSDIO(SDIO_INFO drv_info)
+static SLOW_FLASH void ResetSDIO(SDIO_INFO drv_info)
 {
 #if USE_SDIO_DMA_DRIVER
 	drv_info->drv_data->rx_dma_hnd.close();
@@ -87,24 +87,26 @@ static bool ConfigureSDIO(SDIO_INFO drv_info, HANDLE hnd)
 #if USE_SDIO_DMA_DRIVER
 	unsigned int tx_flags, rx_flags;
 
-	if(drv_info->rx_dma_mode.dma_index < INALID_DRV_INDX)
+	if (drv_info->rx_dma_mode.dma_index < INALID_DRV_INDX) {
+		if(!drv_info->drv_data->rx_dma_hnd.drv_open(drv_info->rx_dma_mode.dma_index,
+				&drv_info->rx_dma_mode))
+			return false;
 		rx_flags = 0;
-	else
+	} else {
 		rx_flags = SDIO_STA_RX_FLAGS;
-
-	if(drv_info->tx_dma_mode.dma_index < INALID_DRV_INDX)
+	}
+	if (drv_info->tx_dma_mode.dma_index < INALID_DRV_INDX) {
+		if(!drv_info->drv_data->tx_dma_hnd.drv_open(drv_info->tx_dma_mode.dma_index,
+				&drv_info->tx_dma_mode))
+			return false;
 		tx_flags = 0;
-	else
+	} else {
 		tx_flags = SDIO_STA_TX_FLAGS;
+	}
+
 	hw_base->SDIO_MASK = SDIO_STA_DONE_FLAGS | SDIO_STA_ERROR_FLAGS
 			| SDIO_STA_CCRCFAIL | rx_flags | tx_flags;
 
-	if(!drv_info->drv_data->rx_dma_hnd.drv_open(drv_info->rx_dma_mode.dma_index,
-			&drv_info->rx_dma_mode))
-		return false;
-	if(!drv_info->drv_data->tx_dma_hnd.drv_open(drv_info->tx_dma_mode.dma_index,
-			&drv_info->tx_dma_mode))
-		return false;
 #else
 	hw_base->SDIO_MASK = SDIO_STA_DONE_FLAGS | SDIO_STA_ERROR_FLAGS
 			| SDIO_STA_CCRCFAIL | SDIO_STA_RX_FLAGS | SDIO_STA_TX_FLAGS;
@@ -116,7 +118,7 @@ static bool ConfigureSDIO(SDIO_INFO drv_info, HANDLE hnd)
 	return true;
 }
 
-static void sdio_stop_transfer(SDIO_DRIVER_DATA *drv_data, SDIO_TypeDef* hw_base)
+static FAST_FLASH void sdio_stop_transfer(SDIO_DRIVER_DATA *drv_data, SDIO_TypeDef* hw_base)
 {
 	// stop DMA
 #if USE_SDIO_DMA_DRIVER
@@ -136,7 +138,7 @@ static void sdio_stop_transfer(SDIO_DRIVER_DATA *drv_data, SDIO_TypeDef* hw_base
 
 #define IS_SD_HIGH_CAPACITY(x) 1// should return 1 for SDHC and SDXC cards
 
-static RES_CODE SDIO_START_HND(SDIO_INFO drv_info, HANDLE hnd, SDIO_DRIVER_DATA *drv_data)
+static FAST_FLASH RES_CODE SDIO_START_HND(SDIO_INFO drv_info, HANDLE hnd, SDIO_DRIVER_DATA *drv_data)
 {
 	SDIO_TypeDef* hw_base = drv_info->hw_base;
 	RES_CODE res = RES_IDLE;
@@ -146,7 +148,7 @@ static RES_CODE SDIO_START_HND(SDIO_INFO drv_info, HANDLE hnd, SDIO_DRIVER_DATA 
 	if(drv_data->rx_dma_hnd.res & FLG_BUSY)
 		drv_data->rx_dma_hnd.hcontrol(DCR_CANCEL);
 #endif
-
+	hw_base->SDIO_DCTRL =0;
 #if USE_SDIO_MULTIPLE_SLOTS
 	if(hnd != drv_data->last_slot)
 	{
@@ -175,7 +177,7 @@ static RES_CODE SDIO_START_HND(SDIO_INFO drv_info, HANDLE hnd, SDIO_DRIVER_DATA 
 		//read block or multiple block command
 		hw_base->SDIO_DLEN = hnd->len;
 		hw_base->SDIO_DCTRL = SDIO_DCTRL_DBLOCKSIZE_512b | SDIO_DCTRL_DTDIR
-				| SDIO_DCTRL_DTEN | SDIO_DCTRL_DMAEN;
+				| SDIO_DCTRL_DTEN; // | SDIO_DCTRL_DMAEN;
 
 		hw_base->SDIO_ARG = hnd->src.as_int;
 		hw_base->SDIO_CMD = SD_CMD17_READ_SINGLE_BLOCK | SDIO_CMD_WAITRESP_short | SDIO_CMD_CPSMEN;
@@ -222,31 +224,31 @@ static RES_CODE SDIO_START_HND(SDIO_INFO drv_info, HANDLE hnd, SDIO_DRIVER_DATA 
 						{
 						case 8:
 							hw_base->SDIO_DCTRL = SDIO_DCTRL_DBLOCKSIZE_8b | SDIO_DCTRL_DTDIR
-									| SDIO_DCTRL_DTEN | SDIO_DCTRL_DMAEN;
+									| SDIO_DCTRL_DTEN ;//| SDIO_DCTRL_DMAEN;
 							break;
 						case 16:
 							hw_base->SDIO_DCTRL = SDIO_DCTRL_DBLOCKSIZE_16b | SDIO_DCTRL_DTDIR
-									| SDIO_DCTRL_DTEN | SDIO_DCTRL_DMAEN;
+									| SDIO_DCTRL_DTEN ;//| SDIO_DCTRL_DMAEN;
 							break;
 						case 32:
 							hw_base->SDIO_DCTRL = SDIO_DCTRL_DBLOCKSIZE_32b | SDIO_DCTRL_DTDIR
-									| SDIO_DCTRL_DTEN | SDIO_DCTRL_DMAEN;
+									| SDIO_DCTRL_DTEN ;//| SDIO_DCTRL_DMAEN;
 							break;
 						case 64:
 							hw_base->SDIO_DCTRL = SDIO_DCTRL_DBLOCKSIZE_64b | SDIO_DCTRL_DTDIR
-									| SDIO_DCTRL_DTEN | SDIO_DCTRL_DMAEN;
+									| SDIO_DCTRL_DTEN ;//| SDIO_DCTRL_DMAEN;
 							break;
 						case 128:
 							hw_base->SDIO_DCTRL = SDIO_DCTRL_DBLOCKSIZE_128b | SDIO_DCTRL_DTDIR
-									| SDIO_DCTRL_DTEN | SDIO_DCTRL_DMAEN;
+									| SDIO_DCTRL_DTEN ;//| SDIO_DCTRL_DMAEN;
 							break;
 						case 256:
 							hw_base->SDIO_DCTRL = SDIO_DCTRL_DBLOCKSIZE_256b | SDIO_DCTRL_DTDIR
-									| SDIO_DCTRL_DTEN | SDIO_DCTRL_DMAEN;
+									| SDIO_DCTRL_DTEN ;//| SDIO_DCTRL_DMAEN;
 							break;
 						default: //512
 							hw_base->SDIO_DCTRL = SDIO_DCTRL_DBLOCKSIZE_512b | SDIO_DCTRL_DTDIR
-									| SDIO_DCTRL_DTEN | SDIO_DCTRL_DMAEN;
+									| SDIO_DCTRL_DTEN ;//| SDIO_DCTRL_DMAEN;
 							break;
 						}
 						drv_data->sdio_op = SDIO_OP_READ | SDIO_OP_R1;
@@ -284,7 +286,7 @@ static RES_CODE SDIO_START_HND(SDIO_INFO drv_info, HANDLE hnd, SDIO_DRIVER_DATA 
 	return res;
 }
 
-static void SDIO_CMD_HND(SDIO_INFO drv_info, HANDLE hnd, SDIO_DRIVER_DATA *drv_data)
+static FAST_FLASH void SDIO_CMD_HND(SDIO_INFO drv_info, HANDLE hnd, SDIO_DRIVER_DATA *drv_data)
 {
 	SDIO_TypeDef* hw_base = drv_info->hw_base;
 
@@ -294,6 +296,7 @@ static void SDIO_CMD_HND(SDIO_INFO drv_info, HANDLE hnd, SDIO_DRIVER_DATA *drv_d
 		if(drv_info->rx_dma_mode.dma_index < INALID_DRV_INDX)
 		{
 			drv_data->rx_dma_hnd.drv_read_write(hnd->dst.as_voidptr, (void*)&hw_base->SDIO_FIFO, hnd->len/4);
+			hw_base->SDIO_DCTRL |= SDIO_DCTRL_DMAEN;
 		} else
 #endif
 		{
@@ -309,11 +312,6 @@ static void SDIO_CMD_HND(SDIO_INFO drv_info, HANDLE hnd, SDIO_DRIVER_DATA *drv_d
 				*hnd->dst.as_intptr++ = hw_base->SDIO_FIFO;
 				hnd->len -= 4;
 			}
-//			if(hnd->len <= 3)
-//			{
-//				usr_HND_SET_STATUS(hnd, RES_SIG_OK);
-//				drv_data->pending = NULL;
-//			}
 		}
 	} else
 	{
@@ -338,11 +336,6 @@ static void SDIO_CMD_HND(SDIO_INFO drv_info, HANDLE hnd, SDIO_DRIVER_DATA *drv_d
 					hw_base->SDIO_FIFO = *hnd->src.as_intptr++;
 					hnd->len -= 4;
 				}
-//				if(hnd->len <= 3)
-//				{
-//					usr_HND_SET_STATUS(hnd, RES_SIG_OK);
-//					drv_data->pending = NULL;
-//				}
 			}
 		} else
 		{
@@ -539,129 +532,135 @@ void SDIO_ISR(SDIO_INFO drv_info)
 	HANDLE hnd;
 	unsigned int status;
 
+#if DEBUG_SDIO_DRV
+	unsigned int stat;
+	stat =
+#endif
 	status = hw_base->SDIO_STA;
 	status &= hw_base->SDIO_MASK;
-	hw_base->SDIO_ICR = status;
 #if DEBUG_SDIO_DRV
-	TRACE("{i %x}", status);
+	TRACE("{i %x,%u}", stat, hw_base->SDIO_RESPCMD);
 #endif
 	if((hnd = drv_data->pending))
 	{
 		if( (status & SDIO_STA_CCRCFAIL) && (drv_data->sdio_op & SDIO_OP_R3))
 		{
 			// Response R3 -> ignore CRC
+			hw_base->SDIO_ICR = SDIO_STA_CCRCFAIL;
 			status &= ~SDIO_STA_CCRCFAIL;
 			status |= SDIO_STA_CMDREND;
 		}
 		if(status & SDIO_STA_ERROR_FLAGS)
 		{
 			// error -> done!
+			hw_base->SDIO_ICR = status;
 			hnd->error = status;
 			usr_HND_SET_STATUS(hnd, RES_SIG_ERROR);
 			drv_data->pending = NULL;
 			sdio_stop_transfer(drv_data, hw_base);
 		} else
 		{
-			if(status & SDIO_STA_DONE_TR)
+			if(status & SDIO_STA_DONE_CMD)
 			{
-				// done...
-				if( (drv_data->sdio_op & SDIO_OP_READ) && (status & SDIO_STA_RX_FLAGS))
+				hw_base->SDIO_ICR = status & SDIO_STA_DONE_CMD;
+
+				//command end
+				if((drv_data->sdio_op & SDIO_OP_R1) && (hw_base->SDIO_RESPx[0] & SDIO_RESP1_ERRORS))
 				{
-					SDIO_CMD_HND(drv_info, hnd, drv_data);
-				}
-				usr_HND_SET_STATUS(hnd, RES_SIG_OK);
-				drv_data->pending = NULL;
-			} else
-			{
-				if(status & SDIO_STA_DONE_CMD)
-				{
-					//command end
-					if((drv_data->sdio_op & SDIO_OP_R1) && (hw_base->SDIO_RESPx[0] & SDIO_RESP1_ERRORS))
-					{
-						// R1 response is bad...
-						hnd->error = hw_base->SDIO_RESPx[0];
-						usr_HND_SET_STATUS(hnd, FLG_SIGNALED | RES_INVALID_DATA);
-						drv_data->pending = NULL;
-					} else
-					{
-						if(drv_data->sdio_op & SDIO_OP_WRITE)
-						{
-							hw_base->SDIO_DLEN = hnd->len;
-							hw_base->SDIO_DCTRL = SDIO_DCTRL_DBLOCKSIZE_512b
-										| SDIO_DCTRL_DTEN | SDIO_DCTRL_DMAEN;
-						}
-
-						if(drv_data->sdio_op & SDIO_OP_CMD)
-						{
-							switch(hnd->src.as_intptr[0] & 0x3f)
-							{
-							case SD_CMD42_LOCK_UNLOCK:
-								hnd->src.as_intptr += 2;
-								hw_base->SDIO_DLEN = hnd->len;
-								switch(hnd->len)
-								{
-								case 4:
-									hw_base->SDIO_DCTRL = SDIO_DCTRL_DBLOCKSIZE_4b
-											| SDIO_DCTRL_DTEN | SDIO_DCTRL_DMAEN;
-									break;
-								case 8:
-									hw_base->SDIO_DCTRL = SDIO_DCTRL_DBLOCKSIZE_8b
-											| SDIO_DCTRL_DTEN | SDIO_DCTRL_DMAEN;
-									break;
-								case 16:
-									hw_base->SDIO_DCTRL = SDIO_DCTRL_DBLOCKSIZE_16b
-											| SDIO_DCTRL_DTEN | SDIO_DCTRL_DMAEN;
-									break;
-								case 32:
-									hw_base->SDIO_DCTRL = SDIO_DCTRL_DBLOCKSIZE_32b
-											| SDIO_DCTRL_DTEN | SDIO_DCTRL_DMAEN;
-									break;
-								default:
-									hw_base->SDIO_DCTRL = SDIO_DCTRL_DBLOCKSIZE_64b
-											| SDIO_DCTRL_DTEN | SDIO_DCTRL_DMAEN;
-									break;
-								}
-								drv_data->sdio_op = SDIO_OP_WRITE | SDIO_OP_R1;
-								break;
-
-							case SD_CMD00_GO_IDLE_STATE:
-								//reset bus width
-								break;
-
-							case SD_ACMD06_SET_BUS_WIDTH: // CMD6 has different length
-								if(!(hw_base->SDIO_RESPx[0] & SDIO_RESP1_ERRORS))
-								{
-									unsigned int reg;
-
-									//change bus width
-									reg = hw_base->SDIO_CLKCR & ~SDIO_CLKCR_WIDBUS;
-									if(hnd->src.as_intptr[1] == 2)
-									{
-										reg |= SDIO_CLKCR_WIDBUS_4b;
-#if USE_SDIO_MULTIPLE_SLOTS
-										hnd->mode1 = (SDIO_CLKCR_WIDBUS_4b)>>8;
-#endif
-									}
-									hw_base->SDIO_CLKCR = reg;
-								}
-								break;
-
-
-							}
-						}
-						SDIO_CMD_HND(drv_info, hnd, drv_data);
-					}
-
+					// R1 response is bad...
+					hnd->error = hw_base->SDIO_RESPx[0];
+					usr_HND_SET_STATUS(hnd, FLG_SIGNALED | RES_INVALID_DATA);
+					drv_data->pending = NULL;
 				} else
 				{
+					if(drv_data->sdio_op & SDIO_OP_WRITE)
+					{
+						hw_base->SDIO_DLEN = hnd->len;
+						hw_base->SDIO_DCTRL = SDIO_DCTRL_DBLOCKSIZE_512b
+									| SDIO_DCTRL_DTEN | SDIO_DCTRL_DMAEN;
+					}
+
+					if(drv_data->sdio_op & SDIO_OP_CMD)
+					{
+						switch(hnd->src.as_intptr[0] & 0x3f)
+						{
+						case SD_CMD42_LOCK_UNLOCK:
+							hnd->src.as_intptr += 2;
+							hw_base->SDIO_DLEN = hnd->len;
+							switch(hnd->len)
+							{
+							case 4:
+								hw_base->SDIO_DCTRL = SDIO_DCTRL_DBLOCKSIZE_4b
+										| SDIO_DCTRL_DTEN | SDIO_DCTRL_DMAEN;
+								break;
+							case 8:
+								hw_base->SDIO_DCTRL = SDIO_DCTRL_DBLOCKSIZE_8b
+										| SDIO_DCTRL_DTEN | SDIO_DCTRL_DMAEN;
+								break;
+							case 16:
+								hw_base->SDIO_DCTRL = SDIO_DCTRL_DBLOCKSIZE_16b
+										| SDIO_DCTRL_DTEN | SDIO_DCTRL_DMAEN;
+								break;
+							case 32:
+								hw_base->SDIO_DCTRL = SDIO_DCTRL_DBLOCKSIZE_32b
+										| SDIO_DCTRL_DTEN | SDIO_DCTRL_DMAEN;
+								break;
+							default:
+								hw_base->SDIO_DCTRL = SDIO_DCTRL_DBLOCKSIZE_64b
+										| SDIO_DCTRL_DTEN | SDIO_DCTRL_DMAEN;
+								break;
+							}
+							drv_data->sdio_op = SDIO_OP_WRITE | SDIO_OP_R1;
+							break;
+
+						case SD_CMD00_GO_IDLE_STATE:
+							//reset bus width
+							break;
+
+						case SD_ACMD06_SET_BUS_WIDTH: // CMD6 has different length
+							if(!(hw_base->SDIO_RESPx[0] & SDIO_RESP1_ERRORS))
+							{
+								unsigned int reg;
+
+								//change bus width
+								reg = hw_base->SDIO_CLKCR & ~SDIO_CLKCR_WIDBUS;
+								if(hnd->src.as_intptr[1] == 2)
+								{
+									reg |= SDIO_CLKCR_WIDBUS_4b;
+#if USE_SDIO_MULTIPLE_SLOTS
+									hnd->mode1 = (SDIO_CLKCR_WIDBUS_4b)>>8;
+#endif
+								}
+								hw_base->SDIO_CLKCR = reg;
+							}
+							break;
+
+
+						}
+					}
+					SDIO_CMD_HND(drv_info, hnd, drv_data);
+				}
+
+			} else
+			{
+				if(status & SDIO_STA_DONE_TR)
+				{
+					hw_base->SDIO_ICR = status & SDIO_STA_DONE_TR;
+					// done...
+					usr_HND_SET_STATUS(hnd, RES_SIG_OK);
+					drv_data->pending = NULL;
+				} else
+				{
+					hw_base->SDIO_ICR = status;
 					if( ((drv_data->sdio_op & SDIO_OP_READ) && (status & SDIO_STA_RX_FLAGS))
 						|| ((drv_data->sdio_op & SDIO_OP_WRITE) && (status & SDIO_STA_TX_FLAGS)) )
 					{
 						SDIO_CMD_HND(drv_info, hnd, drv_data);
 					}
-
 				}
 			}
+
+
 		}
 		if(!drv_data->pending)
 		{
@@ -691,6 +690,8 @@ void SDIO_ISR(SDIO_INFO drv_info)
 		if(status & SDIO_STA_TR_FLAGS)
 		{
 			hw_base->SDIO_MASK &= ~SDIO_STA_TR_FLAGS;
+		} else {
+			__NOP();
 		}
 	}
 }
