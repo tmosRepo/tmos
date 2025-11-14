@@ -25,6 +25,7 @@
 #define SDIO_OP_READ		4	//!< Read data
 #define SDIO_OP_WRITE		8	//!< Write data
 #define SDIO_OP_CMD			16	//!< just command state
+#define SDIO_OP_ERROR		32	//!< Error occurred while the SDIO was still running
 
 /** SDIO Driver Mode structure **/
 struct SDIO_DRIVER_MODE

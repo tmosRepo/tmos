@@ -148,7 +148,7 @@ static FAST_FLASH RES_CODE SDIO_START_HND(SDIO_INFO drv_info, HANDLE hnd, SDIO_D
 	if(drv_data->rx_dma_hnd.res & FLG_BUSY)
 		drv_data->rx_dma_hnd.hcontrol(DCR_CANCEL);
 #endif
-	hw_base->SDIO_DCTRL =0;
+	hw_base->SDIO_DCTRL = 0;
 #if USE_SDIO_MULTIPLE_SLOTS
 	if(hnd != drv_data->last_slot)
 	{
@@ -530,17 +530,14 @@ void SDIO_ISR(SDIO_INFO drv_info)
 	SDIO_DRIVER_DATA *drv_data = drv_info->drv_data;
 	SDIO_TypeDef* hw_base = drv_info->hw_base;
 	HANDLE hnd;
-	unsigned int status;
+	unsigned int status, tmp, sta;
 
+	sta = hw_base->SDIO_STA;
+	status = sta & hw_base->SDIO_MASK;
 #if DEBUG_SDIO_DRV
-	unsigned int stat;
-	stat =
+	TRACE("{i %x,%u}", sta, hw_base->SDIO_RESPCMD);
 #endif
-	status = hw_base->SDIO_STA;
-	status &= hw_base->SDIO_MASK;
-#if DEBUG_SDIO_DRV
-	TRACE("{i %x,%u}", stat, hw_base->SDIO_RESPCMD);
-#endif
+
 	if((hnd = drv_data->pending))
 	{
 		if( (status & SDIO_STA_CCRCFAIL) && (drv_data->sdio_op & SDIO_OP_R3))
@@ -550,119 +547,153 @@ void SDIO_ISR(SDIO_INFO drv_info)
 			status &= ~SDIO_STA_CCRCFAIL;
 			status |= SDIO_STA_CMDREND;
 		}
+
 		if(status & SDIO_STA_ERROR_FLAGS)
 		{
-			// error -> done!
-			hw_base->SDIO_ICR = status;
+			// 1. error
+			hw_base->SDIO_ICR = status & SDIO_STA_ERROR_FLAGS;
 			hnd->error = status;
-			usr_HND_SET_STATUS(hnd, RES_SIG_ERROR);
-			drv_data->pending = NULL;
-			sdio_stop_transfer(drv_data, hw_base);
-		} else
-		{
-			if(status & SDIO_STA_DONE_CMD)
+
+			if(sta & SDIO_STA_IS_ACTIVE)
 			{
-				hw_base->SDIO_ICR = status & SDIO_STA_DONE_CMD;
-
-				//command end
-				if((drv_data->sdio_op & SDIO_OP_R1) && (hw_base->SDIO_RESPx[0] & SDIO_RESP1_ERRORS))
-				{
-					// R1 response is bad...
-					hnd->error = hw_base->SDIO_RESPx[0];
-					usr_HND_SET_STATUS(hnd, FLG_SIGNALED | RES_INVALID_DATA);
-					drv_data->pending = NULL;
-				} else
-				{
-					if(drv_data->sdio_op & SDIO_OP_WRITE)
-					{
-						hw_base->SDIO_DLEN = hnd->len;
-						hw_base->SDIO_DCTRL = SDIO_DCTRL_DBLOCKSIZE_512b
-									| SDIO_DCTRL_DTEN | SDIO_DCTRL_DMAEN;
-					}
-
-					if(drv_data->sdio_op & SDIO_OP_CMD)
-					{
-						switch(hnd->src.as_intptr[0] & 0x3f)
-						{
-						case SD_CMD42_LOCK_UNLOCK:
-							hnd->src.as_intptr += 2;
-							hw_base->SDIO_DLEN = hnd->len;
-							switch(hnd->len)
-							{
-							case 4:
-								hw_base->SDIO_DCTRL = SDIO_DCTRL_DBLOCKSIZE_4b
-										| SDIO_DCTRL_DTEN | SDIO_DCTRL_DMAEN;
-								break;
-							case 8:
-								hw_base->SDIO_DCTRL = SDIO_DCTRL_DBLOCKSIZE_8b
-										| SDIO_DCTRL_DTEN | SDIO_DCTRL_DMAEN;
-								break;
-							case 16:
-								hw_base->SDIO_DCTRL = SDIO_DCTRL_DBLOCKSIZE_16b
-										| SDIO_DCTRL_DTEN | SDIO_DCTRL_DMAEN;
-								break;
-							case 32:
-								hw_base->SDIO_DCTRL = SDIO_DCTRL_DBLOCKSIZE_32b
-										| SDIO_DCTRL_DTEN | SDIO_DCTRL_DMAEN;
-								break;
-							default:
-								hw_base->SDIO_DCTRL = SDIO_DCTRL_DBLOCKSIZE_64b
-										| SDIO_DCTRL_DTEN | SDIO_DCTRL_DMAEN;
-								break;
-							}
-							drv_data->sdio_op = SDIO_OP_WRITE | SDIO_OP_R1;
-							break;
-
-						case SD_CMD00_GO_IDLE_STATE:
-							//reset bus width
-							break;
-
-						case SD_ACMD06_SET_BUS_WIDTH: // CMD6 has different length
-							if(!(hw_base->SDIO_RESPx[0] & SDIO_RESP1_ERRORS))
-							{
-								unsigned int reg;
-
-								//change bus width
-								reg = hw_base->SDIO_CLKCR & ~SDIO_CLKCR_WIDBUS;
-								if(hnd->src.as_intptr[1] == 2)
-								{
-									reg |= SDIO_CLKCR_WIDBUS_4b;
-#if USE_SDIO_MULTIPLE_SLOTS
-									hnd->mode1 = (SDIO_CLKCR_WIDBUS_4b)>>8;
-#endif
-								}
-								hw_base->SDIO_CLKCR = reg;
-							}
-							break;
-
-
-						}
-					}
-					SDIO_CMD_HND(drv_info, hnd, drv_data);
-				}
-
+				// the operation is not completed yet!
+				drv_data->sdio_op |= SDIO_OP_ERROR;
 			} else
 			{
-				if(status & SDIO_STA_DONE_TR)
+				drv_data->pending = NULL;
+				sdio_stop_transfer(drv_data, hw_base);
+				usr_HND_SET_STATUS(hnd, RES_SIG_ERROR);
+			}
+		} else
+		{
+			// 2. no errors at the moment
+			if(drv_data->sdio_op & SDIO_OP_ERROR)
+			{
+				// 2.1 error occurred before...
+				drv_data->pending = NULL;
+				usr_HND_SET_STATUS(hnd, FLG_SIGNALED | RES_INVALID_DATA);
+			} else
+			{
+				// 2.2 no errors now or before
+				if (status & SDIO_STA_DONE_CMD)
 				{
-					hw_base->SDIO_ICR = status & SDIO_STA_DONE_TR;
-					// done...
-					usr_HND_SET_STATUS(hnd, RES_SIG_OK);
-					drv_data->pending = NULL;
+					//2.2.1 command end
+					hw_base->SDIO_ICR = status & SDIO_STA_DONE_CMD;
+
+					if ((drv_data->sdio_op & SDIO_OP_R1)
+							&& (hw_base->SDIO_RESPx[0] & SDIO_RESP1_ERRORS))
+					{
+						// R1 response is bad...
+						hnd->error = hw_base->SDIO_RESPx[0];
+						drv_data->pending = NULL;
+						usr_HND_SET_STATUS(hnd,
+								FLG_SIGNALED | RES_INVALID_DATA);
+					} else
+					{
+						if (drv_data->sdio_op & SDIO_OP_WRITE)
+						{
+							hw_base->SDIO_DLEN = hnd->len;
+							hw_base->SDIO_DCTRL = SDIO_DCTRL_DBLOCKSIZE_512b
+									| SDIO_DCTRL_DTEN | SDIO_DCTRL_DMAEN;
+						}
+
+						if (drv_data->sdio_op & SDIO_OP_CMD)
+						{
+							switch (hnd->src.as_intptr[0] & 0x3f)
+							{
+							case SD_CMD42_LOCK_UNLOCK:
+								hnd->src.as_intptr += 2;
+								hw_base->SDIO_DLEN = hnd->len;
+								switch (hnd->len)
+								{
+								case 4:
+									hw_base->SDIO_DCTRL = SDIO_DCTRL_DBLOCKSIZE_4b
+													| SDIO_DCTRL_DTEN | SDIO_DCTRL_DMAEN;
+									break;
+								case 8:
+									hw_base->SDIO_DCTRL = SDIO_DCTRL_DBLOCKSIZE_8b
+													| SDIO_DCTRL_DTEN | SDIO_DCTRL_DMAEN;
+									break;
+								case 16:
+									hw_base->SDIO_DCTRL = SDIO_DCTRL_DBLOCKSIZE_16b
+													| SDIO_DCTRL_DTEN | SDIO_DCTRL_DMAEN;
+									break;
+								case 32:
+									hw_base->SDIO_DCTRL = SDIO_DCTRL_DBLOCKSIZE_32b
+													| SDIO_DCTRL_DTEN | SDIO_DCTRL_DMAEN;
+									break;
+								default:
+									hw_base->SDIO_DCTRL = SDIO_DCTRL_DBLOCKSIZE_64b
+													| SDIO_DCTRL_DTEN | SDIO_DCTRL_DMAEN;
+									break;
+								}
+								drv_data->sdio_op = SDIO_OP_WRITE | SDIO_OP_R1;
+								break;
+
+							case SD_CMD00_GO_IDLE_STATE:
+								//reset bus width
+								break;
+
+							case SD_ACMD06_SET_BUS_WIDTH: // CMD6 has different length
+								if (!(hw_base->SDIO_RESPx[0] & SDIO_RESP1_ERRORS))
+								{
+									//change bus width
+									tmp = hw_base->SDIO_CLKCR & ~SDIO_CLKCR_WIDBUS;
+									if (hnd->src.as_intptr[1] == 2)
+									{
+										tmp |= SDIO_CLKCR_WIDBUS_4b;
+#if USE_SDIO_MULTIPLE_SLOTS
+										hnd->mode1 = (SDIO_CLKCR_WIDBUS_4b)>>8;
+#endif
+									}
+									hw_base->SDIO_CLKCR = tmp;
+								}
+								break;
+
+							}
+						}
+						SDIO_CMD_HND(drv_info, hnd, drv_data);
+					}
+
 				} else
 				{
-					hw_base->SDIO_ICR = status;
-					if( ((drv_data->sdio_op & SDIO_OP_READ) && (status & SDIO_STA_RX_FLAGS))
-						|| ((drv_data->sdio_op & SDIO_OP_WRITE) && (status & SDIO_STA_TX_FLAGS)) )
+					// 2.2.2
+					if (status & SDIO_STA_DONE_TR)
 					{
-						SDIO_CMD_HND(drv_info, hnd, drv_data);
+						// 2.2.2.1 Transfer done...
+						hw_base->SDIO_ICR = status & SDIO_STA_DONE_TR;
+						usr_HND_SET_STATUS(hnd, RES_SIG_OK);
+						drv_data->pending = NULL;
+					} else
+					{
+						hw_base->SDIO_ICR = status;
+						if (((drv_data->sdio_op & SDIO_OP_READ)	&& (status & SDIO_STA_RX_FLAGS))
+								|| ((drv_data->sdio_op & SDIO_OP_WRITE)	&& (status & SDIO_STA_TX_FLAGS)))
+						{
+							SDIO_CMD_HND(drv_info, hnd, drv_data);
+						}
 					}
 				}
 			}
-
-
 		}
-		if(!drv_data->pending)
+
+	} else
+	{
+		// interrupt without handle ?!
+		if(status & SDIO_STA_TR_FLAGS)
+		{
+			hw_base->SDIO_MASK &= ~SDIO_STA_TR_FLAGS;
+		}
+		hw_base->SDIO_ICR = status;
+	}
+
+	if(!drv_data->pending)
+	{
+		if(sta & SDIO_STA_IS_ACTIVE)
+		{
+			// no handle but the peripheral is working ?!
+			hw_base->SDIO_DCTRL = 0;
+		} else
 		{
 			// start waiting handle
 			while(!drv_data->locker && (hnd=drv_data->waiting))
@@ -671,12 +702,10 @@ void SDIO_ISR(SDIO_INFO drv_info)
 				if( hnd->cmd & FLAG_LOCK)
 					drv_data->locker = hnd;
 
-				RES_CODE res;
-
-				res = SDIO_START_HND(drv_info, hnd, drv_data);
-				if(res & FLG_SIGNALED)
+				tmp = SDIO_START_HND(drv_info, hnd, drv_data);
+				if(tmp & FLG_SIGNALED)
 				{
-					usr_HND_SET_STATUS(hnd, res);
+					usr_HND_SET_STATUS(hnd, tmp);
 				} else
 				{
 					drv_data->pending = hnd;
@@ -684,14 +713,6 @@ void SDIO_ISR(SDIO_INFO drv_info)
 					break;
 				}
 			}
-		}
-	} else
-	{
-		if(status & SDIO_STA_TR_FLAGS)
-		{
-			hw_base->SDIO_MASK &= ~SDIO_STA_TR_FLAGS;
-		} else {
-			__NOP();
 		}
 	}
 }
