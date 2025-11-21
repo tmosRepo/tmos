@@ -172,7 +172,7 @@ static FAST_FLASH RES_CODE SDIO_START_HND(SDIO_INFO drv_info, HANDLE hnd, SDIO_D
 	if( (hnd->cmd & FLAG_READ) && hnd->len)
 	{
 #if DEBUG_SDIO_DRV
-		TRACE("[r %u]", hnd->len);
+		TRACELN("[r %u]", hnd->len);
 #endif
 		//read block or multiple block command
 		hw_base->SDIO_DLEN = hnd->len;
@@ -188,7 +188,7 @@ static FAST_FLASH RES_CODE SDIO_START_HND(SDIO_INFO drv_info, HANDLE hnd, SDIO_D
 		if( (hnd->cmd & FLAG_WRITE) && hnd->len)
 		{
 #if DEBUG_SDIO_DRV
-			TRACE("[w %u]", hnd->len);
+			TRACELN("[w %u]", hnd->len);
 #endif
 			//write block or multiple block command
 			hw_base->SDIO_ARG = hnd->dst.as_int;
@@ -205,7 +205,7 @@ static FAST_FLASH RES_CODE SDIO_START_HND(SDIO_INFO drv_info, HANDLE hnd, SDIO_D
 				cmd = hnd->src.as_intptr[0];
 				cmd_indx = cmd & 0x3F;
 #if DEBUG_SDIO_DRV
-				TRACE("[c %u]", cmd_indx);
+				TRACELN("[c %u]", cmd_indx);
 #endif
 				if( cmd_indx == SD_CMD42_LOCK_UNLOCK && hnd->len)
 				{
@@ -570,6 +570,7 @@ void SDIO_ISR(SDIO_INFO drv_info)
 			if(drv_data->sdio_op & SDIO_OP_ERROR)
 			{
 				// 2.1 error occurred before...
+				hw_base->SDIO_ICR = status;
 				drv_data->pending = NULL;
 				usr_HND_SET_STATUS(hnd, FLG_SIGNALED | RES_INVALID_DATA);
 			} else
