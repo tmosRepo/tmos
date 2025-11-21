@@ -108,16 +108,16 @@ struct GMenu: GObject
 	virtual bool AppendMenu(int parent_id, int item_id, const CSTRING& item_name, short unsigned int flg =0);
 	bool LoadMenu(const MENUTEMPLATE* pat);
 
-	menu_template_t* GetItem(int parent_id, int item_id);
-	menu_template_t* FindItem(int item_id);
-	menu_template_t* GetMenu(int parent_id, menu_template_t* start = nullptr);
+	menu_template_t* GetItem(int parent_id, int item_id) const;
+	menu_template_t* FindItem(int item_id) const;
+	menu_template_t* GetMenu(int parent_id, menu_template_t* start = nullptr) const;
 	int GetMenuSize(int menu_id) const;
 	bool SetReplaceItem(int item_id, const CSTRING& item_name, short unsigned int flg =0);
 	bool Select(int item_id, bool redraw = false);
 	virtual bool RemoveItem(int item_id);
 	bool InsertItem(int item_id, int new_item_id, const CSTRING& new_item_name, short unsigned int new_flg =0);
 	bool AppendItem(int item_id, int new_item_id, const CSTRING& new_item_name, short unsigned int new_flg =0);
-	static bool IsEmpty(menu_template_t* ptr)
+	static bool IsEmpty(const menu_template_t* ptr)
 	{
 		return (ptr && !ptr->item && !ptr->parent && ptr->item_name.empty());
 	}

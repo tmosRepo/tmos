@@ -7,7 +7,7 @@
 
 #include <stdgui.h>
 
-menu_template_t* GMenu::GetItem(int parent_id, int item_id)
+menu_template_t* GMenu::GetItem(int parent_id, int item_id) const
 {
 	menu_template_t* tmp = base;
 	if(tmp)
@@ -22,7 +22,7 @@ menu_template_t* GMenu::GetItem(int parent_id, int item_id)
 	return nullptr;
 }
 
-menu_template_t* GMenu::FindItem(int item_id)
+menu_template_t* GMenu::FindItem(int item_id) const
 {
 	menu_template_t* tmp = base;
 	if(tmp)
@@ -37,7 +37,7 @@ menu_template_t* GMenu::FindItem(int item_id)
 	return nullptr;
 }
 
-menu_template_t* GMenu::GetMenu(int parent_id, menu_template_t* start)
+menu_template_t* GMenu::GetMenu(int parent_id, menu_template_t* start) const
 {
 	menu_template_t* tmp = start;
 	if(!start)
