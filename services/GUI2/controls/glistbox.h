@@ -30,6 +30,11 @@ struct GListBox:GText
 private:
 	GListBoxMenu*	list;
 public:
+	GListBox (GId id_t, const RECT_T& rect_t):
+			GText (id_t, rect_t, "", GO_FLG_BORDER|GO_FLG_DEFAULT|GO_FLG_SELECTED,
+					LBS_DROPDOWN|SS_LEFT|SS_MIDDLE,
+					GUI_TEXT_FONT), list(nullptr)
+	{;}
 	GListBox (GId id_t, const RECT_T& rect_t,
 			CSTRING txt_t, const char* caption_t=nullptr,
 			GFlags flags_t = GO_FLG_DEFAULT,
