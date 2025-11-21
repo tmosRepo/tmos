@@ -279,11 +279,14 @@ extern "C" void SLOW_FLASH DefaultSystemInit( void )
 	}
 
 	// MCU specific settings
-	if(mcu_name[0] == 'A' || mcu_name[0] == 'S' ){ // APM or STM
+	if( mcu_name[0] == 'S' ){ // STM
 
 	/* Configure Flash prefetch, Instruction cache, Data cache and wait state */
 	FLASH->FLASH_ACR = FLASH_ACR_PRFTEN | FLASH_ACR_ICEN | FLASH_ACR_DCEN
 					| FLASH_ACR_LATENCY_3WS;
+	} else if(mcu_name[0] == 'A') { //  APM
+		FLASH->FLASH_ACR = FLASH_ACR_PRFTEN | FLASH_ACR_ICEN | FLASH_ACR_DCEN
+						| FLASH_ACR_LATENCY_5WS;
 
 	}else if(mcu_name[0] == 'G'){ // GigaDevice
 
