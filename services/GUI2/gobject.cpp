@@ -437,7 +437,7 @@ void GObject::adjust_rectangle_to_scrren()
 		tmp = parent;
 #if GUI_DISPLAYS > 1
 		POINT_T p;
-		uint32_t num_of_LCDs;
+		uint32_t num_of_LCDs=0;
 
 		while(tmp && !(num_of_LCDs = tmp->is_lcd())) {
 			tmp = tmp->parent;
