@@ -136,6 +136,14 @@ typedef char const * const STR_LIST;
 unsigned int find_in_list(const char* str, const char* sl, unsigned int* dwRead);
 
 /**
+ * Search a string with list of options to match (case insensitive)
+ * @param str string to scan
+ * @param sl list of possible matches
+ * @return index of the matched item or 0
+ */
+unsigned int find_in_case_list(const char* str, const char* sl);
+
+/**
  * Return the position of the list item at specific position
  * @param sl string list
  * @param pos position

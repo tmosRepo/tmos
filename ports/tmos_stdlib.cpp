@@ -381,6 +381,31 @@ unsigned int find_in_list(const char* str, const char* sl, unsigned int* dwRead)
 	return (0);
 }
 
+unsigned int find_in_case_list(const char* str, const char* sl)
+{
+	unsigned int pos;
+	unsigned int index=1;
+
+	if(str && sl)
+	{
+		while(*sl)
+		{
+			pos=0;
+			while(toupper(sl[pos]) == toupper(str[pos]))
+			{
+				if(!sl[pos])
+					return (index);
+				pos++;
+			}
+			while(sl[pos])
+				pos++;
+			sl+= pos+1;
+			index++;
+		}
+	}
+	return (0);
+}
+
 const char* szlist_at(const char * sl, unsigned int pos)
 {
 	while(*sl && pos--)
