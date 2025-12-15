@@ -214,6 +214,9 @@ typedef unsigned char GFlags;
 #define GO_IDYES			0x05
 #define GO_IDNO				0x06
 
+// user defined commands/return id
+#define GO_IDUSER			0x07
+
 typedef unsigned char GId;
 
 // client handle states
