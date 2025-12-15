@@ -7,6 +7,8 @@
 
 #include <gdowait.h>
 
+FILE_OPTIMIZE("Os")
+
 GWait* GWait::dowait_win =nullptr;
 int32_t GWait::dowait_cnt = 0;
 
