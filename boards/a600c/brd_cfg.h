@@ -78,6 +78,8 @@
 /// Ethernet
 #define USE_NET				1
 #define USE_LWIP_1_4_1		1
+#define USE_LWIP_2_2_0		0
+#define USE_LWIP_MDNS		0
 #define ETH_PHY_TLK110		1
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //		USART DRIVER
@@ -88,8 +90,9 @@
 //		Wi-Fi ESP8266 DRIVER
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #define USE_WIFI 			1
-#define USE_WIFI_ESP8266	3
+#define USE_WIFI_ESP8266	3	// use ESP8266 version >= 3.0
 #define WIFI_FLOW_CONTROL   0	// use AT+CIPRECVMODE
+#define TRACE_WIFI_LEVEL	TRACE_LEVEL_DEBUG
 
 #define USE_SECURITY		1
 #define USE_SECURITY_TLS	1
