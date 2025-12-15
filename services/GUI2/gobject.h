@@ -248,7 +248,7 @@ protected:
 	{
 		return 0;
 	}
-	GObject* get_object_in_container(GId xid) __attribute__((optimize("Os"), always_inline))
+	inline virtual GObject* get_object_in_container(GId xid) __attribute__((optimize("Os"), always_inline))
 	{
 		if(id == xid)
 			return this;

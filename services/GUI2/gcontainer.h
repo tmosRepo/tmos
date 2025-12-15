@@ -57,7 +57,7 @@ protected:
 	GObject* last_available();
 	bool close (GObject* toClose);
 	bool close () override;
-	GObject* get_object_in_container(GId xid);
+	GObject* get_object_in_container(GId xid) override;
 
 private:
 	bool set_focus_first();
