@@ -71,8 +71,8 @@ unsigned int GFloating_Text::process_default(GMessage& msg)
 					text_rect.x0 =  client_rect.x1;
 					text_rect.x1 =  client_rect.x1 + text_width;
 				}
-				text_rect.x0 -= 3;
-				text_rect.x1 -= 3;
+				text_rect.x0 -= font->hdistance;
+				text_rect.x1 -= font->hdistance;
 			}
 		}
 		else
