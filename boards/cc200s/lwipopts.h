@@ -61,13 +61,14 @@ uint32_t rand(void);
 //
 //*****************************************************************************
 #define MEM_LIBC_MALLOC                 1
+
 #if USE_LWIP_2_2_0
-#define mem_clib_free tsk_free
+#define mem_clib_free 	tsk_free
 #define mem_clib_malloc tsk_malloc
 #define mem_clib_calloc tsk_malloc_clear
 #else
-#define malloc		tsk_malloc
-#define free		tsk_free
+#define mem_malloc		tsk_malloc
+#define mem_free		tsk_free
 #endif // USE_LWIP_2_2_0
 
 #define MEM_ALIGNMENT                   4           // default is 1
