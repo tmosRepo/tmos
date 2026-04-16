@@ -26,7 +26,10 @@ struct GContainer:GObject {
 
 	virtual GObject* addChild (GObject* child);
 	GObject* get_object(GId xid) override;
-	GObject* addChildRef(GObject* child);
+	GObject* addChildRef(GObject* child) __attribute__((optimize("Os")))
+	{
+		return addChild (child);
+	}
 	void move(int x, int y) override;
 #if KEYBOARD_WITH_ARROWS
 	inline virtual bool ascii_enter_is_used( void ) const __attribute__((optimize("Os")))

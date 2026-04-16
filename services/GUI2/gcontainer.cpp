@@ -69,11 +69,6 @@ GObject* GContainer::addChild (GObject* child)
 	return child;
 }
 
-GObject* GContainer::addChildRef(GObject* child)
-{
-	return addChild (child);
-}
-
 GObject* GContainer::get_object_in_container(GId xid)
 {
 	GObject* res;
