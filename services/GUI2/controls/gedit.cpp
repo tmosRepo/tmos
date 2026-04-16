@@ -540,12 +540,36 @@ unsigned int GEdit::process_key (GMessage& msg)
 				}
 
 				edit_menu->LoadMenu(g_keyboard_menu);
+				int menu_row_height = edit_menu->text_font->vspacing + edit_menu->text_font->vdistance;
 				max = max(edit_menu->size, 1);
-				max = max*(edit_menu->text_font->vspacing + edit_menu->text_font->vdistance) + 2*bs.y;
-				if(rect.height() > max)
-				{
+				max = max*menu_row_height + 2*bs.y;
+				if (rect.height() > max)	{
 					edit_menu->rect.y0 = rect.y0 +((rect.height() - max)>>1);
 					edit_menu->rect.y1 = edit_menu->rect.y0 + max;
+				} else if (rect.height() < menu_row_height + 2*bs.y) {
+					// there is not enough space to draw the menu
+					GObject* obj = parent;
+					while (! obj->is_lcd() ) {
+						if (obj->client_rect.height() >= menu_row_height + 2*bs.y ) {
+							if (obj->client_rect.height() > max) {
+								if (rect.y0 + max < obj->client_rect.y1 && rect.y1 - max > obj->client_rect.y0) {
+									edit_menu->rect.y0 = rect.y0 - (max - menu_row_height)/2;
+									edit_menu->rect.y1 = edit_menu->rect.y0 + max;
+								} else if (rect.y0 + max < obj->client_rect.y1) {
+									edit_menu->rect.y0 = rect.y0;
+									edit_menu->rect.y1 = edit_menu->rect.y0 + max;
+								} else if (rect.y1 - max > obj->client_rect.y0) {
+									edit_menu->rect.y1 = rect.y1;
+									edit_menu->rect.y0 = rect.y1 - max;
+								}
+							} else {
+								edit_menu->rect.y0 = obj->client_rect.y0;
+								edit_menu->rect.y1 = obj->client_rect.y1;
+							}
+							break;
+						}
+						obj = obj->parent;
+					}
 				}
 //				else
 //				{
@@ -884,7 +908,7 @@ bool GEdit::set_cursor_x_char(void)
 		}
 	}
 	cursor.x1 = cursor.x0 + text_font->hspacing;								//sets the width of the cursor according to the spacing of the font
-	cursor.y1 = cursor.y0 + text_font->vspacing;			//sets the height of the cursor according to the font
+	cursor.y1 = cursor.y0 + text_font->vspacing;								//sets the height of the cursor according to the font
 
 	return res;
 }
