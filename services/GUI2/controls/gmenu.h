@@ -86,6 +86,8 @@ struct GMenu: GObject
 	{
 		if(scroll)
 		{
+			// Frees the scrollbar to keep the client rectangle unchanged.
+			scroll->ShowScroll(GO_FLG_VSCROLL, false);
 			delete scroll;
 			scroll = nullptr;
 		}
