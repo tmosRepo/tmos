@@ -12,7 +12,6 @@
 #include <hardware_cpp.h>
 #include "lwip/opt.h"
 #include "lwip/netif.h"
-#include "lwip/netif.h"
 #include <csocket.h>
 
 
@@ -86,9 +85,9 @@ struct pbufq
 
 struct ip_adr_set
 {
-	struct ip_addr ip_addr;
-	struct ip_addr net_mask;
-	struct ip_addr gw_addr;
+	ip_addr_t ip_addr;
+	ip_addr_t net_mask;
+	ip_addr_t gw_addr;
 	unsigned char ip_addr_mode; // IPADDR_USE_XXX
 };
 
