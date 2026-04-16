@@ -93,6 +93,8 @@ USE_NET			?=y
 
 # Ethernet
 USE_LWIP_1_4_1	?=y
+USE_LWIP_2_2_0	?=n
+USE_LWIP_MDNS	?=n
 
 #security
 USE_SECURITY		?=y
