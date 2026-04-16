@@ -220,6 +220,11 @@ struct GObject : public u_colors_t
 		return 0;
 	}
 #endif
+	inline virtual unsigned int is_lcd() const __attribute__((optimize("Os"), always_inline))
+	{
+		return 0;
+	}
+
 protected:
 	friend struct GContainer;
 	friend struct GFloating_Button;
@@ -243,11 +248,13 @@ protected:
 	virtual unsigned int process_destroy(GMessage& msg); 	//The WM_DESTROY message is sent when a window is being destroyed.
 	virtual void redraw_screen(GObject* object, RECT_T area);
 
+/*
 	friend struct LCD_MODULE;
 	inline virtual unsigned int is_lcd() const __attribute__((optimize("Os"), always_inline))
 	{
 		return 0;
 	}
+*/
 	inline virtual GObject* get_object_in_container(GId xid) __attribute__((optimize("Os"), always_inline))
 	{
 		if(id == xid)
