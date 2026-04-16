@@ -43,7 +43,6 @@ struct GButton: GObject
 
 	GUI_GET_OBJECT_TYPE(OBJECT_BUTTON)
 
-//	virtual void allocate_border(void);
 	void draw_border(RECT_T& frame) override;
 
 	void draw_this (LCD_MODULE* lcd) override;

@@ -285,6 +285,7 @@ typedef unsigned char GId;
 #define GB_TYPE_NONE		0
 #define GB_TYPE_RADIO		1
 #define GB_TYPE_CHECK		2
+#define GB_TYPE_SWITCH		3
 
 // icon index
 enum guistd_icons_index:uint8_t
