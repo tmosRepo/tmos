@@ -7,23 +7,63 @@
 
 #include <stdgui.h>
 
+/**
+ * Moves the objects in the dialog box along the Y axis by the specified offset.
+ *
+ * @param  offset
+ * @param  selected_indx - is the number of the focused object.
+ *         The index is determined based on the active objects in Y,
+ *         regardless of the object's position in X.
+ *         For example, if there are 3 objects in the same row, they will have the same index.
+ * @return The number of active objects along Y in the dialog box,
+ *         only those that are at a different offset from the start.
+ *         For example, if there are 3 different objects in a row, they count as one.
+ */
 int GDialog::move_objects(int offset, int& selected_indx) const
 {
 	GObject* tmp = children;
+	GObject* obj;
 	int num_of_items=0;
 	selected_indx = 0;
-	while (tmp)
+
+	while(tmp)
 	{
 		if(tmp->is_available())
+		{
+			if(focus && tmp->client_rect.y1 < focus->client_rect.y1)
+				selected_indx++;
 			num_of_items++;
-		if(tmp == focus)
-			selected_indx = num_of_items;
-		tmp->move(0, offset);
+			obj = tmp;
+			while((obj=obj->nextObj))
+			{
+				if(obj->is_available() && obj->client_rect.y1 == tmp->client_rect.y1)
+				{
+					if(focus && tmp->client_rect.y1 < focus->client_rect.y1)
+						selected_indx--;
+					num_of_items--;
+					break;
+				}
+			}
+		}
 		tmp = tmp->nextObj;
+	}
+	if(offset)
+	{
+		tmp = children;
+		while (tmp)
+		{
+			tmp->move(0, offset);
+			tmp = tmp->nextObj;
+		}
 	}
 	return num_of_items;
 }
 
+/**
+ *
+ * @param x - unused !!!
+ * @param y - unused !!!
+ */
 void GDialog::move(int x, int y)
 {
 	if(vscroll && focus)
@@ -56,9 +96,7 @@ void GDialog::move(int x, int y)
 				}
 				tmp = tmp->nextObj;
 			}
-		}
-		if(focus->rect.y0 < client_rect.y0 )
-		{
+		} else	if(focus->rect.y0 < client_rect.y0 ) {
 			// scroll up
 			offset =0;
 			GObject* tmp = children;
@@ -74,9 +112,10 @@ void GDialog::move(int x, int y)
 				}
 				tmp = tmp->nextObj;
 			}
+		} else {
+			offset = 0;
 		}
-		if(offset != 0)
-		{
+		if (offset != 0) {
 			unsigned int  delay = 5, t0;
 			int precision =(offset>0)?3:-3;
 			if((offset > 0 && offset - precision < 0) || (offset < 0 && offset-precision > 0))
@@ -106,10 +145,12 @@ void GDialog::move(int x, int y)
 			}
 			if(client_rect.y0 == children->rect.y0)
 				y = 0;
-			vscroll->SetScrollRange(GO_FLG_VSCROLL, items);
-			vscroll->SetScrollPos(GO_FLG_VSCROLL, y, true); // y/10
-			send_message(WM_DRAW, 0, 0L, this);
+		} else {
+			items = move_objects(0, y);
 		}
+		vscroll->SetScrollRange(GO_FLG_VSCROLL, items);
+		vscroll->SetScrollPos(GO_FLG_VSCROLL, y, true); // y/10
+		send_message(WM_DRAW, 0, 0L, this);
 	}
 }
 
@@ -198,20 +239,29 @@ unsigned int GDialog::initialize (GMessage& msg)
 	if(flags & GO_FLG_VSCROLL)
 	{
 		GObject* tmp = children;
-		int maxy = client_rect.height();
+		GObject* obj;
+		int maxy = client_rect.y1;
 		int items=0;
 		while (tmp)
 		{
 			if(tmp->is_available())
-				items++;
-			if(maxy < tmp->client_rect.y1)
 			{
-				maxy = tmp->client_rect.y1; // rect
+				items++;
+				obj = tmp;
+				while((obj=obj->nextObj))
+				{
+					if(obj->is_available() && obj->client_rect.y1 == tmp->client_rect.y1)
+					{
+						items--;
+						break;
+					}
+				}
 			}
+			if(maxy < tmp->client_rect.y1)
+				maxy = tmp->client_rect.y1; // rect
 			tmp = tmp->nextObj;
 		}
-
-		if(maxy > client_rect.height())
+		if(maxy > client_rect.y1)
 		{
 			if(!vscroll)
 				vscroll = new GScroll(this);
