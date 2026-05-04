@@ -24,13 +24,13 @@
 #define WIFI_READ_TOT 2048
 #endif
 
-/** Send retries (or seconds) for a gprs packet  **/
+/** Send retries (or seconds) for a wifi packet  **/
 #ifndef WIFI_SEND_RETRIES
 #define WIFI_SEND_RETRIES 50
 #endif
 
 /** Size of the receive buffer. It must be big enough to hold one row plus the
- * command response. If SMS is enabled one row is 160*2 + some overhead...
+ * command response.
  */
 #ifndef WIFI_BUF_SIZE
 #define WIFI_BUF_SIZE	300
@@ -72,10 +72,6 @@
 #define TRACE_WIFI_LEVEL	TRACE_LEVEL_NONE //TRACE_LEVEL_DEBUG
 #endif
 
-#ifndef TRACE_GPRS_LEVEL
-#define TRACE_GPRS_LEVEL	TRACE_LEVEL_DEBUG
-#endif
-
 #ifndef USE_WIFI_LISTEN
 #define USE_WIFI_LISTEN		1
 #endif
@@ -87,12 +83,62 @@
 //*----------------------------------------------------------------------------
 //*			WIFI TRACE
 //*----------------------------------------------------------------------------
+#ifndef TRACE_WIFI_SLEEP
+#define TRACE_WIFI_SLEEP 0
+#endif
+
+#ifndef TRACE_WIFI_RX_BUF
+#define TRACE_WIFI_RX_BUF 0
+#endif
+
+#ifndef TRACE_WIFI_TX_BUF
+#define TRACE_WIFI_TX_BUF 0
+#endif
+
+#if TRACE_WIFI_LEVEL >= TRACE_LEVEL_DEBUG
+FILE_OPTIMIZE("Os")
+#if TRACE_WIFI_SLEEP
 inline void _TRACE_WIFI_SLEEP(uint32_t t)
 {
 	uint32_t tmp = CURRENT_TASK->time;
 	tsk_sleep(t);
 	CURRENT_TASK->time = tmp;
 }
+#else
+#define _TRACE_WIFI_SLEEP(x)
+#endif
+
+#if TRACE_WIFI_RX_BUF
+inline void _TRACE_RX_BUFF(const void* buf, unsigned int len)
+{
+	TRACE1("\e[1;3;93m");
+	TRACE_BUF(buf,len);
+	TRACE1("\e[m");
+}
+#else
+#define _TRACE_RX_BUFF(x, y)
+#endif
+
+inline void _TRACE_TEXT_BUFF(const void* buf, unsigned int len)
+{
+	TRACE1("\e[1;93m");
+	TRACE_TEXT(buf,len);
+	TRACE1("\e[m");
+}
+
+#if TRACE_WIFI_TX_BUF
+inline void _TRACE_TX_BUFF(const void* buf, unsigned int len)
+{
+	TRACE1("\e[1;3;92m");
+	TRACE_BUF(buf,len);
+	TRACE1("\e[m");
+}
+#else
+#define _TRACE_TX_BUFF(x, y)
+#endif
+
+FILE_RESET_OPTIONS
+#endif
 
 #define TRACE_CHAR_WIFI(ch) 		TRACE_CHAR_LEVEL(TRACE_WIFI_LEVEL, ch)
 #define TRACE_WIFI(...) 			TRACE_LEVEL(TRACE_WIFI_LEVEL, __VA_ARGS__)
@@ -111,11 +157,14 @@ inline void _TRACE_WIFI_SLEEP(uint32_t t)
 #if TRACE_WIFI_LEVEL >= TRACE_LEVEL_ERROR
 #	define TRACE_WIFI_ERROR_CHAR(ch)	TRACE_CHAR_ERROR(ch)
 #	define TRACE_WIFI_ERROR(...)		TRACE_ERROR(__VA_ARGS__)
-#	define TRACE1_WIFI_ERROR(str)	TRACE1_ERROR(str)
+#	define TRACE1_WIFI_ERROR(str)		TRACE1_ERROR(str)
+#	define TRACELN_WIFI_ERROR(str,...)	TRACELN_ERROR(str, __VA_ARGS__)
+
 #else
 #	define TRACE_WIFI_ERROR_CHAR(ch)
 #	define TRACE_WIFI_ERROR(...)
 #	define TRACE1_WIFI_ERROR(str)
+#	define TRACELN_WIFI_ERROR(str,...)
 #endif
 
 #if TRACE_WIFI_LEVEL >= TRACE_LEVEL_DEBUG
@@ -124,7 +173,10 @@ inline void _TRACE_WIFI_SLEEP(uint32_t t)
 #	define TRACELN_WIFI_DEBUG(str,...)	TRACELN_DEBUG(str, __VA_ARGS__)
 #	define TRACELN1_WIFI_DEBUG(str)		TRACELN1_DEBUG(str)
 #	define TRACE1_WIFI_DEBUG(str)		TRACE1_DEBUG(str)
-#	define TRACE_WIFI_DEBUG_SLEEP(x) 			_TRACE_WIFI_SLEEP(x)
+#	define TRACE_WIFI_DEBUG_SLEEP(x) 	_TRACE_WIFI_SLEEP(x)
+#	define TRACE_WIFI_RX_BUFF(x,y)		_TRACE_RX_BUFF((x),(y))
+#	define TRACE_WIFI_TX_BUFF(x,y)		_TRACE_TX_BUFF((x),(y))
+#	define TRACE_WIFI_BOOT_BUFF(x,y)	_TRACE_TEXT_BUFF((x),(y))
 #else
 #	define TRACE_CHAR_WIFI_DEBUG(ch)
 #	define TRACE_WIFI_DEBUG(...)
@@ -133,7 +185,9 @@ inline void _TRACE_WIFI_SLEEP(uint32_t t)
 #	define TRACELN1_WIFI_DEBUG(str)
 #	define TRACELN_WIFI_DEBUG(str,...)
 #	define TRACE_WIFI_DEBUG_SLEEP(x)
+#	define TRACE_WIFI_RX_BUFF(x,y)
+#	define TRACE_WIFI_TX_BUFF(x,y)
+#	define TRACE_WIFI_BOOT_BUFF(x,y)
 #endif
-
 
 #endif /* WIFI_OPT_H_ */

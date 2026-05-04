@@ -1,13 +1,12 @@
 //////////////////////////////////////////////////////////////////////////
 //
-//			Qectel M66 Bluetooth Driver
+//			Wi-Fi Driver
 //
 //////////////////////////////////////////////////////////////////////////
 
 
 #include <tmos.h>
 #include <wifi_drv.h>
-//#include "wifi_core.h"
 
 WEAK_C wifi_module_type* wifi_detect(WIFI_DRIVER_INFO* drv_info)
 {
@@ -28,7 +27,6 @@ void wifi_thread(WIFI_DRIVER_INFO* drv_info)
     wifi_module_type* wifi_module;
     RES_CODE res;
 
-
     ALLOCATE_SIGNAL(WIFI_CANCEL_SIGNAL|WIFI_NOTIFY_SIGNAL);
 
     hlp_hnd->tsk_safe_open(drv_info->info.drv_index, 0);
@@ -37,100 +35,80 @@ void wifi_thread(WIFI_DRIVER_INFO* drv_info)
 
     wifi_module = drv_data->wifi_module;
 
-    for(;;)
-    {
-        if (!wifi_module)
+	for (;;) {
+		if (!wifi_module)
 			wifi_module = wifi_detect(drv_info);
 
 		signals = tsk_wait_signal(SIGNAL_ANY, 1000);
 
 		// step 1 - Check the WIFI
-		res = signals & ~hlp_hnd->signal;
-		if (wifi_module)
-		{
-			wifi_module->process_input(res & ~WIFI_NOTIFY_SIGNAL, NULL);
-			if (res & WIFI_NOTIFY_SIGNAL)
-				wifi_module->wifi_notificatoin_response();
+		if (wifi_module) {
+			wifi_module->process_input(signals, NULL);
+			if (signals & wifi_module->rcv_hnd.signal)
+				signals ^= wifi_module->rcv_hnd.signal;
+			if (signals & WIFI_NOTIFY_SIGNAL) {
+				signals ^= WIFI_NOTIFY_SIGNAL;
+			}
+			wifi_module->wifi_notificatoin_response();
 		}
 
-        // step 2 - Check the driver
-        if(signals & hlp_hnd->signal)
-        {
-        	hlp_hnd->res &= ~FLG_SIGNALED;
+		// step 2 - Check the driver
+		if (signals & hlp_hnd->signal) {
+			signals ^= hlp_hnd->signal;
+			hlp_hnd->res &= ~FLG_SIGNALED;
 
-        	if(hlp_hnd->res == RES_OK)
-        	{
-        	    client = (HANDLE)hlp_hnd->dst.as_voidptr;
+			if (hlp_hnd->res == RES_OK) {
+				client = (HANDLE) hlp_hnd->dst.as_voidptr;
 
-    		    if(wifi_module)
-    		    {
-                	drv_info->drv_data->wifi_error = 0;
-					if(client->cmd & FLAG_READ)
-					{
-						res = wifi_module->process_read((CSocket*)client);
-					} else
-					{
-	                	wifi_module->in_command = true;
-						if(client->cmd & FLAG_WRITE)
-						{
-							res = wifi_module->process_write((CSocket*)client);
-						}
-						else
-						{
-	    			    	res = wifi_module->process_cmd(client);
-						}
-	                	wifi_module->in_command = false;
+				if (wifi_module) {
+					drv_info->drv_data->wifi_error = 0;
+					if (client->cmd & FLAG_READ) {
+						res = wifi_module->process_read((CSocket*) client);
+					} else if (client->cmd & FLAG_WRITE) {
+						res = wifi_module->process_write((CSocket*) client);
+					} else {
+						res = wifi_module->process_cmd(client);
 					}
-    		    }  else
-    		    {
-    		    	res = RES_SIG_ERROR;
-    		    	if(drv_data->wifi_module)
-    		    	{
-    		    		switch(client->cmd)
-    		    		{
-//    		    		case GSM_DRV_OFF_CMD:
-//    		    			res = gsm_drv_off(drv_data->gsm_module, client);
-//    		    			break;
-    		    		case WIFI_DRV_UPGRADE:
-        		    		drv_data->wifi_module->module_upgrade((HANDLE)client->dst.as_voidptr);
-        					res = RES_SIG_OK;
-    		    			break;
-    		    		}
-    		    	}
-   		    	}
+				} else {
+					res = RES_SIG_ERROR;
+					if (drv_data->wifi_module) {
+						switch (client->cmd) {
+						case WIFI_DRV_UPGRADE:
+							drv_data->wifi_module->module_upgrade((HANDLE) client->dst.as_voidptr);
+							res = RES_SIG_OK;
+							break;
+						}
+					}
+				}
 
-            	if(res & FLG_SIGNALED)
-            	{
-            		if(res != RES_SIG_OK)
-            		{
-            			if(wifi_module)
-            				wifi_module->hnd_error(client);
-            			else
-            				client->error = NET_ERR_PHY_NOT_READY;
-            		}
-            		else
-            			client->error = NET_OK;
-            		tsk_HND_SET_STATUS(client, res);
-            		if(res != RES_SIG_OK && wifi_module)
-                    	wifi_module->wifi_reset(true, &wifi_module);
-            	}
-        	}
-        	hlp_hnd->tsk_start_read(NULL, 0);
-        }
+				if (res & FLG_SIGNALED) {
+					if (res != RES_SIG_OK) {
+						if (wifi_module)
+							wifi_module->hnd_error(client);
+						else
+							client->error = NET_ERR_PHY_NOT_READY;
+					} else
+						client->error = NET_OK;
+					tsk_HND_SET_STATUS(client, res);
+					if (res != RES_SIG_OK && wifi_module)
+						wifi_module->wifi_reset(true, &wifi_module);
+				}
+			}
+			hlp_hnd->tsk_start_read(NULL, 0);
+		}
 
-        // step 3 - timeouts
-        if(!signals && wifi_module)
-        {
-        	wifi_module->wifi_process_tout();
-        	wifi_module->wifi_reset(false, &wifi_module);
-        }
+		// step 3 - cancelation
+		if ((signals & WIFI_CANCEL_SIGNAL) && wifi_module) {
+			signals ^= WIFI_CANCEL_SIGNAL;
+			wifi_module->wifi_cancelation(false, false);
+		}
 
-        // step 4 - cancelation
-        if((signals & WIFI_CANCEL_SIGNAL) && wifi_module)
-        {
-        	wifi_module->wifi_cancelation(false, false);
-        }
-    }
+		// step 4 - timeouts
+		if (!signals && wifi_module) {
+			wifi_module->wifi_process_tout();
+			wifi_module->wifi_reset(false, &wifi_module);
+		}
+	}
 }
 
 //*----------------------------------------------------------------------------
@@ -177,7 +155,7 @@ void WIFI_DCR(WIFI_DRIVER_INFO * drv_info, unsigned int reason, HANDLE param)
 	    case DCR_CANCEL:
 	    	if(!param->svc_list_cancel(drv_info->drv_data->wifi_waiting))
 	    	{
-	    		param->mode1 = 1;
+	    		param->mode1 = WIFI_USER_CANCEL_REQUEST;
 		    	if(drv_data->wifi_task)
 		    		svc_send_signal(drv_data->wifi_task, WIFI_CANCEL_SIGNAL);
 	    	}

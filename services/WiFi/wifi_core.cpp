@@ -11,6 +11,10 @@
 #include <wifi_core.h>
 #include <csocket.h>
 
+//uint32_t wifi_access_point_t::ap_cnt = 0;
+const char* mdns_desc_t::protocol_type[2] = {"_tcp", "_udp"};
+mdns_text_t mdns_desc_t::nil;
+
 WEAK_C NET_CODE wifi_on_init_station(wifi_module_type* mod
 									,CSocket* sock
 									,wifi_access_point_t* network)
@@ -22,7 +26,7 @@ WEAK_C NET_CODE wifi_on_get_AP(	wifi_module_type* mod
 								,CSocket* sock
 								,wifi_access_point_t* network)
 {
-	return NET_ERR_WIFI_NET_NAME;
+	return NET_ERR_WIFI_NET_NAME_PWD;
 }
 
 WEAK_C void wifi_on_disconnect(wifi_module_type* mod)
@@ -45,6 +49,172 @@ WEAK_C NET_CODE wifi_on_deregister(wifi_module_type* mod)
 	return NET_OK;
 }
 
+WEAK_C mdns_desc_t* wifi_get_mdns_desc(wifi_module_type* mod)
+{
+
+	mdns_desc_t *mdns_desc = new user_mdns_desc_t<3>;
+
+
+	if (mdns_desc) {
+		mdns_desc->hostname = "shell";
+		mdns_desc->instance = "Shell_Terminal";
+		mdns_desc->service = "_telnet";//"_shell";
+		mdns_desc->port =23;
+		mdns_desc->set_text(0, "vendor", "espresiif");
+		mdns_desc->set_text(1, "type", "ESP8266");
+		mdns_desc->set_text(2, "sn", "123456");
+	}
+	return mdns_desc;
+}
+
+CSTRING wifi_ip_to_str(const ip_addr_t* adr, bool quotes)
+{
+	CSTRING ip;
+	const char *p;
+	if (adr) {
+		p = (const char*)adr;
+		if (quotes)
+			ip = '"';
+		ip.appendf("%u.%u.%u.%u", p[0], p[1], p[2], p[3]);
+		if (quotes)
+			ip += '"';
+	}
+	return ip;
+}
+
+const char *skip_cmd_echo(const char* src)
+{
+	if (src && *src == '+') {
+		src++;
+		while (*src && !IS_SPACE(*src) && *src != ':')
+			src++;
+		while ( *src && ( IS_SPACE(*src) || *src == ':' || *src =='(' ) )
+			src++;
+	}
+	return src;
+}
+
+bool wifi_get_param(const char*row, CSTRING& param, unsigned int num)
+{
+	const char* end;
+
+	if(row && IS_NOT_NULL(&param))
+	{
+		param.clear();
+		row = skip_cmd_echo(row);
+		while(num > 1)
+		{
+			if (*row == CHAR_STX) {
+				row = strchr(row, CHAR_ETX);
+				if (!row)
+					return false;
+				row++;
+			}
+			row=strchr(row,',');
+			if(!row)
+				return false;
+			row++;
+			num--;
+		}
+		if (*row)
+		{
+			while(*row && IS_SPACE(*row))
+				row++;
+			if (*row == '"' || *row == CHAR_STX) {
+				if ( *row == '"') {
+					end = strchr(++row, '"');
+				} else {
+					end = strchr(++row, CHAR_ETX);
+				}
+				if(!end)
+					return false;
+				if (end > row) {
+					param.assign(row, end-row);
+				} else {
+					param = "";
+				}
+				return true;
+			}
+			end = strchr(row, ',');
+			if (end) {
+				if (end > row) {
+					param.assign(row, end-row);
+				} else {
+					param = "";
+				}
+			} else {
+				param=row;
+			}
+			return true;
+		}
+
+	}
+	return false;
+}
+
+bool wifi_get_param(const char*row, unsigned int& param, unsigned int num)
+{
+	CSTRING str;
+	if(wifi_get_param(row, str, num))
+	{
+		if(tmos_sscanf(str.c_str(), "%u", &param) == 1)
+			return true;
+	}
+	return false;
+}
+
+bool wifi_get_param(const char*row, int& param, unsigned int num)
+{
+	CSTRING str;
+	if(wifi_get_param(row, str, num))
+	{
+		if(tmos_sscanf(str.c_str(), "%d", &param) == 1)
+			return true;
+	}
+	return false;
+}
+
+bool wifi_get_param(const char*row, int8_t& param, unsigned int num)
+{
+	CSTRING str;
+	if(wifi_get_param(row, str, num))
+	{
+		int val;
+		if (tmos_sscanf(str.c_str(), "%d", &val) == 1) {
+			if ( val < -128) {
+				val = -128;
+			} else if (val > 127) {
+				val = 127;
+			}
+			param = val;
+			return true;
+		}
+	}
+	return false;
+}
+
+bool wifi_get_param(const char*row, wifi_encryption_type_t& param, unsigned int num)
+{
+	int8_t enc;
+	if(wifi_get_param(row, enc, num) && enc >= enc_unknown && enc < enc_last_supported)
+	{
+		param = (wifi_encryption_type_t)enc;
+		return true;
+	}
+	return false;
+}
+
+uint8_t wifi_rssi_to_level(const int8_t rssi )
+{
+	// rssi in dBm
+    if (rssi < -105) return 0;
+    else if (rssi < -93) return 1;
+    else if (rssi < -81) return 2;
+    else if (rssi < -69) return 3;
+    else if (rssi < -57) return 4;
+    else return 5;
+}
+
 // CMEE*
 // CMEE
 bool wifi_module_type::cmd_match(const char* cmd, const char* row)
@@ -60,7 +230,7 @@ bool wifi_module_type::cmd_match(const char* cmd, const char* row)
 }
 
 /**
- * Return truw if row is starting with the cmd
+ * Return true if row is starting with the cmd
  * @param cmd
  * @param row
  * @return
@@ -75,131 +245,6 @@ bool wifi_module_type::cmd_submatch(const char* cmd, const char* row)
     return (!*cmd);
 }
 
-void wifi_module_type::process_input(unsigned int signals, const char* cmd,
-									const char* hnd_start)
-{
-	unsigned char ch;
-#if WIFI_FLOW_CONTROL
-	if(stop_rcv)
-	{
-		if(mem_alloc_size < WIFI_FLOW_RELEASE_SIZE)
-		{
-			while(pending_read_data && (pending_read_data->res & RES_BUSY_WAITING) == RES_BUSY_WAITING)
-			{
-				TRACELN("Resum pending %s", pending_read_data->client.task->name);
-				pending_read_data->tsk_start_handle();
-				pending_read_data = pending_read_data->next;
-			}
-			TRACELN1("RTS Start rcv!");
-			stop_rcv = false;
-			PIO_Deassert(wifi_pin_rts);
-		}
-		else
-			return;
-	}
-#endif
-	if(rcv_hnd.res & FLG_CLOSED)
-		return;
-	//if receiver is idle -> start
-    if(rcv_hnd.res < FLG_SIGNALED)
-    {
-		rcv_hnd.tsk_start_read(&received_ch, 1);
-    }
-
-    // if there is no signal -> try to get it
-	if(!(signals & rcv_hnd.signal))
-	{
-		signals = tsk_test_signal(rcv_hnd.signal);
-		if(signals)
-			tsk_get_signal(signals);
-	}
-
-	if(signals & rcv_hnd.signal)
-	{
-		rcv_hnd.res &= ~FLG_SIGNALED;
-
-		ch = received_ch; //accept this symbol
-
-		if (ch != '\n')
-		{
-			if(IS_ALPHANUM(ch) || IS_PUNC(ch)  || ch =='\r' || ch == '\n'|| ch == ' ')
-			{
-
-				if( ch < ' ')
-				{ // \r \n ...
-					if(cmd_state & WIFI_CMD_STATE_STARTED)
-					{	// има прочетени символи, край на реда
-//						if(ch != '\n' || !(cmd_state & (WIFI_CMD_STATE_CRLF | WIFI_CMD_STATE_CRLFOK)))
-						{
-							cmd_state ^= WIFI_CMD_STATE_STARTED;
-							buf[row_end++] = 0;
-							TRACE1_WIFI_DEBUG(" | ");
-							//debug_buffer(drv_data, '^');
-
-							cmd_state |= wifi_process_row(cmd);
-						}
-
-					} else
-					{
-						TRACE1_WIFI_DEBUG(" I ");
-//						cmd_state |= WIFI_CMD_STATE_CRLF | WIFI_CMD_STATE_STARTED;
-						// if LF
-						//   if OK
-						//    if xxx  CRLF
-						///     process not(xxx)
-
-					}
-					// process_row() changes row_start if the row must stay
-					// otherwise the row will be dumped
-					row_end = row_start;
-				}
-				else
-				{
-					buf[row_end++] = ch;
-					TRACE1_WIFI_DEBUG("\e[33m");
-					TRACE_CHAR_WIFI_DEBUG(ch);
-					TRACE1_WIFI_DEBUG("\e[m");
-					TRACE_WIFI_DEBUG_SLEEP(2);
-					cmd_state |= WIFI_CMD_STATE_STARTED;
-					if(hnd_start && strchr(hnd_start,ch) )
-					{
-						cmd_state ^= WIFI_CMD_STATE_STARTED;
-						buf[row_end] = 0;
-						row_end--; // remove it // +SORD 4,123 "........." OK
-						cmd_state |= WIFI_CMD_STATE_HND;
-						TRACE1_WIFI_DEBUG("^hnd^");
-						return;
-					}
-					if(cmd_submatch("+IPD,", &buf[row_start]) && ch == ':')
-					{
-						cmd_state ^= WIFI_CMD_STATE_STARTED;
-						buf[--row_end] = 0;
-						TRACELN1("WIFI:Receive");
-						ch = wifi_data_received(&buf[row_start]);
-						row_end = row_start = 0;
-						if(ch)
-							return;
-					}
-				}
-				if(row_end >= WIFI_BUF_SIZE-1)
-				{
-					TRACE1_WIFI_ERROR("Dumping: ");
-					TRACE1_WIFI_ERROR(buf);
-
-					row_end = 0;
-					row_start = 0;
-					cmd_state = WIFI_CMD_STATE_FATAL;
-				}
-			} else
-			{
-				TRACE_WIFI_ERROR("!!!(%02.2x)\r\n", ch);
-			}
-		}
-
-		rcv_hnd.tsk_start_read(&received_ch, 1);
-	}
-
-}
 
 WIFI_CMD_STATE wifi_module_type::wifi_process_row(const char *cmd)
 {
@@ -232,16 +277,12 @@ WIFI_CMD_STATE wifi_module_type::wifi_process_row(const char *cmd)
 			TRACE1_WIFI_DEBUG(row);
 			TRACE1_WIFI_DEBUG(" \e[m");
 		    return WIFI_CMD_STATE_UNK;
-//			return 0;
 		}
 	}
 
 	//------------ WIFI notification -------------//
 	if(wifi_notification(row))
-	{
 		return 0;
-	}
-
 
 	//------- command related --------//
 	if(cmd)
@@ -265,33 +306,25 @@ WIFI_CMD_STATE wifi_module_type::wifi_send_cmd(const char *cmd, unsigned int tim
 	unsigned int sig;
 
 	// make sure the handle is working if it is open
-    while(rcv_hnd.res < FLG_BUSY)
-    {
+	while (rcv_hnd.res < FLG_BUSY) {
 #if WIFI_FLOW_CONTROL
-    	if(stop_rcv)
-    	{
-    	    cmd_state = WIFI_CMD_STATE_FATAL;
-    	    return cmd_state;
-    	}
+		if (stop_rcv) {
+			cmd_state = WIFI_CMD_STATE_FATAL;
+			return cmd_state;
+		}
 #endif
-    	process_input(0, NULL);
-    }
-
-	//wifi_sleep(20); //(the recommended value is at least 20 ms)
+		process_input(0, NULL);
+	}
 
     // make sure no URC is coming and the buf is empty
-    if( cmd_state & WIFI_CMD_STATE_STARTED)
-    {
-        if (tsk_wait_signal(rcv_hnd.signal, 8192))
-        {
-    		do
-    		{
-    			process_input(rcv_hnd.signal, NULL);
+	if (cmd_state & WIFI_CMD_STATE_STARTED) {
+		if (tsk_wait_signal(rcv_hnd.signal, 8192)) {
+			do {
+				process_input(rcv_hnd.signal, NULL);
 
-    		} while ( (cmd_state & WIFI_CMD_STATE_STARTED) &&
-    				tsk_resume_wait_signal(rcv_hnd.signal) );
-        }
-    }
+			} while ((cmd_state & WIFI_CMD_STATE_STARTED) && tsk_resume_wait_signal(rcv_hnd.signal));
+		}
+	}
 
     //trace
     TRACE1_WIFI_DEBUG("\r\n\e[32mAT");
@@ -418,9 +451,9 @@ void wifi_module_type::hnd_error(HANDLE hnd) const
 }
 
 
-NET_CODE wifi_module_type::wifi_get_current_net_ssid(CSTRING& ssid)
+NET_CODE wifi_module_type::wifi_get_current_net_ssid(wifi_access_point_t& access_point, bool check_only)
 {
-	return wifi_net_error(NET_ERR_WIFI_NET_NAME);
+	return wifi_net_error(NET_ERR_WIFI_NET_NAME_PWD);
 }
 
 
@@ -507,78 +540,74 @@ RES_CODE wifi_module_type::process_cmd(HANDLE client)
 {
 	RES_CODE res = RES_SIG_ERROR;
 
-
-	if( !(drv_info->drv_data->wifi_flags_bad & WIFI_FLAG_ON) || (client->cmd == WIFI_DRV_UPGRADE))
-	{
-		switch (client->cmd)
-		{
+	if (!(drv_info->drv_data->wifi_flags_bad & WIFI_FLAG_ON) || (client->cmd == WIFI_DRV_UPGRADE)) {
+		switch (client->cmd) {
 		case CMD_COMMAND:
 			// WIFI Commands
-			res = ((WIFI_CBF)client->src.as_voidptr)(this, client);
+			res = ((WIFI_CBF) client->src.as_voidptr)(this, client);
 			break;
-
+		case WIFI_CMD_CONFIG:
+			res = wifi_cmd_config((CSocket*) client);
+			break;
 		case SOCK_CMD_OPEN:
-			res = wifi_sock_open((CSocket*) client);
+			res = wifi_sock_cmd_open((CSocket*) client);
 			break;
-	#if USE_WIFI_LISTEN
+#if USE_WIFI_LISTEN
 		case SOCK_CMD_BIND_ADR:
-			res =  wifi_sock_bind_adr((CSocket*) client);
+			res = wifi_sock_cmd_bind_adr((CSocket*) client);
 			break;
 
 		case SOCK_CMD_BIND_URL:
-			res =  wifi_sock_bind_url((CSocket*) client);
+			res = wifi_sock_cmd_bind_url((CSocket*) client);
 			break;
 
 		case SOCK_CMD_LISTEN:
-			res = wifi_sock_listen((CSocket*) client);
+			res = wifi_sock_cmd_listen((CSocket*) client);
 			break;
 
 		case SOCK_CMD_ACCEPT:
-			res = wifi_sock_accept((CSocket*) client);
+			res = wifi_sock_cmd_accept((CSocket*) client);
 			break;
 
 		case SOCK_CMD_GET_ADDR:
-			res = wifi_sock_addr((CSocket*) client);
+			res = wifi_sock_cmd_addr((CSocket*) client);
 			break;
-	#endif
+#endif
 		case SOCK_CMD_CONNECT_ADR:
-			res = wifi_sock_connect_adr((CSocket*) client);
+			res = wifi_sock_cmd_connect_adr((CSocket*) client);
 			break;
 
 		case SOCK_CMD_CONNECT_URL:
-			res = wifi_sock_connect_url((CSocket*) client);
+			res = wifi_sock_cmd_connect_url((CSocket*) client);
 			break;
 
 		case SOCK_CMD_DISCONNECT:
-			res = wifi_sock_disconect((CSocket*) client);
+			res = wifi_sock_cmd_disconect((CSocket*) client);
 			break;
 
 		case SOCK_CMD_CLOSE:
-			res = wifi_sock_close((CSocket*) client);
+			res = wifi_sock_cmd_close((CSocket*) client);
 			break;
 
 		case WIFI_DRV_UPGRADE:
-			module_upgrade((HANDLE)client->dst.as_voidptr);
+			module_upgrade((HANDLE) client->dst.as_voidptr);
 			res = RES_SIG_OK;
 			break;
 
 		case WIFI_DRV_ON_CMD:
-			res = wifi_drv_on()|FLG_SIGNALED;
+			res = wifi_drv_on() | FLG_SIGNALED;
 			break;
 
 		case WIFI_DRV_OFF_CMD:
-			res = wifi_drv_off()|FLG_SIGNALED;
+			res = wifi_drv_off() | FLG_SIGNALED;
 			break;
 
 		default:
 			// socket commands
 			break;
 		}
-	}
-	else
+	} else
 		drv_info->drv_data->wifi_error = NET_ERR_PHY_NOT_READY;
-//	if(RES_IDLE != res)
-//		hnd_error(client);
 	return res;
 }
 
