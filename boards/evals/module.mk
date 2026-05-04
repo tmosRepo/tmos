@@ -27,3 +27,6 @@ sub_modules := $(call changepath,$(local_modules-y))
 modules += $(sub_modules)
 
 include $(addsuffix /module.mk,$(sub_modules))
+
+#========================     Versioning          =============================#
+TARGET_VER_FILE := boards/$(CFG_EVAL)/versions.h 

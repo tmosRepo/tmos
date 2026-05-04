@@ -38,3 +38,12 @@ sub_modules := $(call changepath,$(local_modules-y))
 modules += $(sub_modules)
 
 include $(addsuffix /module.mk,$(sub_modules))
+
+#========================     Versioning          =============================#
+DEP_PROJECTS := 
+
+ifneq "$(MAKECMDGOALS)" "clean"
+ifneq "$(MAKECMDGOALS)" "all"
+include boards/release.mk
+endif
+endif

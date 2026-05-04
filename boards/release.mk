@@ -3,7 +3,7 @@
 SVN			 ?= svn
 CVS			 ?= cvs
 COUNTER_FILE ?= versions.h 
-TARGET_VER_FILE ?= targets/$(CFG_TARGET)/versions.h 
+TARGET_VER_FILE ?= boards/$(CFG_BOARD)/versions.h 
 
 #===============	            MACROS                      	===============#
 #repository command
@@ -94,9 +94,9 @@ define PRINT_TARG_VER2
 $(foreach i,$(DEP_PROJECTS),$(shell echo $(i) $(call GET_VERSION,$(i))>> $(TARGET_VER_FILE)))
 endef
 
-REP_INFO := $(if $(filter all,$(MAKECMDGOALS))$(filter clean,$(MAKECMDGOALS)),,$(shell $(REP) info >$(OUT_DIR)/svn.info))
-REP_ROOT := $(lastword $(shell grep "Repository Root:" $(OUT_DIR)/svn.info))
-REP_URL := $(lastword $(shell grep "URL:" $(OUT_DIR)/svn.info))
+REP_INFO := $(if $(filter all,$(MAKECMDGOALS))$(filter clean,$(MAKECMDGOALS)),,$(shell $(REP) info >$(OUT_DIR)svn.info))
+REP_ROOT := $(lastword $(shell grep "Repository Root:" $(OUT_DIR)svn.info))
+REP_URL := $(lastword $(shell grep "URL:" $(OUT_DIR)svn.info))
 REP_FOLDER := $(lastword $(subst /, ,$(REP_URL)))
 
 TAG_REQUESTED := $(filter tag,$(MAKECMDGOALS))$(filter release,$(MAKECMDGOALS))
