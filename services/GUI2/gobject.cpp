@@ -810,7 +810,7 @@ unsigned int GObject::message (GMessage& msg)
 		return process_command(msg);
 	case WM_DRAW:
 		if(msg.lparam)
-			msg.dst->invalidate(msg.dst, (RECT_T&)msg.lparam);
+			msg.dst->invalidate(msg.dst, msg.lparam);
 		else
 			msg.dst->invalidate(msg.dst, msg.dst->rect);
 		return RES_OK;
