@@ -90,7 +90,7 @@
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //		Wi-Fi ESP8266 DRIVER
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-#define USE_WIFI 			1
+#define USE_WIFI 			0
 #define USE_WIFI_ESP8266	3 // ESP8266 version
 
 #define USE_SECURITY		1
