@@ -127,6 +127,23 @@ public:
 
 };
 
+struct auto_unlock_t
+{
+	lock_t&		target_lock;
+
+	auto_unlock_t(lock_t& l): target_lock(l) {;}
+
+	~auto_unlock_t()
+	{
+		target_lock.unlock();
+	}
+
+	void lock()
+	{
+		target_lock.lock();
+	}
+};
+
 #endif
 
 #define TC_BRIGHT				1
