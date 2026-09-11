@@ -42,7 +42,7 @@ struct DMA_CHANNEL_DATA
     HANDLE waiting;				//!< waiting to be processed
     HANDLE pending;				//!< currently processed
     HANDLE stops_pending;		//!< waiting for the transfer to complete after disabling the stream
-    DMA_DRIVER_MODE* last_mode;	//!< last DMA mode used by this channel/stream
+    DMA_DRIVER_MODE last_mode;	//!< last DMA mode used by this channel/stream
     uint16_t cnt;				//!< Number of open handles from this channel
 };
 

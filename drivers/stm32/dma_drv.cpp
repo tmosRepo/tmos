@@ -160,9 +160,9 @@ bool DMA_RESUME(DMA_DRIVER_INFO* drv_info)
 		ch_data->waiting = hnd->next;
 
 		mode = (DMA_DRIVER_MODE *)hnd->mode.as_voidptr;
-		if(mode != ch_data->last_mode)
+		if (memcmp(mode, &ch_data->last_mode, sizeof(DMA_DRIVER_MODE)))
 		{
-			ch_data->last_mode = mode;
+			memcpy(&ch_data->last_mode, mode, sizeof(DMA_DRIVER_MODE));
 			// configure the channel
 			stm32_dma_ch_cfg(drv_info->hw_base, drv_info->ch_indx, mode);
 		}
@@ -250,7 +250,7 @@ void DMA_DCR(DMA_DRIVER_INFO* drv_info, unsigned int reason, HANDLE hnd)
 					DMA_TRACELN("cancel");
 					stm32_dis_ints(drv_info->hw_base, drv_info->ch_indx);
 					ch_data->pending = nullptr;
-					ch_data->last_mode = nullptr;
+					memclr(&ch_data->last_mode, sizeof(DMA_DRIVER_MODE));
 					ch_data->stops_pending = nullptr;
 					// The DMA transfer should have already finished, but just in case
 					stm32_dma_stop(drv_info->hw_base, drv_info->ch_indx);
@@ -305,7 +305,10 @@ void DMA_DCR(DMA_DRIVER_INFO* drv_info, unsigned int reason, HANDLE hnd)
 
 		case DCR_CLOSE:
 			if(!--drv_info->ch_data->cnt)
+			{
+				stm32_dma_stop(drv_info->hw_base, drv_info->ch_indx);
     			NVIC_DisableIRQ(drv_info->info.drv_index);
+			}
 
 			if(!--drv_info->drv_data->cnt)
 				RCCPeripheralDisable(drv_info->info.peripheral_indx);
@@ -341,9 +344,9 @@ void DMA_DSR(DMA_DRIVER_INFO* drv_info, HANDLE hnd)
 				DMA_TRACELN("Running!");
 			} else
 			{
-				if(mode != ch_data->last_mode)
+				if (memcmp(mode, &ch_data->last_mode, sizeof(DMA_DRIVER_MODE)))
 				{
-					ch_data->last_mode = mode;
+					memcpy(&ch_data->last_mode, mode, sizeof(DMA_DRIVER_MODE));
 					// configure the channel
 					stm32_dma_ch_cfg(drv_info->hw_base, drv_info->ch_indx, mode);
 				}
