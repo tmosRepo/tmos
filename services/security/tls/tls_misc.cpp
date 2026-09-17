@@ -70,7 +70,7 @@ RES_CODE tls_context_t::tls_set_ciphersuite(tls_suite_id_t suite)
 		for (i = 0; i < n; i++)
 		{
 			//Point to the current item
-			info = &tls_supported_cipher_suites[i];
+			info = get_cipher_suite_indx(i);
 
 			//Compare cipher suite identifiers
 			if (info->suite_identifier == suite)

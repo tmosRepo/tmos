@@ -409,13 +409,13 @@ struct tls_chipher_suite_info
 };
 
 
-//List of supported cipher suites
-extern const tls_chipher_suite_info tls_supported_cipher_suites[];
-
 const tls_chipher_suite_info* get_cipher_suite_info(uint16_t id);
 
 bool is_ecc_cipher_suite(const tls_chipher_suite_info* suite);
 const char* tlsGetCipherSuiteName(uint16_t identifier);
+
+//weaks
+const tls_chipher_suite_info* get_cipher_suite_indx(uint16_t indx);
 uint32_t tlsGetNumSupportedCipherSuites();
 
 #endif /* SERVICES_SECURITY_TLS_TLS_CIPHER_SUITES_H_ */

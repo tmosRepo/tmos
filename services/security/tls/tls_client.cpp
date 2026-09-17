@@ -50,7 +50,7 @@ RES_CODE tls_context_t::tls_client_hello_msg_len(record_ctxt_t* rc)
 		for (i = 0; i < ext_len; i++)
 		{
 			//ECC cipher suite?
-			if (is_ecc_cipher_suite(&tls_supported_cipher_suites[i]))
+			if (is_ecc_cipher_suite(get_cipher_suite_indx(i)))
 			{
 				use_ecc = true;
 				break;
@@ -213,7 +213,7 @@ void tls_context_t::tls_client_make_hello(tls_client_hello_t* message, uint32_t 
 	{
 		//Default cipher suite
 		n = tlsGetNumSupportedCipherSuites();
-		suite = tls_supported_cipher_suites;
+		suite = get_cipher_suite_indx(0);
 		for (i = 0; i < n; i++, suite++)
 		{
 			static_cast<tls_cipher_suites_t*>((void*)p)->value[i] =

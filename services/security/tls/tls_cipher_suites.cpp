@@ -1035,12 +1035,20 @@ const tls_chipher_suite_info tls_supported_cipher_suites[] =
 #define SUPPORTED_SUITES_NUM (sizeof(tls_supported_cipher_suites)/sizeof(tls_chipher_suite_info))
 
 
+WEAK const tls_chipher_suite_info* get_cipher_suite_indx(uint16_t indx)
+{
+	return &tls_supported_cipher_suites[indx];
+}
+
 const tls_chipher_suite_info* get_cipher_suite_info(uint16_t id)
 {
+	const tls_chipher_suite_info* suite;
+
 	for (uint32_t i = 0; i < SUPPORTED_SUITES_NUM; i++)
 	{
-		if (tls_supported_cipher_suites[i].suite_identifier == id)
-			return &tls_supported_cipher_suites[i];
+		suite = get_cipher_suite_indx(i);
+		if (suite->suite_identifier == id)
+			return suite;
 	}
 
 	//The specified cipher suite is not supported...
@@ -1071,19 +1079,22 @@ bool is_ecc_cipher_suite(const tls_chipher_suite_info* suite)
 
 const char* tlsGetCipherSuiteName(uint16_t identifier)
 {
+	const tls_chipher_suite_info* suite;
+
 	//Parse the list of supported cipher suite
 	for (uint32_t i = 0; i < SUPPORTED_SUITES_NUM; i++)
 	{
+		suite = get_cipher_suite_indx(i);
 		//The current cipher suite matches the specified identifier?
-		if (tls_supported_cipher_suites[i].suite_identifier == identifier)
-			return tls_supported_cipher_suites[i].suite_name;
+		if (suite->suite_identifier == identifier)
+			return suite->suite_name;
 	}
 
 	//Unknown cipher suite...
 	return "Unknown";
 }
 
-uint32_t tlsGetNumSupportedCipherSuites()
+WEAK uint32_t tlsGetNumSupportedCipherSuites()
 {
 	return SUPPORTED_SUITES_NUM;
 }
