@@ -258,11 +258,8 @@ void usr_task_init_static(TASK_DESCRIPTION const * desc, int bStart)
 	task->signals = 0;
 	task->aloc_sig = 0;
 	task->state = TSKSTATE_SUSPEND;
-	for (int i = 0;; i++)
-	{
-		if (!(task->name[i] = desc->name[i]))
-			break;
-	}
+	strncpy(task->name, desc->name, sizeof(Task::name));
+	task->name[sizeof(task->name)-1] = 0;
 
 	if (bStart)
 	{
@@ -308,7 +305,9 @@ Task* usr_task_create_dynamic(const char* name, TASK_FUNCTION func,
 		task->signals = 0;
 		task->aloc_sig = 0;
 		task->state = TSKSTATE_SUSPEND;
-		strcpy(task->name, name);
+
+		strncpy(task->name, name, sizeof(Task::name));
+		task->name[sizeof(task->name)-1] = 0;
 	}
 	else
 		task = NULL;
