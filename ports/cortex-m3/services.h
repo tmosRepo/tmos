@@ -104,7 +104,7 @@ public:
 		return true;
 	}
 
-	void unlock()
+	virtual void unlock()
 	{
 		if(lock_locker == CURRENT_TASK)
 		{
