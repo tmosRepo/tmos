@@ -381,6 +381,36 @@ unsigned int find_in_list(const char* str, const char* sl, unsigned int* dwRead)
 	return (0);
 }
 
+unsigned int find_in_list_exact(const char* str, const char* sl, unsigned int* dwRead)
+{
+	unsigned int pos;
+	unsigned int index=1;
+
+	while(*sl)
+	{
+		pos=0;
+		while(1)
+		{
+			if(!sl[pos])
+			{
+				if(str[pos]) //string list item ended, but str has NOT -> they don't match
+					break;
+				if(dwRead)
+					*dwRead += pos;
+				return (index);
+			}
+			if(sl[pos] != str[pos])
+				break;
+			pos++;
+		}
+		while(sl[pos])
+			pos++;
+		sl+= pos+1;
+		index++;
+	}
+	return (0);
+}
+
 unsigned int find_in_case_list(const char* str, const char* sl)
 {
 	unsigned int pos;
