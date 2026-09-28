@@ -6,7 +6,7 @@
 #
 #-------------------------------------------------------------------------------
 
-OUT_NAME	?= cc500
+OUT_NAME	?= cc500s
 OUT_DIR		?= out/$(OUT_NAME)/
 
 #  optimisation level  can be [0, 1, 2, 3, s].
@@ -72,6 +72,7 @@ USE_BASE32		?=y
 
 # GUI
 USE_GUI			?=y
+USE_GUI2		?=n
 
 # USB
 USE_USB				?=y
@@ -80,10 +81,9 @@ USB_ENABLE_HOST 	?=y
 USB_ENABLE_OTG	 	?=y
 USB_ENABLE_CDC	 	?=y
 USB_ENABLE_PRN	 	?=n
-USB_ENABLE_HID	 	?=y
+USB_ENABLE_HID	 	?=n
 USB_ENABLE_MSC		?=y
-USB_ENABLE_VID		?=n
-
+  
 # AES TMOS
 USE_AES_TMOS	?=y
 

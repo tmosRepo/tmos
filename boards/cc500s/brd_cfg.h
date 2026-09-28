@@ -11,23 +11,13 @@
 #ifndef BRD_CFG_H_
 #define BRD_CFG_H_
 
+#define GD32F4XX_COMPATIBLE 1
+// 0 - default, 1 - DTCM, 2,3,4 - additional SRAM
+#define USED_MEMORY_POOLS	5
 
-#define ENABLE_INDEX		1
-#define DISABLE_INDEX		2
-#define MENU_INDEX			ENABLE_INDEX
-
-// GUI messages
-#define WM_USER				0x01
-#define WM_DRAW				0x02
-#define WM_KEY				0x03
-#define WM_INIT				0x04
-
-#define GUI_DISPLAYS		2
-#define GUI_DEFAULT_DISP	2
-
-#define USE_TMOS_TL_V1		0
 #define USE_TMOS_TL_V2		1
 #define USE_CSTRING			1
+
 
 #define USE_TMOS_STRING		1
 #define USE_TMOS_STDLIB		1
@@ -49,6 +39,49 @@
 #define USE_MEMORY_TRACKING	1
 #define USE_TASK_REGISTERS	1
 
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// GUI/GUI2
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#define GUI_DISPLAYS		2
+#define GUI_DEFAULT_DISP	2
+#define GUI_MONOCHROME  	0
+// Determines which font to use depending on the display
+#define GUI_TEXT_FONT		nullptr
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+/*
+#define KEY_DOWN_CODE		0x00
+#define KEY_REPEAT_CODE		0x8000
+#define KEY_UP_CODE			0x4000
+#define KEY_ASCII_CODE		0x0100
+#define KEY_SCAN_CODE		0x0200
+#define KEY_PRESREP_MASK	0x7FFF
+#define KEY_STATE_MASK		(KEY_REPEAT_CODE|KEY_UP_CODE)
+
+#define KEY_ON				0x00
+#define KEY_LEFT			0x00
+#define KEY_DOWN			0x02
+#define KEY_UP				0x01
+#define KEY_NO				0x03
+#define KEY_RIGHT			0x03
+
+#define KEY_OK				0x04
+#define KEY_C				0x05
+*/
+
+#define ENABLE_INDEX		1
+#define DISABLE_INDEX		2
+#define MENU_INDEX			ENABLE_INDEX
+
+// GUI messages
+#define WM_USER				0x01
+#define WM_DRAW				0x02
+#define WM_KEY				0x03
+#define WM_INIT				0x04
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
 #define URL_CUSTOM_ROUTING	1
 
 #define USE_CPU_SLEEP_MODE	1
@@ -56,6 +89,13 @@
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 		 KEY DRIVER
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#define KEY_RD_COUNT		0
+#define KEY_DRV_COUNT		0
+#define KEY_FIX_COUNT		6
+#define KEY_RD_ACTIV_LEVEL	0
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#if USE_GUI
 #define KEY_DOWN_CODE		0x00
 #define KEY_REPEAT_CODE		0x80
 #define KEY_UP_CODE			0x40
@@ -68,13 +108,20 @@
 #define KEY_NO				0x03
 #define KEY_RIGHT			0x03
 
-#define KEY_OK				0x04
-#define KEY_C				0x05
+#define KEY_OK				0x05
+#define KEY_C				0x04
+#endif
 
-#define KEY_RD_COUNT		0
-#define KEY_DRV_COUNT		0
-#define KEY_FIX_COUNT		6
-#define KEY_RD_ACTIV_LEVEL	0
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#if USE_GUI2
+#define KEY_DOWN_CODE		0x00
+#define KEY_REPEAT_CODE		0x8000
+#define KEY_UP_CODE			0x4000
+#define KEY_ASCII_CODE		0x0100
+#define KEY_SCAN_CODE		0x0200
+#define KEY_PRESREP_MASK	0x7FFF
+#define KEY_STATE_MASK		(KEY_REPEAT_CODE|KEY_UP_CODE)
+#endif
 
 #define USE_ADC_DMA_DRIVER 1		//Enable ADC DMA
 
@@ -85,9 +132,8 @@
 #define USB_ENABLE_OTG 		1
 #define USB_ENABLE_CDC		1
 #define USB_ENABLE_PRN		0
-#define USB_ENABLE_HID		1
+#define USB_ENABLE_HID		0
 #define USB_ENABLE_MSC		1
-#define USB_ENABLE_VID		0
 
 /// Ethernet
 #define USE_NET				1

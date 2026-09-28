@@ -1,5 +1,5 @@
 /**************************************************************************//**
- * @ingroup	 boards_cc500
+ * @ingroup	 boards_cc500s ( new hardaware version GD)
  * @file
  * @brief    SWI TABLE
  *

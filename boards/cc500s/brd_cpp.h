@@ -1,9 +1,4 @@
 /*
- * board.h
- *
- *  Created on: 2012-17-01
- *      Author: Miroslav kostadinov
- *
  *
  *  This file should provide all core and mcu specific defines and types.
  *
@@ -122,8 +117,9 @@
     FILE_DRV_INDX,					//83
     GSM_DRV_INDX,					//84
     GSM_BT_DRV_INDX,				//85  Blue tooth
+	WIFI_DRV_INDX,					//86  WiFi
 #if USE_SECURITY_TLS_DRV
-	TLS_DRV_INDX,					//86  TLS
+	TLS_DRV_INDX,					//87  TLS
 #endif
 	INALID_DRV_INDX	                /*!<  invalid	                         */
 };
