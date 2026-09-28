@@ -38,7 +38,7 @@ WEAK void backlight_thread(LCD_MODULE *lcd)
     }
 }
 
-TASK_DECLARE_STATIC(backlight_task, "BLIT", (void (*)(void))backlight_thread, 10, 50+TRACE_SIZE);
+TASK_DECLARE_STATIC(backlight_task, "BLIT", (void (*)(void))backlight_thread, 50, 50+TRACE_SIZE);
 
 
 void LCD_MODULE::lcd_init(GUI_CB splash)
@@ -298,4 +298,102 @@ void LCD_MODULE::lcd_single_window(GUI_CB callback)
     win.displays = display;
 #endif
     redraw_screen(&win);
+}
+
+void LCD_MODULE::draw_point(int x0, int y0)
+{
+	if((y0 <= frame_y1) && (y0 >= frame_y0))
+		pixel_by_x(x0);
+}
+
+void  LCD_MODULE::draw_line(int x0, int y0, int x1, int y1)
+{
+
+	int sx = x0 < x1 ? 1 : -1;
+	int sy = y0 < y1 ? 1 : -1;
+	int err, e2;
+	int dx, dy;
+
+	dx = (sx == 1)?(x1 - x0):(x0 - x1);
+	dy = (sy == 1)?(y1 - y0):(y0 - y1);
+
+	err = (dx > dy ? dx : -dy) / 2;
+
+	while(1)
+	{
+		draw_point(x0, y0);
+		if (x0 == x1 && y0 == y1)
+			break;
+		e2 = err;
+		if (e2 > -dx)
+		{
+			err -= dy;
+			x0 += sx;
+		}
+		if (e2 < dy)
+		{
+			err += dx;
+			y0 += sy;
+		}
+	}
+}
+
+void LCD_MODULE::draw_circle(int x0, int y0, int radius, int sectors)
+{
+	int x = radius, y = 0;
+	int radiusError = 1 - x;
+
+	while (x >= y)
+	{
+		if( sectors & (1<<0) )
+			draw_point( x + x0,  y + y0);
+		if( sectors & (1<<1) )
+			draw_point( y + x0,  x + y0);
+		if( sectors & (1<<2) )
+			draw_point(-y + x0,  x + y0);
+		if( sectors & (1<<3) )
+			draw_point(-x + x0,  y + y0);
+		if( sectors & (1<<4) )
+			draw_point(-x + x0, -y + y0);
+		if( sectors & (1<<5) )
+			draw_point(-y + x0, -x + y0);
+		if( sectors & (1<<6) )
+			draw_point( y + x0, -x + y0);
+		if( sectors & (1<<7) )
+			draw_point( x + x0, -y + y0);
+		y++;
+		if (radiusError < 0)
+		{
+			radiusError += 2 * y + 1;
+		}
+		else
+		{
+			x--;
+			radiusError += 2 * (y - x + 1);
+		}
+	}
+}
+
+void LCD_MODULE::fill_circle(int x0, int y0, int radius)
+{
+	int x = radius, y = 0;
+	int radiusError = 1 - x;
+
+	while (x >= y)
+	{
+		draw_hline(-x + x0, x + x0, y +y0);
+		draw_hline(-x + x0, x + x0, -y +y0);
+		draw_hline(-y + x0, y + x0, x +y0);
+		draw_hline(-y + x0, y + x0, -x +y0);
+		y++;
+		if (radiusError < 0)
+		{
+			radiusError += 2 * y + 1;
+		}
+		else
+		{
+			x--;
+			radiusError += 2 * (y - x + 1);
+		}
+	}
 }
