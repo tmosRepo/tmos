@@ -63,11 +63,11 @@ RES_CODE menu_draw(MENU_WINDOW menu_hnd, LCD_MODULE* lcd)
 //    lcd->set_xy_all(77, ALL_LEFT);
 //    lcd->draw_text(buf);
 //    lcd->set_font(&FNT10x21);
-    lcd->color = PIX_BLUE;
+    lcd->set_color(PIX_BLUE);
     lcd->set_xy_all(2, ALL_CENTER);
     lcd->draw_text(menu_hnd->menu->name[current_laguage].c_str());
     lcd->draw_hline(0, lcd->size_x-1, lcd->font->height + 3);
-    lcd->color = PIX_WHITE;
+    lcd->set_color(PIX_WHITE);
 
     unsigned int menu_lines = (lcd->size_y - (lcd->font->height + 7))/ lcd->font->vspacing;
     if(!(menu_lines&1))
@@ -337,9 +337,9 @@ static void draw_box_frame(CMessageBox* msg_hnd, LCD_MODULE* lcd)
 		lcd->set_xy_all(posy, ALL_CENTER);
 		while(txt[0] && ((posy+lcd->font->height) < msg_hnd->rect.y1))
 		{
-			lcd->clear_rect(1, posy, lcd->size_x-1, posy+10);
+			lcd->clear_rect(1, posy, lcd->size_x-1, posy+lcd->font->vspacing);
 			txt = lcd->draw_text(txt);
-			posy += 11;
+			posy += lcd->font->vspacing;
 		}
 	}
 	lcd->draw_hline(0, lcd->size_x-1, posy);
@@ -456,11 +456,11 @@ void DrawButtonsRow(unsigned int n, const char* btns, signed char sx, LCD_MODULE
 	unsigned char x;
 
 	if(lcd->size_y > 32)
-		y = 34 + n * 11;
+		y = /*34*/2*(lcd->font->vspacing +2*lcd->font->vdistance) + n * /*11*/lcd->font->vspacing; // 2*( vs + vd) / (28) + 6
 	else
 		y = 14 + n * 11;
 
-	for(x=2; x < 100; x += 10)
+	for(x=2; x < 10* lcd->font->hspacing/*100*/; x += lcd->font->hspacing/*10*/)
 	{
 		lcd->draw_bitmap(x, y, lcd->font->font_data + ((*btns++) - 0x20)
 				* lcd->font->char_bytes, lcd->font->width, lcd->font->height);
@@ -468,13 +468,13 @@ void DrawButtonsRow(unsigned int n, const char* btns, signed char sx, LCD_MODULE
 
 	if (sx >= 0)
 	{
-		x = (sx * 10) + 1;
+		x = (sx * lcd->font->hspacing) + 1;
 		if(lcd->size_y > 32)
-			y = n * 11 + 32;
+			y = n * lcd->font->vspacing + /*32*/2*(lcd->font->vspacing +lcd->font->vdistance) + lcd->font->vdistance;
 		else
 			y = n * 11 + 12;
-		for (n = 0; n < 12; n++)
-			lcd->invert_hline(x, x + 8, y + n);
+		for (n = 0; n <= lcd->font->vspacing; n++)
+			lcd->invert_hline(x, x + lcd->font->width +1, y + n);
 	}
 }
 
@@ -522,9 +522,9 @@ RES_CODE getbox_cb(CGetBox* box, unsigned int param, unsigned int msg)
     		box->flags ^= TXT_FLAGS_CURSOR;
     	if(lcd->size_y > 32)
     	{
-            lcd->set_xy_all(2, ALL_CENTER);
+            lcd->set_xy_all(2, ALL_CENTER); // offset 2
             lcd->draw_text(box->title.c_str());
-            offset = 13;
+            offset = lcd->font->vspacing + lcd->font->vdistance;// 13 ; offset = vs + vd (13)
 
         	//sy overflow
 			if( box->sy >= 4)
@@ -559,13 +559,19 @@ RES_CODE getbox_cb(CGetBox* box, unsigned int param, unsigned int msg)
 			lcd->draw_hline(0, lcd->size_x-1, offset);
 			if(!(box->flags & TXT_FLAGS_CONST))
 			{
+/*
 				lcd->draw_vline(offset, offset+15, 0);
 				lcd->draw_vline(offset, offset+15, lcd->size_x-1);
 				lcd->draw_hline(0, lcd->size_x-1, offset+15);
-		    	if(lcd->size_y > 32)
-		    		lcd->set_xy_all(lcd->size_y -23, ALL_RIGHT);
-		    	else
+*/
+				lcd->draw_vline(offset, offset*2 +1/*+15*/, 0);
+				lcd->draw_vline(offset, offset*2 +1/*+15*/, lcd->size_x-1);
+				lcd->draw_hline(0, lcd->size_x-1, offset*2 +1/*+15*/); // offset = 2 * (vs[11] +vd[3]) +1{top line}[15] / (13 +15) 28
+		    	if (lcd->size_y > 32) {
+		    		lcd->set_xy_all(lcd->size_y - lcd->font->vspacing * 2/*-23*/, ALL_RIGHT);
+		    	} else {
 		    		lcd->set_xy_all(lcd->size_y -8, ALL_RIGHT);
+		    	}
 #ifdef KEY_C
 	    		if(box->flags & TXT_FLAGS_RES)
 	    			lcd->draw_text("CANCEL");
@@ -575,7 +581,7 @@ RES_CODE getbox_cb(CGetBox* box, unsigned int param, unsigned int msg)
 			}
 #ifdef KEY_OK
 	    	if(lcd->size_y > 32)
-	    		lcd->set_xy_all(lcd->size_y -23, ALL_LEFT);
+	    		lcd->set_xy_all(lcd->size_y - lcd->font->vspacing * 2/*-23*/, ALL_LEFT);
 	    	else
 	    		lcd->set_xy_all(lcd->size_y -8, ALL_LEFT);
     		lcd->draw_text("OK");
@@ -586,7 +592,7 @@ RES_CODE getbox_cb(CGetBox* box, unsigned int param, unsigned int msg)
     		DrawButtons(box, lcd);
     	}
 
-        lcd->set_xy_all(offset+4, ALL_LEFT);
+        lcd->set_xy_all(offset + lcd->font->vdistance/*+4*/, ALL_LEFT);
 		buf = box->data.c_str();
 		pos = box->pos;
     	if(buf)
@@ -601,8 +607,8 @@ RES_CODE getbox_cb(CGetBox* box, unsigned int param, unsigned int msg)
 		if(box->flags & (TXT_FLAGS_CURSOR|TXT_FLAGS_CONST))
 		{
 			pos = 2 + pos * lcd->font->hspacing;
-		   lcd->draw_hline(pos, pos + lcd->font->hspacing, offset+15-2);
-		   lcd->draw_hline(pos, pos + lcd->font->hspacing, offset+15-1);
+		   	lcd->draw_hline(pos, pos + lcd->font->width, offset*2 -2);
+		   	lcd->draw_hline(pos, pos + lcd->font->width, offset*2 -1);
 		}
         return (0);
     }
