@@ -28,11 +28,11 @@ local_h_src-y 	+= gui_drv.h lcd.h fonts.h stdgui.h #lcd_EM6125.h
 #local_h_src-y 	+= lcd_ST7565S_RS.h cd_ST7565S_cmd.h
 #------------------------------------------------------------------------------- 
 
-local_cpp_src-y	+= tft_SPFD5414D.cpp tft_ST7735R.cpp
-local_cpp_src-y	+= tft_SPFD5414D_UART.cpp tft_ST7735R_UART.cpp
+local_cpp_src-y	+= tft_SPFD5414D.cpp tft_ST7735R.cpp tft_ST7789P3.cpp
+local_cpp_src-y	+= tft_SPFD5414D_UART.cpp tft_ST7735R_UART.cpp tft_ST7789P3_UART.cpp
 
-local_h_src-y 	+= tft_SPFD5414D.h tft_ST7735R.h  
-local_h_src-y 	+= tft_SPFD5414D_UART.h tft_ST7735R_UART.h
+local_h_src-y 	+= tft_SPFD5414D.h tft_ST7735R.h tft_ST7789P3.h
+local_h_src-y 	+= tft_SPFD5414D_UART.h tft_ST7735R_UART.h tft_ST7789P3_UART.h
 
 #updating global variables
 as_sources 	+= $(call changepath,$(local_as_src-y))
