@@ -19,7 +19,8 @@ struct SPFD5414D_UART: public SPFD5414D
 	{
 	}
 	;
-
+	void set_color(unsigned int rgb) override;
+	void invert_pixel_by_x(unsigned int x) override;
 protected:
 	void tft_write_row(unsigned short address_cmd[], unsigned short row) override;
 	void tft_reset() override;

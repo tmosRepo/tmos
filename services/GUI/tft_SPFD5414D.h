@@ -36,6 +36,10 @@
 #define SPFD5414D_MADCTR 			0x36	//!< [1] Memory Data Access Control
 #define SPFD5414D_RGBSET 			0x2d
 
+#define SPFD5414D_RDID1				0xDA
+#define SPFD5414D_RDID2				0xDB
+#define SPFD5414D_RDID3				0xDC
+
 #define SPFD5414D_DATA(data)		(0x0100 |(data))
 #define SPFD5414D_CMD(cmd)			(cmd)
 
@@ -49,6 +53,7 @@
 #define SPFD5414D_MADCTR_ML			0x10	//!< Vertical refresh order
 #define SPFD5414D_MADCTR_BGR		0x08	//!< RGB-BGR order (1=BGR)
 
+
 // base TFT module
 struct SPFD5414D: public LCD_MODULE
 {
@@ -57,10 +62,8 @@ struct SPFD5414D: public LCD_MODULE
     unsigned int video_buf[256];
 
 	SPFD5414D(unsigned int x, unsigned int y, HANDLE hnd, const PIN_DESC* p) :
-		LCD_MODULE(x, y, hnd, p), reset_timeout(0)
-	{
-	}
-	;
+		LCD_MODULE(x, y, hnd, p), reset_timeout(0), disp_buf(video_buf)
+	{ ; }
 
 	//virtual functions
 	void lcd_init(GUI_CB splash) override;
@@ -73,11 +76,20 @@ struct SPFD5414D: public LCD_MODULE
 	void invert_vline(unsigned int y0, unsigned int y1, unsigned int x) override;
 	void invert_hline(unsigned int x0, unsigned int x1, unsigned int y) override;
 	void update_screen() override // not used into TFT modules
-		{;};
+		{;}
 	void clear_screen() override;
 	void redraw_screen(WINDOW desktop) override;
+	__attribute__((always_inline, optimize("Os")))
+	inline const RENDER_MODE* default_font() override
+	{
+		return &FNT7x9;
+	}
+	void pixel_by_x(unsigned int x) override;
+	void invert_pixel_by_x(unsigned int x) override;
+	void set_color(unsigned int rgb) override;
 	//The TFT modules hardware interface methods
 protected:
+	size_t cmd_address_size() const override;
 	virtual void tft_reset();
 	virtual void tft_write_row(unsigned short row_address_cmd[], unsigned short row);
 };
@@ -91,13 +103,15 @@ protected:
 #ifndef SDA_PIN_INDX
 #define SDA_PIN_INDX	4
 #endif
-
-
+#ifndef DCX_PIN_INDX
+#define DCX_PIN_INDX	5
+#endif
 /**
  * TFT_CHECK class can be used to detect the LCD MODULE installed.
  * It is using GPIOs only so it can be called from AppInit()
  *
  */
+/*
 struct TFT_CHECK
 {
 	const PIN_DESC* pins;
@@ -113,6 +127,43 @@ struct TFT_CHECK
 
 	unsigned int read_id();
 	unsigned int id();
+};
+*/
+
+struct TFT_CHECK
+{
+	const PIN_DESC* pins;
+	unsigned int z_bits;
+	unsigned int ID_24bits;
+	unsigned int ID_3x8bits;
+	bool dcx;
+	TFT_CHECK(const PIN_DESC* p)
+	: pins(p)
+	, z_bits(0)
+	, ID_24bits(0)
+	, ID_3x8bits(0)
+	{
+		if(pins[DCX_PIN_INDX]) {
+			dcx = true;
+		} else {
+			dcx = false;
+		}
+	}
+
+	static void delay(unsigned int time = 0)
+	{
+		if (time) {
+			tsk_sleep(time);
+		}
+	}
+	void tft_write(unsigned int value, unsigned int bits=9);
+	unsigned int tft_read(unsigned int bits=24);
+	unsigned int tft_fast_read(unsigned int bits=24);
+
+	unsigned int read_id();
+	unsigned int fast_read_id(unsigned int bits);
+	bool id(unsigned int bits=9);
+	void tft_reset();
 };
 
 #endif /* LCD_SPFD5414D_H_ */

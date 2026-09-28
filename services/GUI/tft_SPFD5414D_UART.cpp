@@ -73,6 +73,23 @@ static inline uint16_t rotate(uint16_t value)
 	return value;
 }
 
+__attribute__((always_inline, optimize("Os")))
+inline void SPFD5414D_UART::set_color(unsigned int rgb)
+{
+	//pixel format
+	// 00000001 GGGBBBBB 00000001 RRRRRGGG
+	color = PIX_SPI3_RGB((rgb>>16),((rgb>>8)&0xFF),(rgb&0xFF));
+	rotate(&color);
+}
+
+__attribute__((always_inline, optimize("Os")))
+inline void SPFD5414D_UART::invert_pixel_by_x(unsigned int x)
+{
+	//pixel format
+	// 0000000B BBBBGGG1 0000000G GGRRRRR1
+	disp_buf[x] ^= 0x1FE01FE;//(PIX_SPI3_WHITE ^ PIX_SPI3);
+}
+
 void SPFD5414D_UART::tft_write_row(unsigned short address_cmd[], unsigned short row)
 {
 	if(row == 0xFFFF) // initialize row_address buffer
@@ -83,10 +100,10 @@ void SPFD5414D_UART::tft_write_row(unsigned short address_cmd[], unsigned short 
 	{
 		address_cmd[2] = address_cmd[4] = rotate(row|0x100);
 		lcd_hnd->tsk_write(address_cmd, sizeof(spdf5414d_lsb_row_address)/sizeof(unsigned short));
-		for(int i=0; i< 128; i++)
-		{
-			rotate(disp_buf +i);
-		}
+//		for(int i=0; i< 128; i++)
+//		{
+//			rotate(disp_buf +i);
+//		}
 
 		lcd_hnd->tsk_write(disp_buf, 256);
 		if(disp_buf == video_buf)
