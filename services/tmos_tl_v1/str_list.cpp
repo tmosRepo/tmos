@@ -479,7 +479,7 @@ CSTRING& CSTRING::append(const char* s, unsigned int l)
 			{
 				// append now...
 				char * ptr;
-				ptr = strncpy(storage.ram->buf + storage.ram->len, s, l);
+				ptr = strncpy_old(storage.ram->buf + storage.ram->len, s, l);
 				*ptr = 0;
 				storage.ram->len = ptr - storage.ram->buf;
 			}

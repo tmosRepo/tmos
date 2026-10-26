@@ -20,6 +20,7 @@ void* memset(void *dst, int c, unsigned int length);
 void* memchr(const void* src, int c, unsigned int size);
 char* strcpy(char *dst, const char *src);
 char* strncpy(char *dst, const char *src, unsigned int len);
+char* strncpy_old(char *dst, const char *src, unsigned int len);
 char* strchr(const char *dst, int i);
 char* strrchr(const char *dst, int i);
 char* strpbrk(const char* str1, const char* str2);

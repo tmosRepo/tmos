@@ -192,10 +192,39 @@ ENDF(	strcpy		)
 //*----------------------------------------------------------------------------
 //*		char* strncpy(char* dst, const char* src, unsigned int len)
 //*----------------------------------------------------------------------------
+//*	return: dst
+//*----------------------------------------------------------------------------
+FUNC(	strncpy		)
+
+				cbz				r0, 3f
+				cbz				r1, 3f
+				cbz				r2, 3f
+				movs			r12, r0
+
+1:
+				ldrb			r3, [r1], #1
+  				strb			r3, [r12], #1
+  				subs			r2, #1
+				cbz				r3, 2f
+  				bne				1b
+				bx				lr
+
+2: //If the length of src is less than len, the remaining of the length is cleaned up.
+  				subs			r2, #1
+  				IT				HS
+				strbhs			r3, [r12, r2]
+				bhi				2b
+3:				bx				lr
+
+ENDF(	strncpy		)
+
+//*----------------------------------------------------------------------------
+//*		char* strncpy(char* dst, const char* src, unsigned int len)
+//*----------------------------------------------------------------------------
 //*	return: If a NUL character is written to the destination, the function shall return
 //* 		the address of the first such NUL character. Otherwise, it shall return &dst[len]
 //*----------------------------------------------------------------------------
-FUNC(	strncpy		)
+FUNC(	strncpy_old		)
 
 				cbz				r0, 3f
 				cbz				r1, 3f
@@ -216,7 +245,7 @@ FUNC(	strncpy		)
   				subs			r0, #1
 3:				bx				lr
 
-ENDF(	strncpy		)
+ENDF(	strncpy_old		)
 
 //*----------------------------------------------------------------------------
 //*		unsigned int strlen(const char* dst)
