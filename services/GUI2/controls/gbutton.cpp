@@ -69,6 +69,7 @@ void GButton::draw_this (LCD_MODULE* lcd)
 	if(type)
 	{
 		lcd->allign = TA_LEFT;
+		// adds a small offset (one space between characters) from the start of the icon drawing button
 		lcd->pos_x = client_rect.x0 + lcd->font->hdistance;
 		if (flags & GO_FLG_CHECKED)
 			lcd->set_color(PIX_GREEN);
@@ -87,14 +88,16 @@ void GButton::draw_this (LCD_MODULE* lcd)
 			else
 				lcd->draw_icon(GICON_SQUARE);
 		}
+		// moves the position 1/3 of the width of one character after the already drawn icon
 		lcd->pos_x =  client_rect.x0 + ((lcd->font->hspacing * 4)/3);
-		if (type == GB_TYPE_SWITCH)	{											// switch
+
+		if (type == GB_TYPE_SWITCH)	{											// switch draw
 			// calculates the frame of the switch icon
 			r_frame = rect;
 			if (!(flags & GO_FLG_SELECTED)) {
 				r_frame.y1--;
 			}
-			if(r_frame.width() > lcd->font->width *2)
+			if(r_frame.width() >= lcd->font->width *2)
 				r_frame.x1 = r_frame.x0 + lcd->font->width *2;
 
 			// calculates the size of the switch icon
@@ -126,6 +129,7 @@ void GButton::draw_this (LCD_MODULE* lcd)
 			lcd->pos_x =  r_frame.x1 + lcd->font->hspacing/3; // 1/3 of (character width + character spacing)
 		}
 	}
+
 	lcd->set_color(get_fg_color());
 	if(flags & GO_FLG_SELECTED)
 	{
@@ -139,7 +143,7 @@ void GButton::draw_this (LCD_MODULE* lcd)
 		lcd->set_color(get_bg_color());
 	}
 
-	text_metrics_t size = get_text_metrics(label.c_str(), client_rect.width() -lcd->pos_x, lcd->font);
+	text_metrics_t size = get_text_metrics(label.c_str(), client_rect.x1/*.width()*/ -lcd->pos_x, lcd->font);
 	if (size.height > client_rect.height()) {
 		draw_text_line(lcd, label.c_str(), label.length());
 	} else {
