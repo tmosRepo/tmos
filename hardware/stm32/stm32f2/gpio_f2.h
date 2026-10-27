@@ -261,6 +261,7 @@ void PIO_SetOutput(PIN_DESC pins);
 void PIO_ClrOutput(PIN_DESC pins);
 void PIO_Assert(PIN_DESC pins);
 void PIO_Deassert(PIN_DESC pins);
+void PIO_Toggle(PIN_DESC pins);
 
 void exti_set_line_source(unsigned int line, unsigned int port);
 

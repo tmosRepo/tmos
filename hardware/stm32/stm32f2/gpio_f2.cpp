@@ -220,6 +220,33 @@ pio_set PIO_Read(PIN_DESC pins)
 #endif
 }
 
+/**
+ * Toggle value of pin(s)
+ * @param pins
+ */
+void PIO_Toggle(PIN_DESC pins)
+{
+	unsigned int port_num;
+	unsigned int val;
+
+	port_num = PD_PORT_Get(pins);
+	if (port_num <= PD_LAST_PORT)
+	{
+		GPIO_TypeDef* gpio_port = PORT_ADDRESS( port_num );
+//		ASSERT(SYSCTL->RCGC2&(1<<port_num));
+		val = (gpio_port->GPIO_IDR & pins);
+		gpio_port->GPIO_BSRR = (pins & 0xFFFF & ~val) | ((pins & val)<<16);
+	}
+#if ( USE_GPIO_EXPANDER !=	0)
+	else
+	{
+		VPIO_Write(pins, pins & ~VPIO_Read(pins));
+	}
+#endif
+}
+
+
+
 
 /**
  * Drive output pins to high level
