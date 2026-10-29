@@ -255,14 +255,19 @@ struct wifi_module_type
     unsigned int  mem_alloc_size;
     HANDLE	 	 pending_read_data;
 #endif
-    unsigned int  wifi_pin_rts;
+    unsigned	wifi_pin_pwr;
+    unsigned  	wifi_pin_boot;
+    unsigned  	wifi_pin_rts;
+
     char buf[WIFI_BUF_SIZE];
 
 //----------------- constructor/destructor -------------------------------------
     wifi_module_type
     	(
     		const WIFI_DRIVER_INFO* pinfo
-    		,unsigned int PIN_RTS
+			,unsigned PIN_PWR
+			,unsigned PIN_BOOT
+    		,unsigned PIN_RTS
     	)
     	:drv_info(pinfo)
     	, row_start(0)
@@ -277,6 +282,8 @@ struct wifi_module_type
     	, mem_alloc_size(0),
     	pending_read_data(nullptr)
 #endif
+    	, wifi_pin_pwr(PIN_PWR)
+    	, wifi_pin_boot(PIN_BOOT)
     	, wifi_pin_rts(PIN_RTS)
     {
     }

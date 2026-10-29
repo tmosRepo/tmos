@@ -20,7 +20,8 @@ bool is_esp8266_supported_encryption(wifi_encryption_type_t enc);
 #define USE_CUR_SUF			1
 
 #define RTOS_AT_VERSION			0x2220
-#define RTOS_AT_VERSION_V2300	0x2300
+#define RTOS_AT_VERSION_V2300	0x2300 //!< ESP8266
+#define RTOS_AT_VERSION_V4200	0x4200 //!< The latest version supporting ESP32
 
 /*
 struct wifi_access_point_mode_t
@@ -174,12 +175,10 @@ struct esp8266_module: public wifi_module_type
     esp8266_ap_t 	web_ap;
 #endif
     mqueue<wifi_notify_t, 8> notify_state;
-    unsigned int  	wifi_pin_pwr;
-    unsigned int  	wifi_pin_boot;
     unsigned int 	at_version;
 
-    esp8266_module(const WIFI_DRIVER_INFO* pinfo, unsigned pwr_pin =0, unsigned rst_pin=0, unsigned boot_pin =0)
-    	:wifi_module_type(pinfo, rst_pin)
+    esp8266_module(const WIFI_DRIVER_INFO* pinfo, PIN_DESC pwr_pin =0, PIN_DESC boot_pin =0, PIN_DESC rst_pin=0)
+    	:wifi_module_type(pinfo, pwr_pin, boot_pin, rst_pin)
 		{
 				used_sockets = 0;
 				wifi_tout = 0;
@@ -220,7 +219,7 @@ protected:
     //=============================================================================
     //	Methods for powering on/off/resetting the ESP8266 and related to its state.
     //=============================================================================
-	RES_CODE wifi_echo_off(bool lowlevel, uint32_t indx);
+	RES_CODE wifi_echo_off(bool lowlevel, wifi_iface_mode_indx indx);
     RES_CODE wifi_drv_pwron(bool lowlevel = false) override;
     RES_CODE wifi_drv_off() override;
     NET_CODE wifi_reset(bool force, wifi_module_type** drv_module) override;

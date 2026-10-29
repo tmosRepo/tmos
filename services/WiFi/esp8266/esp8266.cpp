@@ -552,7 +552,7 @@ NET_CODE esp8266_module::esp8266_mdns(bool mdns_on)
 		if (!mdns.get()) {
 			return res;
 		}
-		if (at_version >= RTOS_AT_VERSION_V2300) {
+		if (at_version >= RTOS_AT_VERSION_V2300 && at_version < RTOS_AT_VERSION_V4200) {
 			cmd += "EX";
 		}
 		cmd += "=1,\"";
@@ -573,7 +573,7 @@ NET_CODE esp8266_module::esp8266_mdns(bool mdns_on)
 				}
 			}
 		}
-		if (WIFI_CMD_STATE_ROK == wifi_send_cmd(cmd.c_str(), 10)) {
+		if (WIFI_CMD_STATE_OK & wifi_send_cmd(cmd.c_str(), 10)) {
 			drv_info->drv_data->wifi_flags_ok |= WIFI_FLAG_MDNS;
 			res = RES_OK;
 		}
@@ -636,7 +636,7 @@ FILE_RESET_OPTIONS
 //	Methods for powering on/off/resetting the ESP8266 and related to its state.
 //=============================================================================
 
-RES_CODE esp8266_module::wifi_echo_off(bool lowlevel, uint32_t indx)
+RES_CODE esp8266_module::wifi_echo_off(bool lowlevel, wifi_iface_mode_indx indx)
 {
 	RES_CODE res;
 	DRIVER_INDEX	iface_driver_index;
@@ -648,15 +648,15 @@ RES_CODE esp8266_module::wifi_echo_off(bool lowlevel, uint32_t indx)
 		snd_hnd.close();
 		if(lowlevel)
 			return RES_OK;
-		tsk_sleep(1000);
 		iface_driver_index = drv_info->drv_data->iface_driver_index;
 		if(!iface_driver_index)
 			return RES_FATAL;
+		tsk_sleep(50);
 		if(rcv_hnd.tsk_open(iface_driver_index, drv_info->iface_mode_stru[indx]) &&
 			snd_hnd.tsk_open(iface_driver_index, drv_info->iface_mode_stru[indx])	)
 		{
 			//wait until rx signals get stable
-			wifi_sleep(1000);
+			wifi_sleep(50);
 			//turn off echo
 			if(wifi_send_cmd("E0", 1) & WIFI_CMD_STATE_OK)
 			{
@@ -675,8 +675,7 @@ RES_CODE esp8266_module::wifi_drv_pwron(bool lowlevel)
 	bool changed = false;
 	CSTRING cmd;
 
-
-	if(drv_data->wifi_flags_bad & WIFI_FLAG_SHUTDOWN)
+	if(!lowlevel && (drv_data->wifi_flags_bad & WIFI_FLAG_SHUTDOWN))
 		return wifi_error(NET_ERR_WIFI_SHUTDOWN);
 	if( drv_data->wifi_flags_ok & WIFI_FLAG_ON)
 		return RES_OK;
@@ -695,35 +694,65 @@ RES_CODE esp8266_module::wifi_drv_pwron(bool lowlevel)
 	tsk_sleep(1000);
 #if ESP8266_TRACE_BOOT
 //######################################################################################################################
+	static const char* const boot_head = "ets ";
 	DRIVER_INDEX	iface_driver_index;
+	uint32_t match=0;
 	iface_driver_index = drv_info->drv_data->iface_driver_index;
-	if (iface_driver_index && rcv_hnd.tsk_open(iface_driver_index, drv_info->iface_mode_stru[1])) {
-		PIO_Assert(wifi_pin_pwr);
-		while (RES_OK == rcv_hnd.tsk_read(buf, WIFI_BUF_SIZE, 100)) {
-			TRACE_WIFI_BOOT_BUFF(buf, WIFI_BUF_SIZE - rcv_hnd.len);
+	if (!iface_driver_index) {
+		return NET_ERR_PHY_NOT_READY;
+	}
+
+	for (int i = wifi_iface_mode_default; i < wifi_iface_mode_high_speed; i++){
+		if (drv_info->iface_mode_stru[i]) {
+			PIO_Assert(wifi_pin_pwr);
+			if(rcv_hnd.tsk_open(iface_driver_index, drv_info->iface_mode_stru[i])) {
+				if(RES_OK == rcv_hnd.tsk_read(buf, WIFI_BUF_SIZE, 150)) {
+					for (int j=0; j < WIFI_BUF_SIZE - rcv_hnd.len; j++) {
+						if (buf[j] == boot_head[match]) {
+							if (++match == strlen(boot_head)) {
+								break;
+							}
+						} else {
+							match=0;
+						}
+					}
+					if(!match) {
+						PIO_Deassert(wifi_pin_pwr);
+						rcv_hnd.close();
+						tsk_sleep(50);
+						continue;
+					} else {
+						do {
+							TRACE_WIFI_BOOT_BUFF(buf, WIFI_BUF_SIZE - rcv_hnd.len);
+						} while (RES_OK == rcv_hnd.tsk_read(buf, WIFI_BUF_SIZE, 450));
+						break;
+					}
+				}
+			}
+		} else {
+			PIO_Assert(wifi_pin_pwr);
+			break;
 		}
-	} else {
-		PIO_Assert(wifi_pin_pwr);
 	}
 //######################################################################################################################
 #else
 	PIO_Assert(wifi_pin_pwr);
+	tsk_sleep(1050); // Wait for the bootloader to finish transmitting its header.
 #endif
-	tsk_sleep(50);
 
 	do
 	{
-		res = wifi_echo_off(lowlevel, 0);
+		res = wifi_echo_off(lowlevel, wifi_iface_mode_default);
 		if(lowlevel)
 			return res;
 		if(res != RES_OK)
 		{
-			res = wifi_echo_off(lowlevel, 1);
+			res = wifi_echo_off(lowlevel, wifi_iface_mode_boot);
 			if(res == RES_OK && !changed)
 			{
 				//try to switch baudrate
 
-				cmd.format(WIFI_BAUD"=%u", *(const uint32_t*)drv_info->iface_mode_stru[0]);
+				cmd.format(WIFI_BAUD"=%u", *(const uint32_t*)drv_info->iface_mode_stru[wifi_iface_mode_default]);
 #if !USE_DEPRECATED_AT_CMD
 				cmd += ",8,1,0,0";
 #endif
@@ -740,7 +769,7 @@ RES_CODE esp8266_module::wifi_drv_pwron(bool lowlevel)
 	{
 #if WIFI_FLOW_CONTROL
 		// Enable hardware flow control
-		cmd.format(WIFI_BAUD"=%u", *(const uint32_t*)drv_info->iface_mode_stru[0]);
+		cmd.format(WIFI_BAUD"=%u", *(const uint32_t*)drv_info->iface_mode_stru[wifi_iface_mode_default]);
 #if !USE_DEPRECATED_AT_CMD
 		cmd += ",8,1,0,3";
 #endif
@@ -751,24 +780,27 @@ RES_CODE esp8266_module::wifi_drv_pwron(bool lowlevel)
 		if (at_version >= RTOS_AT_VERSION && wifi_send_cmd("+SYSSTORE?", 2) == WIFI_CMD_STATE_ROK) {
 			if (wifi_get_param(buf,res, 1) && res == 1) {
 				wifi_send_cmd("+SYSSTORE=0", 5);
-/*
-				wifi_send_cmd("+RESTORE", 30);
-				wifi_send_cmd("+RST", 30);
-*/
 			}
-			if (drv_info->iface_mode_stru[2]) {
-				// Trying to increase speed to 460800
+			if (drv_info->iface_mode_stru[wifi_iface_mode_high_speed]) {
 				changed = false;
-				for (res=2; res; --res) {
-					cmd.format(WIFI_BAUD"=%u", *(const uint32_t*)drv_info->iface_mode_stru[res]);
-	#if !USE_DEPRECATED_AT_CMD
-					cmd += ",8,1,0,0";
-	#endif
-					if (wifi_send_cmd(cmd.c_str(), 2) & WIFI_CMD_STATE_OK) {
-						if(RES_OK == wifi_echo_off(false, res)) {
-							changed = true;
-							break;
+				// Trying to increase speed to 460800
+				cmd.format(WIFI_BAUD"=%u", *(const uint32_t*)drv_info->iface_mode_stru[wifi_iface_mode_high_speed]);
+#if !USE_DEPRECATED_AT_CMD
+				cmd += ",8,1,0,0";
+#endif
+				if (wifi_send_cmd(cmd.c_str(), 2) & WIFI_CMD_STATE_OK) {
+					if (RES_OK != wifi_echo_off(false, wifi_iface_mode_high_speed)) {
+						cmd.format(WIFI_BAUD"=%u", *(const uint32_t*)drv_info->iface_mode_stru[wifi_iface_mode_default]);
+#if !USE_DEPRECATED_AT_CMD
+						cmd += ",8,1,0,0";
+#endif
+						if (wifi_send_cmd(cmd.c_str(), 2) & WIFI_CMD_STATE_OK) {
+							if (RES_OK == wifi_echo_off(false, wifi_iface_mode_default)) {
+								changed = true;
+							}
 						}
+					} else {
+						changed = true;
 					}
 				}
 				if(!changed) {
@@ -777,6 +809,7 @@ RES_CODE esp8266_module::wifi_drv_pwron(bool lowlevel)
 					return wifi_error(NET_ERR_WIFI);
 				}
 			}
+
 		}
 	}
 
@@ -838,7 +871,9 @@ RES_CODE esp8266_module::wifi_drv_pwron(bool lowlevel)
 #endif
 				if(WIFI_CMD_STATE_OK == res)
 				{
+#if ESP8266_SOFT_AP
 					wifi_send_cmd(WIFI_SOFT_AP_CFG"?", 5); // debug only
+#endif
 					wifi_on_pwron_config(this);
 					drv_data->wifi_flags_ok |= WIFI_FLAG_ON;
 					drv_data->wifi_flags_bad &= ~WIFI_FLAG_ON;
@@ -2827,18 +2862,26 @@ RES_CODE esp8266_module::process_cmd(HANDLE client)
 
 }
 
-
+//ESP32
+//env -> ~/esp/esp-at$ . ./esp-idf/export.sh
+//esptool --chip esp32 -p /dev/ttyUSB0 -b 115200 --no-stub  write-flash --flash-mode dio --flash-size 4MB --flash-freq 40m 0x1000 build/bootloader/bootloader.bin 0x8000 build/partition_table/partition-table.bin 0x10000 build/ota_data_initial.bin 0x20000 build/at_customize.bin 0x21000 build/customized_partitions/mfg_nvs.bin 0x100000 build/esp-at.bin
+//ESP8266
 //esptool -p /dev/ttyUSB0 -b 115200  --no-stub write-flash --flash-mode dio --flash-size 2MB --flash-freq 40m 0x0 build/bootloader/bootloader.bin 0x8000 build/partition_table/partition-table.bin 0x9000 build/ota_data_initial.bin 0x10000 build/esp-at.bin 0xF0000 build/at_customize.bin 0xF1000 build/customized_partitions/factory_param.bin
 //esptool.py -p /dev/ttyUSB0 --no-stub write_flash --flash_size 2MB-c1 0x0 img/boot_v1.7.bin 0x01000 img/user1.2048.new.5.bin 0x1fb000 img/blank.bin 0x1fc000 img/esp_init_data_default_v08.bin 0xfe000 img/blank.bin 0x1fe000 img/blank.bin
-RES_CODE esp8266_module::module_upgrade(HANDLE hnd)
+static const char* const cmd_quit = "quit\r\n";
+
+RES_CODE esp8266_module::module_upgrade(HANDLE client)
 {
 	char wifi_ack[32];
 	unsigned int sig, old_sig;
 	HND_CLIENTS old_client;
-	RES_CODE res;
+	RES_CODE res=RES_OK;
 	CHandle hnd_snd;
 	uint32_t buf_in, buf_out, rx_size=0, tx_size=0, wifi_ack_off;
 	DRIVER_INDEX	iface_driver_index;
+
+	uint32_t debug = client->src.as_int, indx=0;
+	HANDLE hnd = (HANDLE)client->dst.as_voidptr;
 
     //change hnd client
     old_sig = hnd->signal;
@@ -2853,17 +2896,21 @@ RES_CODE esp8266_module::module_upgrade(HANDLE hnd)
 	    hnd->client.task = CURRENT_TASK;
 		wifi_drv_off();
 
-	    hnd->tsk_write("\r\n----- READY -----\r\n");
-	    if(wifi_pin_boot)
-	    {
-	    	PIO_Cfg(wifi_pin_boot);
-	    	tsk_sleep(20);
-	    	PIO_Assert(wifi_pin_boot);
-	    	tsk_sleep(100);
-	    }
-		wifi_drv_pwron(true);
+	    if (!debug) {
 
-		res = hnd->tsk_read(buf, 1, 2*25000);
+			hnd->tsk_write("\r\n----- READY -----\r\n");
+		    if(wifi_pin_boot)
+		    {
+		    	PIO_Cfg(wifi_pin_boot);
+		    	tsk_sleep(20);
+		    	PIO_Assert(wifi_pin_boot);
+		    	tsk_sleep(100);
+		    }
+			wifi_drv_pwron(true);
+
+			res = hnd->tsk_read(buf, 1, 2*25000);
+		}
+
 		wifi_drv_pwron(true);
 
 		iface_driver_index = drv_info->drv_data->iface_driver_index;
@@ -2874,29 +2921,31 @@ RES_CODE esp8266_module::module_upgrade(HANDLE hnd)
 			// upgrade started
 
 
-			if(rcv_hnd.tsk_open(iface_driver_index, drv_info->iface_mode_stru[1]) &&
-				snd_hnd.tsk_open(iface_driver_index, drv_info->iface_mode_stru[1])	)
+			if( rcv_hnd.tsk_open(iface_driver_index, drv_info->iface_mode_stru[wifi_iface_mode_default]) &&
+				snd_hnd.tsk_open(iface_driver_index, drv_info->iface_mode_stru[wifi_iface_mode_default]) &&
+				hnd_snd.tsk_open(hnd->drv_index, hnd->mode.as_voidptr) )
 			{
 		    	unsigned int pc_rcv, wifi_rcv;
 
 			    TRACE1_WIFI("\r\n------ WIFI UPGRADE --------");
 
-			    res = hnd_snd.tsk_open(hnd->drv_index, hnd->mode.as_voidptr);
 			    //flush PC
-			    buf_in = 20;
 			    wifi_ack_off = 0;
-			    while(--buf_in)
-			    {
-				    hnd->tsk_read(buf, WIFI_BUF_SIZE, 2000);
-			    	pc_rcv = WIFI_BUF_SIZE - hnd->len;
-			    	if(pc_rcv)
-			    	{
-			    		TRACE_BUF(buf, pc_rcv, TC_TXT_YELLOW);
-			    		buf_in = pc_rcv;
-			    		break;
-			    	}
-			    }
-
+				if (!debug) {
+					buf_in = 20;
+					while (--buf_in) {
+						hnd->tsk_read(buf, WIFI_BUF_SIZE, 2000);
+						pc_rcv = WIFI_BUF_SIZE - hnd->len;
+						if (pc_rcv) {
+							TRACE_BUF(buf, pc_rcv, TC_TXT_YELLOW);
+							buf_in = pc_rcv;
+							break;
+						}
+					}
+				} else {
+					hnd->tsk_write("\r\n----- AT DEBUG -----\r\n");
+					buf_in =0;
+				}
 
 			    buf_out = 0;
 			    while(1)
@@ -2965,7 +3014,20 @@ RES_CODE esp8266_module::module_upgrade(HANDLE hnd)
 			    		hnd->res &= ~FLG_SIGNALED;
 				    	pc_rcv = rx_size - hnd->len;
 						TRACE_BUF(buf+buf_in, pc_rcv, TC_TXT_RED);
-
+						if (debug) {
+							for (unsigned i=0; i < pc_rcv; i++) {
+								if((buf+buf_in)[i] == cmd_quit[indx]) {
+									if (++indx == strlen(cmd_quit)) {
+										break;
+									}
+								} else {
+									indx =0;
+								}
+							}
+							if (indx == strlen(cmd_quit)) {
+								break;
+							}
+						}
 		    			buf_in += pc_rcv;
 		    			if(buf_in >= WIFI_BUF_SIZE)
 		    				buf_in = 0;
@@ -2986,7 +3048,7 @@ RES_CODE esp8266_module::module_upgrade(HANDLE hnd)
 				    			wifi_ack_off = sizeof(wifi_ack)/2;
 				    	}
 			    	}
-			    	if(!sig)
+			    	if(!sig && !debug)
 			    	{
 			    		hnd->tsk_cancel();
 			    		rcv_hnd.tsk_cancel();

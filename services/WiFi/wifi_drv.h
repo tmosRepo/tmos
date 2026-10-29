@@ -49,6 +49,13 @@
 #define NET_ERR_WIFI_INVALID_MASK		0xFE	//!<
 #define NET_ERR_WIFI_INVALID_GATEWAY	0xFF	//!<
 
+enum wifi_iface_mode_indx {
+	wifi_iface_mode_default,
+	wifi_iface_mode_boot,
+	wifi_iface_mode_high_speed,
+
+	wifi_iface_modes	//!< the number of modes
+};
 
 struct WIFI_DRIVER_DATA
 {
@@ -83,7 +90,7 @@ struct WIFI_DRIVER_INFO
 	//--- fields specific for this (WiFi) driver -----///
     WIFI_DRIVER_DATA*	drv_data;			//!< pointer to the driver data (RAM) structure
 
-	const void*			iface_mode_stru[3];	//!< mode for the interface handle
+	const void*			iface_mode_stru[wifi_iface_modes];	//!< mode for the interface handle
 };
 
 
