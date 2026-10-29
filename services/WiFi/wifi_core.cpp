@@ -590,7 +590,7 @@ RES_CODE wifi_module_type::process_cmd(HANDLE client)
 			break;
 
 		case WIFI_DRV_UPGRADE:
-			module_upgrade((HANDLE) client->dst.as_voidptr);
+			module_upgrade(client);
 			res = RES_SIG_OK;
 			break;
 

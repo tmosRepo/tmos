@@ -74,7 +74,7 @@ void wifi_thread(WIFI_DRIVER_INFO* drv_info)
 					if (drv_data->wifi_module) {
 						switch (client->cmd) {
 						case WIFI_DRV_UPGRADE:
-							drv_data->wifi_module->module_upgrade((HANDLE) client->dst.as_voidptr);
+							drv_data->wifi_module->module_upgrade(client);
 							res = RES_SIG_OK;
 							break;
 						}
